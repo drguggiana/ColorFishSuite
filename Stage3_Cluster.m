@@ -2,7 +2,7 @@
 %USE ONLY 1 GROUP AT A TIME
 %% clean up
 clearvars
-close all
+close all force
 addpath(genpath('E:\Behavioral data\Matlab'))
 
 %define whether to do regressor analysis
@@ -176,17 +176,17 @@ time_num2 = size(conc_trace2,2);
 conc_trace2 = reshape(conc_trace2,trace_num,[]);
 %% Normalize by stimulus
 
-%reshape the matrix to make the stimuli more accessible
-conc_trace3 = reshape(conc_trace2,trace_num,time_num2,[]);
-
-%for all the stimuli
-for stim = 1:stim_num2
-    %overwrite the values in conc_trace3
-    conc_trace3(:,:,stim) = normr_1(conc_trace3(:,:,stim),0);
-end
-
-%overwrite conc_trace2
-conc_trace2 = reshape(conc_trace3,trace_num,[]);
+% %reshape the matrix to make the stimuli more accessible
+% conc_trace3 = reshape(conc_trace2,trace_num,time_num2,[]);
+% 
+% %for all the stimuli
+% for stim = 1:stim_num2
+%     %overwrite the values in conc_trace3
+%     conc_trace3(:,:,stim) = normr_1(conc_trace3(:,:,stim),0);
+% end
+% 
+% %overwrite conc_trace2
+% conc_trace2 = reshape(conc_trace3,trace_num,[]);
 %% Cluster the traces
 tic
 %define the sPCA parameters to use
@@ -277,6 +277,65 @@ end
 %overwrite the old variables
 idx_clu = new_idx;
 clu_num = numel(unique(idx_clu))-1;
+%% OFF Merge clusters that are too correlated
+% close all
+% % calculate the cluster averages
+% %allocate memory for the averages
+% clu_ave = zeros(clu_num,size(conc_trace,2));
+% %and for the trace number
+% clu_number = zeros(clu_num,1);
+% %for all the clusters
+% for clu = 1:clu_num
+%     %calculate the cluster average
+%     clu_ave(clu,:) = mean(conc_trace(idx_clu==clu,:),1);
+%     %and store the number of traces going into each average
+%     clu_number(clu) = sum(idx_clu==clu);
+% end
+% 
+% 
+% % calculate the correlation matrix across clusters
+% [corr_matrix, pval] = corr(clu_ave');
+% % corr_matrix = squareform(pdist(clu_ave));
+% 
+% % define the correlation threshold
+% corr_threshold = 0.90;
+% % define the pval threshold
+% pval_threshold = 0.05;
+% 
+% figure
+% subplot(1,2,1)
+% imagesc(corr_matrix)
+% subplot(1,2,2)
+% imagesc(pval<pval_threshold&corr_matrix>corr_threshold)
+% figure
+% imagesc(normr_1(clu_ave,1))
+% % produce a list of the correlated clusters
+% [row, col] = find(tril(pval<pval_threshold&corr_matrix>corr_threshold,1));
+% 
+% % use the list to plot these clusters together
+% figure
+% % initialize a counter to lift the plots
+% lift_count = 0;
+% % get the increase interval
+% lift_interval = 0.95*max(clu_ave(:));
+% % for all the pairs
+% for pairs = 1:length(row)
+%     % plot the pairs together
+%     plot(1:size(clu_ave,2), clu_ave(row(pairs),:) - lift_count,'k')
+%     hold('on')
+%     plot(1:size(clu_ave,2), clu_ave(col(pairs),:) - lift_count,'r')
+%     % increase the counter
+%     lift_count = lift_count + lift_interval;
+% end
+% 
+% % merge the clusters by combining their indexes
+% % for all the pairs
+% for pairs = 1:length(row)
+%     
+% end
+% 
+% figure
+% histogram(tril(corr_matrix,1))
 %% OFF OLD FOR P6 FIGURE ONLY
 
 % if exc_var == 1
@@ -331,7 +390,7 @@ if save_var == 1
     save_clu = strcat(ori_name,'_clusters.mat');
     save(fullfile(save_path,save_clu),'pcs','GMModel','idx_clu','clu_num',...
         'conc_trace','bounds','K','t_bins','pca_vec','stim_num2','time_num',...
-        'col_out','bic_vec')
+        'col_out','bic_vec','fish_ori')
 end
 
 load_var = 0;

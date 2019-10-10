@@ -1,11 +1,110 @@
 % plot clustering
+clearvars
+close all force
+%% Load the files and define paths
+
+%get the folder where the image files are
+tar_path_all = uipickfiles('FilterSpec','E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3\*.mat');
+
+%get the number of experiments selected
+num_exp = length(tar_path_all);
+
+%define the list of labels to sort the files
+label_list = {'_clusters.mat'};
+
+%get the number of each type of data (the round is to avoid the nonscalar
+%warning for the for loop)
+num_data = round(num_exp./length(label_list));
+
+%allocate memory for the different types of files
+name_cell = cell(num_data,length(label_list));
+
+%for the types of files
+for f_type = 1:length(label_list)
+    
+    %get the coordinates of the file names
+    name_map = ~cellfun(@isempty,strfind(tar_path_all,label_list{f_type}));
+ 
+    %store them in the corresponding layer of the name cell
+    name_cell(:,f_type) = tar_path_all(name_map);
+end
+%% Define/load constants
+
+%define whether to load the raw traces
+raw_var = 0;
+%define whether to cluster traces
+clu_var = 0;
+
+%get the number of stimuli
+stim_num2 = load(name_cell{1},'stim_num2');
+stim_num2 = stim_num2.stim_num2;
+
+%get the colors
+col_out = load(name_cell{1},'col_out');
+col_out = col_out.col_out;
+
+%calculate the number of time bins
+temp_conc = load(name_cell{1},'conc_trace');
+temp_conc = temp_conc.conc_trace;
+
+time_num = size(temp_conc,2)/stim_num2;
+
+clear('temp_conc')
+
+%path for the clustering BIC results
+bic_name = strcat('E:\Behavioral data\Matlab\AF_proc\Clemens_suite\Results\bic_vec\'...
+    ,'GroupFile_',num2str(num_data),'_fish');
+%% Load the clusters and format
+
+%allocate memory to store all the groups of average clusters and the number
+%of traces in each cluster
+clu_all = cell(num_data,2);
+%also allocate memory for the index vectors
+idx_all = cell(num_data,1);
+
+%for all the fish
+for fish = 1:num_data
+    
+    %show the current fish
+    fprintf(strcat('Current fish:',num2str(fish),'\r\n'))
+    %load the cluster indexes for this fish
+    idx_clu = load(name_cell{fish},'idx_clu');
+    idx_clu = idx_clu.idx_clu;
+    
+    %also load the raw traces
+    conc_trace = load(name_cell{fish},'conc_trace');
+    conc_trace = conc_trace.conc_trace;
+        
+    %using the indexes, calculate the average traces
+    
+    %get the number of clusters in this fish
+    clu_num = load(name_cell{fish},'clu_num');
+    clu_num = clu_num.clu_num;
+    %allocate memory for the averages
+    clu_ave = zeros(clu_num,size(conc_trace,2));
+    %and for the trace number
+    clu_number = zeros(clu_num,1);
+    %for all the clusters
+    for clu = 1:clu_num
+        %calculate the cluster average
+        clu_ave(clu,:) = mean(conc_trace(idx_clu==clu,:),1);
+        %and store the number of traces going into each average
+        clu_number(clu) = sum(idx_clu==clu);
+    end
+    %store the average in the storage cell
+    clu_all{fish,1} = clu_ave;
+    %and the number of traces
+    clu_all{fish,2} = clu_number;
+    %store the idx_clu vector
+    idx_all{fish} = idx_clu;
+end
 %% Plot the raw clustering results
-close all
+% close all
 %sort the indexes and the fish IDs
 [~,s_ind] = sort(idx_clu);
 figure
 % subplot(1,8,1:7)
-imagesc(conc_trace(s_ind,:))
+imagesc(normr_1(conc_trace(s_ind,:),0))
 ylabel('Trace #')
 set(gca,'XTick',[],'YTick',[],'FontSize',25)
 colormap(parula)

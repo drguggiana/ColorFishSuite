@@ -1,7 +1,7 @@
 function [tail_cell,exp_map,stim_list,time_vec,tail_vec,col_ave] = Tail_proc(tar_path,rf_var)
 %% Load the tail data from the corresponding tdms file
 
-[color_mat,idpos_mat,stim_mat,~,defsum_vec,time_vec] = Tail_load_1(tar_path);
+[color_mat,idpos_mat,stim_mat,~,defsum_vec,time_vec] = Tail_load(tar_path);
 %% Get the time vector, zero it and scale it to seconds (approximate since
 %I'm not sure what's going on with the time stamps)
 time_vec = (time_vec-time_vec(1));
