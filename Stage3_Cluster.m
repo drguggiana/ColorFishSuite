@@ -17,7 +17,7 @@ gain_on = 0;
 
 %get the folder where the image files are
 tar_path_all = uipickfiles('FilterSpec',...
-    'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage2');
+    'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage2_threshold');
 
 %get the number of experiments selected
 num_exp = length(tar_path_all);
@@ -377,7 +377,7 @@ clu_num = numel(unique(idx_clu))-1;
 %% Save analysis output
 
 %define the save path
-save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3\';
+save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
 
 save_var = 1;
 if save_var == 1

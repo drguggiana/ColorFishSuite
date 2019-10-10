@@ -413,7 +413,7 @@ for exp_ind = 1:num_exp
     if save_var == 1
 
         %define the save path
-        save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage1';
+        save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage1_extraction';
         %define the root of the save name
         [~,ori_name,~] = fileparts(tar_path);
     %     %if the clustering is on

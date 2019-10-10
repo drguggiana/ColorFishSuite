@@ -12,7 +12,7 @@ save_var = 1;
 %% Load the files and define paths
 
 %get the folder where the image files are
-tar_path_all = uipickfiles('FilterSpec','E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage1\*.mat');
+tar_path_all = uipickfiles('FilterSpec','E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage1_extraction\*.mat');
 
 %get the number of experiments selected
 num_exp = length(tar_path_all);
@@ -322,7 +322,7 @@ cat_z_all = cat_z_all(snr_vec,:);
 %if the saving is active
 if save_var == 1
     %define the path for saving the concatenated files
-    thres_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage2\';
+    thres_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage2_threshold\';
     %define the saving path
 %     [thres_name,thres_fpath] = uiputfile(thres_path);
 
