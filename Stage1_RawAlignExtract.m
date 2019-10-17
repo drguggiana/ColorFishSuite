@@ -44,8 +44,8 @@ for exp_ind = 1:num_exp
 
     %define the path for saving the file with the BIC info
     [~,tar_name] = fileparts(tar_path);
-    bic_name = strcat('F:\20160603_2Pbackup\Proc_data\',tar_name);
-    bic_name2 = strcat('F:\20160603_2Pbackup\Proc_data\',tar_name,'_wBEHAV');
+%     bic_name = strcat('F:\20160603_2Pbackup\Proc_data\',tar_name);
+%     bic_name2 = strcat('F:\20160603_2Pbackup\Proc_data\',tar_name,'_wBEHAV');
     %determine whether it's an RF file
     str_parts = strsplit(tar_name,'_');
     if strcmp(str_parts{3},'p18')||strcmp(str_parts{3},'p18proto')
@@ -61,7 +61,7 @@ for exp_ind = 1:num_exp
 
     % [file_info,stim_num,rep_num,z_num,tar_files] = parser_1(tar_path);
     % [file_info,stim_num,rep_num,z_num,tar_files] = parser_2(tar_path);
-    [file_info,stim_num,rep_num,z_num,tar_files] = parser_3(tar_path);
+    [file_info,stim_num,rep_num,z_num,tar_files] = parser(tar_path);
 
     %using the first file, find out the number of time points in the trace
     first_info = imfinfo(fullfile(tar_path,tar_files{1}));
@@ -108,6 +108,8 @@ for exp_ind = 1:num_exp
     im_cell = cell(z_num,1);
     %also for the traces
     trace_cell = cell(z_num,1);
+    % for the single reps
+    trace_cell_reps = cell(z_num,1);
     %for the shifts
     shift_cell = cell(z_num,1);
     %for the behavioral interpolations
@@ -160,8 +162,8 @@ for exp_ind = 1:num_exp
     parfor z = 1:z_num
         %% Calculate dfof, compress replicates, accumulate and align
     %     profile on
-        [singlez_mat,shift_cell{z},ave_frame{z},snr_mat] = ...
-            aligner_7(tar_path,tar_files,stim_num,rep_num,file_info,pre_time,z...
+        [singlez_mat,shift_cell{z},ave_frame{z},snr_mat,allreps_mat] = ...
+            aligner(tar_path,tar_files,stim_num,rep_num,file_info,pre_time,z...
             ,skip_stim,mode_wind);
     %     profile off
     %     profile viewer
@@ -170,10 +172,15 @@ for exp_ind = 1:num_exp
         singlez_mat(:,1:5,:) = NaN;
         singlez_mat(end-4:end,:,:) = NaN;
         singlez_mat(:,end-4:end,:) = NaN;
+        % do the same with the single rep traces
+        allreps_mat(1:5,:,:,:) = NaN;
+        allreps_mat(:,1:5,:,:) = NaN;
+        allreps_mat(end-4:end,:,:,:) = NaN;
+        allreps_mat(:,end-4:end,:,:) = NaN;
         %% Run the correlation software
         %only in the frames that were averaged or moded. Don't do it on the
         %ones added at the end from the exclusion
-        corr_stack(:,:,z) = Stack_process_1(singlez_mat(:,:,1:corr_frames),0);
+        corr_stack(:,:,z) = Stack_process(singlez_mat(:,:,1:corr_frames),0);
         %% OFF Shuffle each pixel along the time dimension
     %     shuff_mat = Shuffle(singlez_mat,3);
     %     %run the correlation on the shuffled data
@@ -207,7 +214,7 @@ for exp_ind = 1:num_exp
     %     thres_minarea = 3;
 
 
-        [seed_cell{z},im_cell{z}] = Seeder_1(corr_stack(:,:,z),...
+        [seed_cell{z},im_cell{z}] = Seeder(corr_stack(:,:,z),...
             thres_seed,thres_nb,thres_area,thres_minarea);
         %% Use the seeds to process all of the slices in this z-section for signals
         %get the seed number in this z section
@@ -215,6 +222,8 @@ for exp_ind = 1:num_exp
 
         %allocate memory for storing the traces
         seed_currz = zeros(seed_num,seed_frames);
+        % and for the rep traces
+        seed_currz_reps = zeros(seed_num,seed_frames,rep_num);
         %and for the snr output
         snr_currz = zeros(seed_num,stim_num);
         %initialize a frame counter
@@ -229,16 +238,24 @@ for exp_ind = 1:num_exp
             end
             %load the current frame
             curr_frame = singlez_mat(:,:,frames);
+            
             %for all the seeds in this z section
             for seed = 1:seed_num
                 %add the intensities for each frame and store in the seed
                 seed_currz(seed,frame_counter) = mean(curr_frame(seed_cell{z}(seed).pxlist));
+                % also the single rep intensities
+                % for all the reps
+                for reps = 1:rep_num
+                    % load the reps frame
+                    curr_frame_reps = squeeze(allreps_mat(:,:,reps,frames));
+                    seed_currz_reps(seed,frame_counter,reps) = mean(curr_frame_reps(seed_cell{z}(seed).pxlist));
+                end
             end
             %update the frame counter
             frame_counter = frame_counter + 1;
         end
 
-          %also calculate the snr for each seed by averaging across the snr of
+        %also calculate the snr for each seed by averaging across the snr of
         %its voxels
 
         %for all the seeds in this z section
@@ -253,6 +270,8 @@ for exp_ind = 1:num_exp
         end
         %store the reshaped version in the output cell
         trace_cell{z} = reshape(seed_currz,[seed_num,time_num,nstim_num]); 
+        % store the single reps too
+        trace_cell_reps{z} = reshape(seed_currz_reps,[seed_num,rep_num,time_num,nstim_num]);
         %and the snr of the seeds in this z
         snr_cell{z} = snr_currz;
     end
@@ -270,13 +289,14 @@ for exp_ind = 1:num_exp
         delete(gcp)
     end
     % error('Stop here')
-    %% Filter out traces with low signal
+    %% Concatenate across sections
     close all
 
     %Method 2: shuffle and 2 stds
 
     %concatenate the trace cell info
     all_trace = vertcat(trace_cell{:});
+    all_trace_reps = vertcat(trace_cell_reps{:});
 
     %create a vector with the z of each seed
     z_seed = zeros(size(all_trace,1),1);
@@ -292,103 +312,11 @@ for exp_ind = 1:num_exp
         z_count = z_count + z_seednum;
     end
 
-    %if the old error filtering is on
-    % if err_var == 1
-    %     %if there are traces to exclude
-    %     if ~isempty(skip_stim)
-    %         %consider only the real traces for the SNR analysis
-    %         er_trace = all_trace(:,:,1:stim_num);
-    %     else %otherwise consider the entire matrix
-    %         er_trace = all_trace;
-    %     end
-    %     %calculate the standard deviation of the pre_stim period
-    %     std_pre = squeeze(std(er_trace(:,pre_time,:),0,2));
-    %     % figure
-    %     % imagesc(std_pre)
-    %     % figure
-    %     % histogram(std_pre,100)
-    %     
-    %     %generate a shuffled trace in time and calculate the accumulated mean of
-    %     %the stim trace
-    %     %allocate memory for the shuffled trace
-    %     shuff_trace = zeros(size(std_pre));
-    %     %also allocate memory for a shuffled std
-    %     shuff_std = zeros(size(std_pre));
-    %     %define the number of iterations
-    %     num_iter = time_num-1;
-    %     %for the length of the stim trace
-    %     for frames = 1:num_iter
-    %         %calculate a rotation of the stim trace
-    %         rot_trace = circshift(er_trace,frames,2);
-    %         %calculate the average of the stim period
-    %         shuff_trace = shuff_trace + squeeze(mean(rot_trace(:,stim_time,:),2)./num_iter);
-    %         %and of the std of the pre_stim
-    %         shuff_std = shuff_std + squeeze(std(rot_trace(:,pre_time,:),0,2)./num_iter);
-    %     end
-    %     
-    %     %calculate a score for each trace
-    %     trace_score = (squeeze(mean(rot_trace(:,stim_time,:),2)) - shuff_trace)./(std_pre+shuff_std);
-    %     
-    %     figure
-    %     imagesc(trace_score)
-    %     figure
-    %     histogram(trace_score)
-    %     
-    %     %also compile scores across stimuli
-    %     sum_score = max(abs(trace_score),[],2);
-    %     
-    %     figure
-    %     imagesc(sum_score)
-    %     figure
-    %     histogram(sum_score)
-    %     %calculate the mode and standard deviation of the distributions
-    %     mean_point = mean(sum_score);
-    %     std_point = std(sum_score);
-    %     %establish the threshold as 2 stds over the mode
-    %     thres_point = mean_point*0.5;% + 0.1*std_point;
-    %     hold('on')
-    %     plot([thres_point,thres_point],get(gca,'YLim'))
-    %     
-    %     cat_er = reshape(er_trace,size(er_trace,1),size(er_trace,2)*size(er_trace,3));
-    %     figure
-    %     subplot(1,10,1)
-    %     imagesc(sum_score)
-    %     % plot(cat_er(1,:))
-    %     subplot(1,10,2:10)
-    %     imagesc(cat_er)
-    %     
-    %     %calculate a thres_vector
-    %     thres_vec = sum_score>thres_point;
-    %     
-    %     %correct the traces for plotting
-    %     corr_trace = cat_er(sum_score>thres_point,:);
-    %     figure
-    %     subplot(1,2,2)
-    %     imagesc(corr_trace)
-    %     subplot(1,2,1)
-    %     imagesc(cat_er)
-    %     
-    %     %actually correct the output for the rest of the processing
-    %     all_trace = all_trace(thres_vec,:,:);
-    %     
-    %     %concatenate the behavior correlated to fluo info
-    %     all_behav = horzcat(behav_cell{:});
-    %     %also correct this trace
-    %     all_behav = all_behav(:,thres_vec,:);
-    %     
-    %     %also for the seed_cell
-    %     seed_concat = horzcat(seed_cell{:})';
-    %     %use the same filtering
-    %     seed_concat = seed_concat(thres_vec);
-    %     
-    %     %and the z_seed map
-    %     z_seed = z_seed(thres_vec);
-    % else
-        %concatenate the behavior correlated to fluo info
-        all_behav = horzcat(behav_cell{:});
-        %also for the seed_cell
-        seed_concat = horzcat(seed_cell{:})';
-    % end
+    
+    %concatenate the behavior correlated to fluo info
+    all_behav = horzcat(behav_cell{:});
+    %also for the seed_cell
+    seed_concat = horzcat(seed_cell{:})';
 
     %% Assemble the trace matrix (excluding RF stimuli and combining checkers and OMR versions)
     close all
@@ -398,8 +326,8 @@ for exp_ind = 1:num_exp
 
     %then exclude the RF traces from clustering and combine the target
     %stimuli
-    [conc_trace,~,stim_num2,~,col_out,~,~] = ...
-        exc_comb1(all_trace,exclude_vec,comb_vec,[],col_ave,[],[]);
+    [conc_trace,~,stim_num2,~,col_out,~,~,all_trace_reps] = ...
+        exc_comb(all_trace,exclude_vec,comb_vec,[],col_ave,[],[],all_trace_reps);
 
     %get the number of seeds
     seed_num = size(conc_trace,1);
@@ -425,7 +353,7 @@ for exp_ind = 1:num_exp
         % save the trace cell extracted from the fluo data
         save_trace = strcat(ori_name,'_traces.mat');
         save(fullfile(save_path,save_trace),'conc_trace','trace_cell','seed_cell',...
-            'shift_cell','ave_stack','seed_concat','z_seed','snr_cell')
+            'shift_cell','ave_stack','seed_concat','z_seed','snr_cell','all_trace_reps')
     %     %also save the seed cell, behav cell, shift cell, bout_count and bout stim
     %     save_behav = strcat(ori_name,'_behav.mat');
     %     save(fullfile(save_path,save_behav),'behav_cell','bout_count','bout_stim'...
