@@ -2,16 +2,16 @@ clearvars
 close all
 
 gains_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage4_gain\';
-cluster_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
+% cluster_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
 
-data = load_clusters(gains_path,{'_gains'});
-cluster_data = load_clusters(cluster_path,{'_clusters'});
+% data = load_clusters(gains_path,{'_gains'});
+data = load_clusters(gains_path);
 %% Extract the PCA features from the data
 
 % get the PC info from the structure
-pcs = cluster_data.pcs(:,1);
+pcs = data.pcs(:,1);
 % allocate memory for the vector
-pc_matrix = zeros(size(data.conc_trace,1),size(pcs{1},2),cluster_data.stim_num);
+pc_matrix = zeros(size(data.conc_trace,1),size(pcs{1},2),data.stim_num);
 % define the stimulus time
 stim_time = 21:60;
 % get the data and reshape to separate stim and time
@@ -21,7 +21,7 @@ for stim = 1:data.stim_num
     pc_matrix(:,:,stim) = stim_data(:,stim_time,stim)*pcs{stim};
 end
 % concatenate and column normalize the matrix for use
-pc_matrix = normr_1(reshape(pc_matrix,[],size(pcs{1},2)*cluster_data.stim_num),2);
+pc_matrix = normr_1(reshape(pc_matrix,[],size(pcs{1},2)*data.stim_num),2);
 %% Use UMAP to embed the gains
 
 

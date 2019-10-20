@@ -283,6 +283,10 @@ fish_ori = fish_ori(snr_vec,:);
 cat_seed = cell(num_data,1);
 cat_z = cell(num_data,1);
 cat_stack = cell(num_data,1);
+% allocate a cell for the anatomy info
+cat_anatomy = cell(num_data,1);
+% allocate a cell for the reps
+cat_reps = cell(num_data,1);
 
 %for all the fish
 for fish = 1:num_data
@@ -292,6 +296,15 @@ for fish = 1:num_data
     
     %load the z position of each seed
     z_seed = load(name_cell{fish,1},'z_seed');
+    
+    % load the anatomy
+    anatomy_info = load(name_cell{fish,1},'anatomy_info');
+    anatomy_info = anatomy_info.anatomy_info;
+    
+    % load the single reps
+    all_trace_reps = load(name_cell{fish,1},'all_trace_reps');
+    all_trace_reps = all_trace_reps.all_trace_reps;
+    
     %if it the first fish
     if fish == 1
         %just copy the z info
@@ -307,28 +320,38 @@ for fish = 1:num_data
     %load the ave_stack of each seed
     ave_stack = load(name_cell{fish,1},'ave_stack');
     cat_stack{fish} = ave_stack.ave_stack;
-   
+    % if anatomy_info is empty, replace it with NaNs
+    if isempty(anatomy_info)
+        anatomy_info = nan(size(seed_concat.seed_concat,1),2);
+    end
+    cat_anatomy{fish} = anatomy_info;
+    cat_reps{fish} = all_trace_reps;
 end
 
 %generate concatenated versions   
 cat_seed_all = cat(1,cat_seed{:});
 cat_z_all = cat(1,cat_z{:});
 cat_stack_all = cat(3,cat_stack{:});
+cat_anatomy_all = cat(1,cat_anatomy{:});
+cat_reps = cat(1,cat_reps{:});
 
 %filter them based on the threshold
 cat_seed_all = cat_seed_all(snr_vec,:);
 cat_z_all = cat_z_all(snr_vec,:);
+% if the anatomy is empty, keep it empty
+if ~isempty(cat_anatomy_all)
+   cat_anatomy_all = cat_anatomy_all(snr_vec,:);
+end
+cat_reps = cat_reps(snr_vec,:);
 
-%if the saving is active
-if save_var == 1
-    %define the path for saving the concatenated files
-    thres_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage2_threshold\';
-    %define the saving path
+
+%define the path for saving the concatenated files
+thres_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage2_threshold\';
+%define the saving path
 %     [thres_name,thres_fpath] = uiputfile(thres_path);
 
-    thres_name = strcat(fname{3},'_',fname{2});
-    %save the corrected variables into a new file, already grouped
-    save_name = strcat(thres_name,'_thres.mat');
-    save(fullfile(thres_path,save_name),'conc_trace','fish_ori','cat_stack_all',...
-        'cat_seed_all','cat_z_all','time_num','stim_num2','col_out','snr_mat')
-end
+thres_name = strcat(fname{3},'_',fname{2});
+%save the corrected variables into a new file, already grouped
+save_name = strcat(thres_name,'_thres.mat');
+save(fullfile(thres_path,save_name),'conc_trace','fish_ori','cat_stack_all',...
+    'cat_seed_all','cat_z_all','time_num','stim_num2','col_out','snr_mat','cat_anatomy_all','cat_reps')

@@ -3,8 +3,17 @@ clearvars
 close all force
 addpath(genpath('E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\'))
 %% Load clusters
-in_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\*.mat';
-[clu_ave, idx_clu, clu_number, conc_trace, stim_num2, time_num, col_out, fish_ori, file_name] = load_clusters(in_path,{'_clusters.mat'});
+in_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
+% [clu_ave, idx_clu, clu_number, conc_trace, stim_num2, time_num, col_out, fish_ori, file_name] = load_clusters(in_path,{'_clusters.mat'});
+
+main_str = load_clusters(in_path);
+
+%% Get the useful variables from the structure
+
+conc_trace = main_str(1).conc_trace;
+time_num = main_str(1).time_num;
+stim_num2 = main_str(1).stim_num;
+col_out = main_str(1).col_out;
 %% Extract the Fourier power at the stimulus frequency
 
 [four_cat, qual_cat] = fourier_extraction(conc_trace,time_num,stim_num2);
@@ -191,10 +200,15 @@ for cones = 1:cone_num
     subplot(2,2,cones)
     histogram(delta_res(:,cones),100)
 end
+
+% add the gain info to the structure
+main_str(1).delta_norm = delta_norm;
 %% Save the gains
 save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage4_gain\';
 
 %save the clustering output
-save_clu = strcat(file_name,'_gains.mat');
-save(fullfile(save_path,save_clu),'idx_clu','clu_number','delta_norm',...
-    'conc_trace','stim_num2','time_num','col_out','fish_ori')
+save_clu = strcat(main_str(1).name,'_gains.mat');
+% save(fullfile(save_path,save_clu),'idx_clu','clu_number','delta_norm',...
+%     'conc_trace','stim_num2','time_num','col_out','fish_ori')
+
+save(fullfile(save_path,save_clu),'main_str')

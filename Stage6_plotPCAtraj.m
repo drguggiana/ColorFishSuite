@@ -14,7 +14,7 @@ close all
 %extract the actual file name
 % [~,stim_name,~] = fileparts(name_cell{1});
 %scan for the p17b
-if contains(data(1).file_name,'p17b')
+if contains(data(1).name,'p17b')
     %if it's p17b
     stim_labels = {'Red','Green','Blue','UV'};
     %define the plot colors
@@ -111,13 +111,14 @@ for datas = 1:num_data
     %get the file name
 %     temp_name = strsplit(data{datas},'\');
 %     temp_name = strsplit(temp_name{end},'_');
-    title(strcat(data(datas).file_name,'_clusterAve'),'FontSize',20,'Interpreter','None')
+    title(strcat(data(datas).name,'_clusterAve'),'FontSize',20,'Interpreter','None')
     xlabel('PC 1','FontSize',20)
     ylabel('PC 2','FontSize',20)
     zlabel('PC 3','FontSize',20)
     
     
 end
+autoArrangeFigures
 %% Plot pca trajectories with the raw data
 close all
 %define the minimal dimension threshold for CCA
@@ -245,7 +246,7 @@ for datas = 1:num_data
     %get the file name
 %     temp_name = strsplit(name_cell{datas},'\');
 %     temp_name = strsplit(temp_name{end},'_');
-    title(strcat(data(datas).file_name,'_rawTraces'),'FontSize',20,'Interpreter','None')
+    title(strcat(data(datas).name,'_rawTraces'),'FontSize',20,'Interpreter','None')
     xlabel('PC 1','FontSize',20)
     ylabel('PC 2','FontSize',20)
     zlabel('PC 3','FontSize',20)

@@ -337,6 +337,9 @@ for exp_ind = 1:num_exp
     % imagesc(log(abs(conc_trace)))
     % figure
     % imagesc(bout_signal)
+    %% Get the anatomy information
+    
+    [anatomy_info,area_all] = anatomy_extractor(tar_path,[round(vertcat(seed_concat(:).centroid)),z_seed]);
     %% Save analysis output
     if save_var == 1
 
@@ -353,7 +356,7 @@ for exp_ind = 1:num_exp
         % save the trace cell extracted from the fluo data
         save_trace = strcat(ori_name,'_traces.mat');
         save(fullfile(save_path,save_trace),'conc_trace','trace_cell','seed_cell',...
-            'shift_cell','ave_stack','seed_concat','z_seed','snr_cell','all_trace_reps')
+            'shift_cell','ave_stack','seed_concat','z_seed','snr_cell','all_trace_reps','anatomy_info','area_all')
     %     %also save the seed cell, behav cell, shift cell, bout_count and bout stim
     %     save_behav = strcat(ori_name,'_behav.mat');
     %     save(fullfile(save_path,save_behav),'behav_cell','bout_count','bout_stim'...
