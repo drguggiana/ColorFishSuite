@@ -145,9 +145,9 @@ for files = 1:num_data
     % clu_vec = [18 20 22 24 26 28 30 32];
     clu_vec = [5 10 20 30 50 70 100];
     % clu_vec = [40 50 60];
-    % clu_vec = 30;
+%     clu_vec = 30;
     % clu_vec = [50 80 100 150 170];
-    replicates = 1;
+    replicates = 10;
     [idx_clu,GMModel,clu_num,pcs,bic_vec] = sPCA_GMM_cluster_Color(conc_trace2,bounds...
         ,K,t_bins,pca_vec,bic_name,clu_vec,replicates);
     toc

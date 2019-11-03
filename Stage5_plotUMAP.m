@@ -50,7 +50,10 @@ end
 figure
 % color_raw = round(normr_1(data.fish_ori(:,1),1)*200);
 % color_raw = round(normr_1(data.idx_clu,1)*200);
-color_raw = data.idx_clu;
+% color_raw = data.idx_clu;
+% color_raw = data.anatomy_info(:,1);
+% color_raw(isnan(color_raw)) = 0;
+color_raw = round(normr_1(pc_matrix(:,4),1)*200);
 color_edges = [min(color_raw),max(color_raw)];
 cmap = jet(diff(color_edges)+1);
 scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:))

@@ -1,9 +1,12 @@
 %% Clean up and load data
-clearvars
 
+clearvars
 close all
+addpath(genpath('E:\Behavioral data\Matlab\AF_proc\ColorFishSuite'))
+
 
 cluster_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
+fig_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Figures\PCA\';
 
 data = load_clusters(cluster_path);
 %% Calculate PCA trajectories, Niessing-style
@@ -60,7 +63,7 @@ for datas = 1:num_data
     %if a normal data set
     if datas <= num_data
         %load the clusters
-        conc_trace = data(datas).clu_ave;
+        conc_trace = data(datas).conc_trace;        
         %get the number of traces
         trace_num = size(conc_trace,1);
         %reshape the matrix to calculate correlations between stimuli
@@ -77,69 +80,94 @@ for datas = 1:num_data
         resh_trace = reshape(resh_trace,trace_num,size(resh_trace,2)/stim_num2,stim_num2);
     end
     
-    pca_mat = zeros(size(resh_trace,2),3,stim_num2);
-    figure
-    %for all the times
-    for stim = 1:stim_num2
-
-            
-        %         %get the number of time points per stimulus
-        %         t_perstim = size(time_corr,2);
-        %         %now reshape again for calculating the correlation across traces for
-        %         %each stimulus
-        %         corr_trace = reshape(resh_trace(:,time_corr(times,:),:),trace_num*t_perstim,stim_num2);
-        %         temp_mat = squeeze(mean(resh_trace(:,time_corr(times,:),:),2));
-        temp_mat = resh_trace(:,:,stim)';
-        %calculate and plot an allvall corr matrix
-        %         temp_mat = corr(corr_trace);
-        %         c_lims = [min(temp_corr(:)), max(temp_corr(:))];
-        pca_res = pca(temp_mat);        
+    % separate the traces by region
+    [region_data,num_regions] = region_split(resh_trace,data(datas).anatomy_info(:,1),data(datas).name,0);
+    
+    % run the analysis separately for every region
+    for region = 1:num_regions
+        % redefine resh_trace for the region
+        resh_trace = region_data{region,1};
         
-        pca_mat(:,:,stim) = temp_mat*pca_res(:,1:3);
-        
-        %for all the points
-        for points = 1:size(pca_mat,1)
-            plot3(pca_mat(points,1,stim),pca_mat(points,2,stim),pca_mat(points,3,stim),...
-                'Marker','o','MarkerSize',points/5,'MarkerFaceColor',plot_col(stim,:),...
-                'MarkerEdgeColor',plot_col(stim,:))
-            hold('on')
+        % if there are less than 3 dimensions, skip the plot
+        if size(resh_trace,1) < 3
+            continue
         end
-        %also plot the lines
-        plot3(pca_mat(:,1,stim),pca_mat(:,2,stim),pca_mat(:,3,stim),...
-            'Color',plot_col(stim,:))
+        % run the PCA    
+        pca_mat = zeros(size(resh_trace,2),3,stim_num2);
+        figure
+        %for all the times
+        for stim = 1:stim_num2
+
+
+            %         %get the number of time points per stimulus
+            %         t_perstim = size(time_corr,2);
+            %         %now reshape again for calculating the correlation across traces for
+            %         %each stimulus
+            %         corr_trace = reshape(resh_trace(:,time_corr(times,:),:),trace_num*t_perstim,stim_num2);
+            %         temp_mat = squeeze(mean(resh_trace(:,time_corr(times,:),:),2));
+            temp_mat = resh_trace(:,:,stim)';
+            %calculate and plot an allvall corr matrix
+            %         temp_mat = corr(corr_trace);
+            %         c_lims = [min(temp_corr(:)), max(temp_corr(:))];
+            pca_res = pca(temp_mat);
+%             pca_mat(:,:,stim) = pca_res(:,1:3);
+
+            pca_mat(:,:,stim) = temp_mat*pca_res(:,1:3);
+
+            % plot the results
+            options = struct([]);
+            options(1).line=1;
+            options(1).threeD=0;
+            plot_trajectory(pca_mat(:,:,stim), plot_col(stim,:),options)
+%             %for all the points
+%             for points = 1:size(pca_mat,1)
+% %                 plot3(pca_mat(points,1,stim),pca_mat(points,2,stim),pca_mat(points,3,stim),...
+% %                     'Marker','o','MarkerSize',points/5,'MarkerFaceColor',plot_col(stim,:),...
+% %                     'MarkerEdgeColor',plot_col(stim,:))
+%                 plot(pca_mat(points,1,stim),pca_mat(points,2,stim),...
+%                     'Marker','o','MarkerSize',points/5,'MarkerFaceColor',plot_col(stim,:),...
+%                     'MarkerEdgeColor',plot_col(stim,:))
+%                 hold('on')
+%             end
+%             %also plot the lines
+% %             plot3(pca_mat(:,1,stim),pca_mat(:,2,stim),pca_mat(:,3,stim),...
+% %                 'Color',plot_col(stim,:))
+%             plot(pca_mat(:,1,stim),pca_mat(:,2,stim),...
+%                             'Color',plot_col(stim,:))
+        end
+        %get the file name
+    %     temp_name = strsplit(data{datas},'\');
+    %     temp_name = strsplit(temp_name{end},'_');
+        title(strcat(data(datas).name,'_',region_data{region,2}),'FontSize',20,'Interpreter','None')
+%         xlabel('PC 1','FontSize',20)
+%         ylabel('PC 2','FontSize',20)
+%         zlabel('PC 3','FontSize',20)
+        % assemble the figure path 
+        file_path = strjoin({'trajectory',data(datas).name,'region',region_data{region,2},'.png'},'_');
+        saveas(gcf, fullfile(fig_path,file_path), 'png')
+    
     end
-    %get the file name
-%     temp_name = strsplit(data{datas},'\');
-%     temp_name = strsplit(temp_name{end},'_');
-    title(strcat(data(datas).name,'_clusterAve'),'FontSize',20,'Interpreter','None')
-    xlabel('PC 1','FontSize',20)
-    ylabel('PC 2','FontSize',20)
-    zlabel('PC 3','FontSize',20)
-    
-    
 end
 autoArrangeFigures
-%% Plot pca trajectories with the raw data
+%% Run CCA across data sets
+
+% if there is more than 1 data set
+if num_data > 1
+    
+end
+%% Align pca trajectories from different fish with CCA and then plot
 close all
 %define the minimal dimension threshold for CCA
-min_dim = 15;
+min_dim = 3;%10;
 % define the variance threshold
-var_threshold = 0.9;
+var_threshold = 0.6;%0.9;
 
 %for all the fish
 for datas = 1:num_data
     
     %show the current fish
     fprintf(strcat('Current dataset:',num2str(datas),'\r\n'))
-    %load the cluster indexes for this fish
-%     idx_clu = load(name_cell{datas},'idx_clu');
-%     idx_clu = idx_clu.idx_clu;
-%     
-%     %also load the raw traces
-%     raw_trace = load(name_cell{datas},'conc_trace');
-%     raw_trace = raw_trace.conc_trace;
 
-    idx_clu = data(datas).idx_clu;
     raw_trace = data(datas).conc_trace;
     
     resh_trace = reshape(raw_trace,size(raw_trace,1),time_num,stim_num2);
@@ -147,109 +175,127 @@ for datas = 1:num_data
     resh_trace = resh_trace(:,21:60,:);
     
     % get the number of animals and the animal info
-    fish_ori = data(datas).fish_ori;
-    num_animals = length(unique(fish_ori(:,1)));
-    % allocate a structure to store the pca data
-    pca_struct = struct([]);
-    pca_mat = zeros(size(resh_trace,2),3,stim_num2);
-    % initialize the skipped fish counter
-    skip_count = 0;
-    figure
-    %for all the times
-    for stim = 1:stim_num2
-                % split between animals
-        % for all the animals
-        for animals = 1:num_animals
-    %         %get the number of time points per stimulus
-    %         t_perstim = size(time_corr,2);
-    %         %now reshape again for calculating the correlation across traces for
-    %         %each stimulus
-    %         corr_trace = reshape(resh_trace(:,time_corr(times,:),:),trace_num*t_perstim,stim_num2);
-    %         temp_mat = squeeze(mean(resh_trace(:,time_corr(times,:),:),2));
-            temp_mat = resh_trace(fish_ori(:,1)==animals,:,stim)';
-            %calculate and plot an allvall corr matrix
-    %         temp_mat = corr(corr_trace);
-    %         c_lims = [min(temp_corr(:)), max(temp_corr(:))];
-            [pca_struct(animals).coeff,pca_struct(animals).score,pca_struct(animals).latent] = ...
-            pca(temp_mat);
-            
-%             pca_mat(:,:,stim) = temp_mat*pca_struct(animals).coeff(:,1:3);
-        end
+    fish_ori_all = data(datas).fish_ori;
+    num_animals = length(unique(fish_ori_all(:,1)));
+    
+    [region_data,num_regions] = region_split(resh_trace,data(datas).anatomy_info(:,1),data(datas).name,0);
+    
+    % for all the regions
+    for region = 1:num_regions
         
-        % run the CCA and align the spaces
-        % get the first animal's pca results
-        var_1 = pca_struct(1).latent;
-        traj_1  = pca_struct(1).score;
-        %determine the 60% variance threshold
-%         dim_thres = find(cumsum(var_1./sum(var_1))>var_threshold,1,'first');
-        dim_thres = 20;
-        %if there are too few dimensions left, skip
-        if dim_thres < min_dim
-            fprintf(strcat('Skipped dataset',num2str(skip_count),'\r\n'))
-            skip_count = skip_count + 1;
-            continue
-        end
-        %apply the threshold
-        traj_1 = traj_1(:,1:dim_thres);
+        % get the traces for the region
+        resh_trace = region_data{region,1};
+        % also the animal index
+        fish_ori = fish_ori_all(region_data{region,3}==1,1);
+    
         
-        % for all the animals minus the first one
-        for animals = 2:num_animals
+        pca_mat = zeros(size(resh_trace,2),3,stim_num2);
+        % initialize the skipped fish counter
+        skip_count = 0;
+        figure
+        %for all the times
+        for stim = 1:stim_num2
+            % allocate a structure to store the pca data
+            pca_struct = struct([]);
+                    % split between animals
+            % for all the animals
+            for animals = 1:num_animals
+        %         %get the number of time points per stimulus
+        %         t_perstim = size(time_corr,2);
+        %         %now reshape again for calculating the correlation across traces for
+        %         %each stimulus
+        %         corr_trace = reshape(resh_trace(:,time_corr(times,:),:),trace_num*t_perstim,stim_num2);
+        %         temp_mat = squeeze(mean(resh_trace(:,time_corr(times,:),:),2));
+                temp_mat = resh_trace(fish_ori(:,1)==animals,:,stim)';
+                %calculate and plot an allvall corr matrix
+        %         temp_mat = corr(corr_trace);
+        %         c_lims = [min(temp_corr(:)), max(temp_corr(:))];
+                [pca_struct(animals).coeff,pca_struct(animals).score,pca_struct(animals).latent] = ...
+                pca(temp_mat);
             
-            %get the corresponding pca results
-            var_2 = pca_struct(animals).latent;
-            traj_2  = pca_struct(animals).score;
+                % JUST FOR TESTING, FIX LATER
+                pca_struct(animals).score = temp_mat*pca_struct(animals).coeff;
+            end
+
+            % run the CCA and align the spaces
+            % get the first animal's pca results
+            var_1 = pca_struct(1).latent;
+            traj_1  = pca_struct(1).score;
             
-%             %determine the 60% variance threshold
-%             dim_thres = find(cumsum(var_2./sum(var_2))>0.6,1,'first');
-%             %if there are too few dimensions left, skip
-%             if dim_thres < min_dim
-%                 fprintf(strcat('Skipped dataset',num2str(skip_count),'\r\n'))
-%                 skip_count = skip_count + 1;
-%                 continue
-%             end
-%             %apply the threshold
-%             traj_2 = traj_2(:,1:dim_thres);
-            try
-                traj_2 = traj_2(:,1:dim_thres);
-            catch
+            %determine the 60% variance threshold
+            dim_thres = find(cumsum(var_1./sum(var_1))>var_threshold,1,'first');
+%             dim_thres = 14;
+            %if there are too few dimensions left, skip
+            if isempty(dim_thres) || dim_thres < min_dim
                 fprintf(strcat('Skipped dataset',num2str(skip_count),'\r\n'))
                 skip_count = skip_count + 1;
                 continue
             end
-            % align the current animal to the first one
-            [pca_struct(1).A,pca_struct(animals).B,...
-            pca_struct(animals).r,~,~,stat] = canoncorr(traj_1,traj_2);
-        end
-        
-        % plot the aligned trajectories
-        options = struct([]);
-        options(1).line=1;
-        % plot the first animal
-%         plot_trajectory(pca_struct(1).score(:,1:3),plot_col(stim,:),options)
-        pca_struct(1).new_space = pca_struct(1).score(:,1:dim_thres);
-        % for all the animals
-        for animals = 2:num_animals
-            if isempty(pca_struct(animals).B)
-                continue
-            end
-            % transform the space
-            pca_struct(animals).new_space = pca_struct(animals).score(:,1:dim_thres)*pca_struct(animals).B/...
-                pca_struct(1).A;
-%             plot_trajectory(pca_struct(animals).new_space(:,1:3),plot_col(stim,:),options)
-        end
-        
-        % calculate the average trajectory in the common space
-        all_animals = mean(cat(3,pca_struct.new_space),3);
-        plot_trajectory(all_animals(:,1:3),plot_col(stim,:),options)
+            %apply the threshold
+            traj_1 = traj_1(:,1:dim_thres);
 
-    end
-    %get the file name
-%     temp_name = strsplit(name_cell{datas},'\');
-%     temp_name = strsplit(temp_name{end},'_');
-    title(strcat(data(datas).name,'_rawTraces'),'FontSize',20,'Interpreter','None')
-    xlabel('PC 1','FontSize',20)
-    ylabel('PC 2','FontSize',20)
-    zlabel('PC 3','FontSize',20)
-    
+            % for all the animals minus the first one
+            for animals = 2:num_animals
+
+                %get the corresponding pca results
+                var_2 = pca_struct(animals).latent;
+                traj_2  = pca_struct(animals).score;
+
+    %             %determine the 60% variance threshold
+    %             dim_thres = find(cumsum(var_2./sum(var_2))>0.6,1,'first');
+    %             %if there are too few dimensions left, skip
+    %             if dim_thres < min_dim
+    %                 fprintf(strcat('Skipped dataset',num2str(skip_count),'\r\n'))
+    %                 skip_count = skip_count + 1;
+    %                 continue
+    %             end
+    %             %apply the threshold
+    %             traj_2 = traj_2(:,1:dim_thres);
+                try
+                    traj_2 = traj_2(:,1:dim_thres);
+                catch
+                    fprintf(strcat('Skipped dataset',num2str(skip_count),'\r\n'))
+                    skip_count = skip_count + 1;
+                    continue
+                end
+                % align the current animal to the first one
+                [pca_struct(1).A,pca_struct(animals).B,...
+                pca_struct(animals).r,~,~,stat] = canoncorr(traj_1,traj_2);
+            end
+
+            % plot the aligned trajectories
+            options = struct([]);
+            options(1).line=1;
+            options(1).threeD=0;
+            % plot the first animal
+            plot_trajectory(pca_struct(1).score(:,1:3),plot_col(stim,:),options)
+            pca_struct(1).new_space = pca_struct(1).score(:,1:dim_thres);
+            % for all the animals
+            for animals = 2:num_animals
+                if isempty(pca_struct(animals).B) || (size(pca_struct(1).A,1)>size(pca_struct(animals).B,1))
+                    continue
+                end
+                % transform the space
+                pca_struct(animals).new_space = pca_struct(animals).score(:,1:dim_thres)*pca_struct(animals).B/...
+                    pca_struct(1).A;
+%                 plot_trajectory(pca_struct(animals).new_space(:,1:3),plot_col(stim,:),options)
+            end
+
+            % calculate the average trajectory in the common space
+            all_animals = mean(cat(3,pca_struct.new_space),3);
+            plot_trajectory(all_animals(:,1:3),plot_col(stim,:),options)
+
+        end
+        %get the file name
+    %     temp_name = strsplit(name_cell{datas},'\');
+    %     temp_name = strsplit(temp_name{end},'_');
+        title(strcat(data(datas).name,'_',region_data{region,2}),'FontSize',20,'Interpreter','None')
+%         xlabel('PC 1','FontSize',20)
+%         ylabel('PC 2','FontSize',20)
+%         zlabel('PC 3','FontSize',20)
+        % assemble the figure path 
+        file_path = strjoin({'trajectoryCCA',data(datas).name,'region',region_data{region,2},'.png'},'_');
+        saveas(gcf, fullfile(fig_path,file_path), 'png')
+    end 
 end
 autoArrangeFigures
