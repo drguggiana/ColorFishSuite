@@ -9,7 +9,7 @@ fig_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Figures\Model\';
 
 data = load_clusters(cluster_path);
 %% Run the modelling 
-
+% TODO: use the clusters per region
 close all
 
 % for all the data sets

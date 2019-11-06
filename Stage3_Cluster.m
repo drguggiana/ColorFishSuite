@@ -1,5 +1,4 @@
 %% Cluster groups of fish together
-%USE ONLY 1 GROUP AT A TIME
 %% clean up
 clearvars
 close all force
@@ -54,20 +53,12 @@ for files = 1:num_data
     stim_num2 = load(name_cell{files,1},'stim_num2');
     stim_num2 = stim_num2.stim_num2;
     
-    %define the pre and post periods
-    pre_time = false(time_num,1);
-    pre_time(6:0.25*time_num) = 1;
-    stim_time = false(time_num,1);
-    stim_time(0.25*time_num+1:0.75*time_num) = 1;
-    post_time = false(time_num,1);
-    post_time(0.75*time_num+1:end) = 1;
+    % define the stimulus period (in frames) within a trial
+    stim_time = 21:60;
     % load the color info
     col_out = load(name_cell{files,1},'col_out');
     col_out = col_out.col_out;
 
-    %define a list of the stimuli to keep
-    % keep_stim = [1 3 13 14 10 12];
-    keep_stim = [];
     %load and concatenate all the traces
 
     %load the conc_trace variable into the trace_all cell
@@ -139,86 +130,27 @@ for files = 1:num_data
     pca_vec = ones(stim_num2,1).*1;
 
     %define the vector of cluster numbers to try
-    % clu_vec = [2 3 4 5 10 20 30 40 50];
-    %     clu_vec = [100 200 300];  %MOST USED ONE
-    % clu_vec = 40;
-    % clu_vec = [18 20 22 24 26 28 30 32];
     clu_vec = [5 10 20 30 50 70 100];
-    % clu_vec = [40 50 60];
 %     clu_vec = 30;
-    % clu_vec = [50 80 100 150 170];
+    
     replicates = 10;
+    
     [idx_clu,GMModel,clu_num,pcs,bic_vec] = sPCA_GMM_cluster_Color(conc_trace2,bounds...
         ,K,t_bins,pca_vec,bic_name,clu_vec,replicates);
     toc
     %save the original cluster number for the surrogate analysis
     ori_clu = clu_num;
     %% Exclude clusters with snr below a threshold and with too few traces
+    
+    % define the thresholds
+    num_thres = 10;
+    stim_thres = 0;
 
     %load the snr for the dataset
     snr_mat = load(name_cell{files},'snr_mat');
     snr_mat = snr_mat.snr_mat;
-
-    %calculate the average snr vector for each cluster
-
-    %allocate memory for the clusters
-    clu_snr = zeros(clu_num,size(snr_mat,2));
-
-    %for all the clusters
-    for clu = 1:clu_num
-
-        %load the average matrix
-        clu_snr(clu,:) = mean(snr_mat(idx_clu==clu,:),1);
-    end
-
-    % %plot a histogram of the averages
-    % figure
-    % for stim = 1:stim_num2
-    %     subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
-    %     histogram(clu_snr(:,stim),100)
-    % end
-
-    %find a threshold by defining the 50th percentile on each stimulus
-    snr_thres = prctile(clu_snr,50,1);
-
-    %keep traces that pass the threshold in at least 1 stim
-    snr_thres_all = bsxfun(@gt,clu_snr,snr_thres);
-    snr_thres_vec = sum(snr_thres_all,2)>0;
-    %also modify the vector based on the number of traces per cluster
-    num_thres = 10;
-    %for all the clusters
-    for clu = 1:clu_num
-        %kill the ones with less than num_thres traces
-        if sum(idx_clu==clu)<num_thres
-            snr_thres(idx_clu==clu) = 0;
-            idx_clu(idx_clu==clu) = 0;
-            snr_thres_vec(clu) = 0;
-        end
-    end
-
-    %modify the idx_clu vector and clu_num to reflect this fact
-    %find all the clusters that stay
-    new_clu = find(snr_thres_vec);
-    %create a new idx_clu to overwrite the old one
-    new_idx = zeros(size(idx_clu));
-    %initialize a new cluster counter
-    c_count = 1;
-    %for all the clusters
-    for clu = 1:clu_num
-        %check whether the cluster number stays
-        if sum(new_clu==clu)>0
-            %renumber all instances in the new idx vector
-            new_idx(idx_clu==clu) = c_count;
-            %update the counter
-            c_count = c_count + 1;
-            %clusters not found will be left as zeros
-        end
-    end
-
-    %overwrite the old variables
-    idx_clu = new_idx;
-    clu_num = numel(unique(idx_clu))-1;
     
+    [idx_clu,clu_num] = cluster_snr(snr_mat,clu_num,idx_clu,num_thres,stim_thres);
     %% Calculate the cluster average
     
     %allocate memory for the averages
@@ -232,6 +164,46 @@ for files = 1:num_data
         %and store the number of traces going into each average
         clu_number(clu) = sum(idx_clu==clu);
     end
+    %% Cluster by area and exclude noisy clusters
+    
+    % get the number of regions
+    number_regions = unique(anatomy_info(:,1));
+    number_regions = length(number_regions(~isnan(number_regions)));
+    
+    % allocate memory to store the region clusters
+    region_clusters = struct([]);
+    % for all the regions
+    for regions = 1:number_regions
+        close all
+        % get the traces for the region
+        region_traces = conc_trace2(anatomy_info(:,1)==regions,:);
+        % cluster them as above
+        [idx_clu_region,~,clu_num_region] = sPCA_GMM_cluster_Color(region_traces,bounds...
+        ,K,t_bins,pca_vec,bic_name,clu_vec,replicates);
+    
+        % filter the traces based on the above
+        [idx_clu_region,clu_num_region] = cluster_snr(snr_mat(anatomy_info(:,1)==regions,:),...
+            clu_num_region,idx_clu_region,num_thres,stim_thres);
+        
+        % calculate the cluster averages
+        %allocate memory for the averages
+        clu_ave_region = zeros(clu_num_region,size(region_traces,2));
+        %and for the trace number
+        clu_number_region = zeros(clu_num_region,1);
+        %for all the clusters
+        for clu = 1:clu_num_region
+            %calculate the cluster average
+            clu_ave_region(clu,:) = mean(region_traces(idx_clu_region==clu,:),1);
+            %and store the number of traces going into each average
+            clu_number_region(clu) = sum(idx_clu_region==clu);
+        end
+    
+        % save the cluster info
+        region_clusters(regions).idx_clu = idx_clu_region;
+        region_clusters(regions).clu_num = clu_num_region;
+        region_clusters(regions).clu_ave = clu_ave_region;
+        region_clusters(regions).trace_num = clu_number_region;
+    end 
     %% Load the info about seeds
     
     z_seed = load(name_cell{files,1},'cat_z_all');
@@ -339,21 +311,8 @@ for files = 1:num_data
     %     %also modify the color code variable
     %     col_out = new_col;
     % end
-    %% Save analysis output
+    %% Assemble the structure with the data
 
-    %define the save path
-    save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
-
-
-%     %get the root of the save name
-%     [ori_name,~] = uiputfile(strcat(save_path,'*.*'));
-    % get the original file name
-%     ori_name = name_whole(1:end-6);
-    %save the clustering output
-    save_clu = strcat(ori_name,'_clusters.mat');
-%     save(fullfile(save_path,save_clu),'pcs','GMModel','idx_clu','clu_num',...
-%         'conc_trace','bounds','K','t_bins','pca_vec','stim_num2','time_num',...
-%         'col_out','bic_vec','fish_ori','anatomy_info','single_reps')
     % assemble a structure with all of the data
     main_str = struct([]);
     main_str(1).name = ori_name;
@@ -379,8 +338,19 @@ for files = 1:num_data
     main_str(1).xy_seed = xy_seed;
     main_str(1).ave_stack = ave_stack;
     main_str(1).snr_mat = snr_mat;
+    %% Extract the gains
+    close all
+
+    % get the gains
+    main_str(1).delta_norm = gain_analysis(main_str,stim_time);
+    %% Save the structure
+    
+    %define the save path
+    save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
+
+    % assemble the file name
+    save_clu = strcat(ori_name,'_clusters.mat');
     
     % save the structure
     save(fullfile(save_path,save_clu),'main_str')
-    
 end
