@@ -138,6 +138,13 @@ model_vec = cell(clu_ran,1);
 clu_count = 1;
 %for all the clu num to evaluate
 for clu = clu_vec
+    % if the target cluster number is higher than the dimensionality, skip
+    if clu >= size(f_data,1) || size(f_data,1) < size(f_data,2)
+        bic_vec(clu_count) = NaN;
+        model_vec{clu_count} = [];
+        clu_count = clu_count + 1;
+        continue
+    end
     %generate the model
     GM_temp = fitgmdist(f_data,clu,'CovarianceType','diagonal',...
         'RegularizationValue',1e-3,'Options',statset('MaxIter',500,...
@@ -158,12 +165,19 @@ plot(clu_vec,bic_vec)
 %send out the BIC levels
 varargout{2} = bic_vec;
 %assign the cluster number as the minimum of the BIC function
-[~,clu_coord] = min(bic_vec);
-clu_num = clu_vec(clu_coord);
-GMModel = model_vec{clu_coord};
+% check that there are values in the vector
+if all(isnan(bic_vec))
+    clu_num = [];
+    GMModel = [];
+    idx_clu = [];
+else
+    [~,clu_coord] = nanmin(bic_vec);
+    clu_num = clu_vec(clu_coord);
+    GMModel = model_vec{clu_coord};
 
-%cluster the data based on the model
-idx_clu = cluster(GMModel,f_data);
+    %cluster the data based on the model
+    idx_clu = cluster(GMModel,f_data);
+end
 % end
 %% Cluster the data using a Gaussian Mixture model
 % tic

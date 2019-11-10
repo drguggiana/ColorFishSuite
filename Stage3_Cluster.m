@@ -166,44 +166,71 @@ for files = 1:num_data
     end
     %% Cluster by area and exclude noisy clusters
     
-    % get the number of regions
-    number_regions = unique(anatomy_info(:,1));
-    number_regions = length(number_regions(~isnan(number_regions)));
-    
-    % allocate memory to store the region clusters
-    region_clusters = struct([]);
-    % for all the regions
-    for regions = 1:number_regions
-        close all
-        % get the traces for the region
-        region_traces = conc_trace2(anatomy_info(:,1)==regions,:);
-        % cluster them as above
-        [idx_clu_region,~,clu_num_region] = sPCA_GMM_cluster_Color(region_traces,bounds...
-        ,K,t_bins,pca_vec,bic_name,clu_vec,replicates);
-    
-        % filter the traces based on the above
-        [idx_clu_region,clu_num_region] = cluster_snr(snr_mat(anatomy_info(:,1)==regions,:),...
-            clu_num_region,idx_clu_region,num_thres,stim_thres);
+    % if there's no anatomy info, skip
+    if ~isempty(anatomy_info)
         
-        % calculate the cluster averages
-        %allocate memory for the averages
-        clu_ave_region = zeros(clu_num_region,size(region_traces,2));
-        %and for the trace number
-        clu_number_region = zeros(clu_num_region,1);
-        %for all the clusters
-        for clu = 1:clu_num_region
-            %calculate the cluster average
-            clu_ave_region(clu,:) = mean(region_traces(idx_clu_region==clu,:),1);
-            %and store the number of traces going into each average
-            clu_number_region(clu) = sum(idx_clu_region==clu);
-        end
-    
-        % save the cluster info
-        region_clusters(regions).idx_clu = idx_clu_region;
-        region_clusters(regions).clu_num = clu_num_region;
-        region_clusters(regions).clu_ave = clu_ave_region;
-        region_clusters(regions).trace_num = clu_number_region;
-    end 
+  
+        % get the number of regions
+        region_set = unique(anatomy_info(:,1));
+        number_regions = length(region_set(~isnan(region_set)));
+
+        % allocate memory to store the region clusters
+        region_clusters = struct([]);
+        % for all the regions
+        for regions = 1:number_regions
+            close all
+            % get the traces for the region
+            region_traces = conc_trace2(anatomy_info(:,1)==region_set(regions),:);
+                % is there's less than num_thres traces, skip
+                if size(region_traces,1) < num_thres || size(region_traces,1) < sum(K)
+                    region_clusters(regions).idx_clu = [];
+                    region_clusters(regions).clu_num = [];
+                    region_clusters(regions).clu_ave = [];
+                    region_clusters(regions).trace_num = [];
+                    continue
+                end
+                % cluster them as above
+                [idx_clu_region,~,clu_num_region] = sPCA_GMM_cluster_Color(region_traces,bounds...
+                ,K,t_bins,pca_vec,bic_name,clu_vec,replicates);
+
+                % filter the traces based on the above
+                [idx_clu_region,clu_num_region] = cluster_snr(snr_mat(anatomy_info(:,1)==region_set(regions),:),...
+                    clu_num_region,idx_clu_region,num_thres,stim_thres);
+                
+                % if no clusters were left, also skip
+                if sum(idx_clu_region) == 0
+                    region_clusters(regions).idx_clu = [];
+                    region_clusters(regions).clu_num = [];
+                    region_clusters(regions).clu_ave = [];
+                    region_clusters(regions).trace_num = [];
+                    continue
+                end
+
+                % calculate the cluster averages
+                %allocate memory for the averages
+                clu_ave_region = zeros(clu_num_region,size(region_traces,2));
+                %and for the trace number
+                clu_number_region = zeros(clu_num_region,1);
+                %for all the clusters
+                for clu = 1:clu_num_region
+                    %calculate the cluster average
+                    clu_ave_region(clu,:) = mean(region_traces(idx_clu_region==clu,:),1);
+                    %and store the number of traces going into each average
+                    clu_number_region(clu) = sum(idx_clu_region==clu);
+                end
+
+                % save the cluster info
+                region_clusters(regions).idx_clu = idx_clu_region;
+                region_clusters(regions).clu_num = clu_num_region;
+                region_clusters(regions).clu_ave = clu_ave_region;
+                region_clusters(regions).trace_num = clu_number_region;
+        end 
+    else
+        region_clusters(regions).idx_clu = [];
+        region_clusters(regions).clu_num = [];
+        region_clusters(regions).clu_ave = [];
+        region_clusters(regions).trace_num = [];
+    end
     %% Load the info about seeds
     
     z_seed = load(name_cell{files,1},'cat_z_all');
@@ -211,6 +238,7 @@ for files = 1:num_data
     
     xy_seed = load(name_cell{files,1},'cat_seed_all');
     xy_seed = xy_seed.cat_seed_all;
+    
     
     ave_stack = load(name_cell{files,1},'cat_stack_all');
     ave_stack = ave_stack.cat_stack_all;
@@ -338,11 +366,15 @@ for files = 1:num_data
     main_str(1).xy_seed = xy_seed;
     main_str(1).ave_stack = ave_stack;
     main_str(1).snr_mat = snr_mat;
+    main_str(1).region_clusters = region_clusters;
     %% Extract the gains
     close all
-
-    % get the gains
-    main_str(1).delta_norm = gain_analysis(main_str,stim_time);
+    if contains(ori_name,'p17b')
+        % get the gains
+        main_str(1).delta_norm = gain_analysis(main_str,stim_time);
+    else
+        main_str(1).delta_norm = [];
+    end
     %% Save the structure
     
     %define the save path
