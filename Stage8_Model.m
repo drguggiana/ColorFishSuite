@@ -11,6 +11,8 @@ data = load_clusters(cluster_path);
 %% Run the modelling 
 % TODO: use the clusters per region
 close all
+% allocate memory to store the model data
+model_cell = cell(size(data,2),1);
 
 % for all the data sets
 for datas = 1:size(data,2)
@@ -19,7 +21,7 @@ for datas = 1:size(data,2)
     % get the number of regions in the set
     unique_regions = unique(region_info);
     num_data = size(unique_regions(~isnan(unique_regions)),1);
-    %get all the pairwise combinations of the fish
+    %get all the pairwise combinations of the regions
     region_comb = combnk(1:num_data,2);
 
     %get the number of combs
@@ -29,6 +31,9 @@ for datas = 1:size(data,2)
     % stim_vec = zeros(40,1);
     % 
     % rest_all = logical(repmat([rest_vec;stim_vec;rest_vec],stim_num2,1));
+    
+    % allocate memory for the model data within this dataset
+    current_models = cell(num_comb,1);
 
     % define the period of interest (0 pre, 1 stim, 2 post, 3 pre-post)
     period = 1;
@@ -39,10 +44,18 @@ for datas = 1:size(data,2)
         %concatenate the clusters from both animals involved
 %         tar1 = clu_all{fish_comb(combs,1),1};
 %         tar2 = clu_all{fish_comb(combs,2),1}; 
+        tar1 = data(datas).region_clusters(region_comb(combs,1)).clu_ave;
+        tar2 = data(datas).region_clusters(region_comb(combs,2)).clu_ave;
+        % if either of them is empty, put a nan in the cell and skip
+        if isempty(tar1) || isempty(tar2)
+            current_models{combs} = NaN;
+            continue
+        end
+        
 
-        tar1 = data(datas).conc_trace(region_info==region_comb(combs,1),:);
-        raw_trace2 = data(datas).conc_trace(region_info==region_comb(combs,2),:);
-        tar2 = raw_trace2;
+%         tar1 = data(datas).conc_trace(region_info==region_comb(combs,1),:);
+%         raw_trace2 = data(datas).conc_trace(region_info==region_comb(combs,2),:);
+%         tar2 = raw_trace2;
     %     %also load the raw traces
     %     raw_trace1 = load(name_cell{fish_comb(combs,1)},'conc_trace');
     %     raw_trace1 = raw_trace1.conc_trace;
@@ -59,8 +72,8 @@ for datas = 1:size(data,2)
         model_para = cell(size(tar1,1),1);
         %for all the averages
         for clu = 1:size(tar1,1)
-
-            for stim = 1:data(datas).stim_num
+            fprintf(strcat('Current comb:',num2str(combs),'Current clu: ',num2str(clu),'\r\n'))
+%             for stim = 1:data(datas).stim_num
     %         model_para{clu} = fitlm(raw_trace2',tar1(clu,:)','exclude',rest_all);
     %         model_para{clu} = fitglm(raw_trace2',tar1(clu,:)','exclude',rest_all);
     %         model_para{clu} = fitlm(tar2',tar1(clu,:)','linear','exclude',rest_all);
@@ -77,20 +90,90 @@ for datas = 1:size(data,2)
     %         plot(model_para{clu}.Fitted.Response)
     %         plot(model_para{clu}.Fitted.LinearPredictor)
 
-                model_para{clu} = fitrlinear(raw_trace2',tar1(clu,:)','CrossVal','on');
-                figure
-                plot(tar2(clu,:))
-                hold('on')
-                plot(model_para{clu}.Y)
-            end
+%                 model_para{clu} = fitrlinear(raw_trace2',tar1(clu,:)','CrossVal','on');
+            model_para{clu} = fitrlinear(tar2',tar1(clu,:)','CrossVal','on');
+
+%                 figure
+%                 plot(tar2(clu,:))
+%                 hold('on')
+%                 plot(model_para{clu}.Y)
+%             end
     %         figure
     %         imagesc(model_para{clu}.CoefficientCovariance)
         end
-
+        % fill up the dataset cell
+        current_models{combs} = model_para;
 
 
     %         figure
     %         imagesc(model_para{1}.CoefficientCovariance)
 
     end
+    % fill up the overall cell
+    model_cell{datas} = current_models;
 end
+%% Plot the results
+
+close all
+
+% for all the data sets
+for datas = 1:size(data,2)
+    
+    %define the stim labels based on the paradigm
+    if contains(data(datas).name,'syn')
+        %define the region labels
+        reg_label = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
+        reg_map = [0 4 5 6 7 8 9 10];
+    else
+        %define the region labels
+        reg_label = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+        reg_map = [0:10];
+    end
+    
+    % get the number of regions
+    region_info = data(datas).anatomy_info(:,1);
+    % get the number of regions in the set
+    unique_regions = unique(region_info);
+    num_data = size(unique_regions(~isnan(unique_regions)),1);
+    %get all the pairwise combinations of the regions
+    region_comb = combnk(1:num_data,2);
+
+    %get the number of combs
+    num_comb = size(region_comb,1);
+    % allocate memory for the combination matrix
+    combination_matrix = zeros(num_data);
+    % for all the combinations
+    for combs = 1:num_comb
+        % get the coordinates of the combination
+        x_coord = region_comb(combs,1);
+        y_coord = region_comb(combs,2);
+        % get the number of clusters in the x_coord
+        clu_num = data(datas).region_clusters(x_coord).clu_num;
+        % if the model of interest is a nan, put a nan and skip the
+        % iteration
+        if ~iscell(model_cell{datas}{combs}) && isnan(model_cell{datas}{combs})
+            combination_matrix(x_coord,y_coord) = nan;
+            continue
+        end
+        % calculate the average of the cluster losses for this combination
+        % for all the clusters
+        for clu = 1:clu_num
+            combination_matrix(x_coord,y_coord) = ...
+                combination_matrix(x_coord,y_coord) + ...
+                kfoldLoss(model_cell{datas}{combs}{clu})/clu_num;
+        end
+    end
+    % plot the matrix
+    figure
+    title(data(datas).name)
+    imagesc(combination_matrix)
+    set(gca,'XTick',1:num_data,'XTickLabel',reg_label,'XTickLabelRotation',45)
+    set(gca,'YTick',1:num_data,'YTickLabel',reg_label)
+    axis square
+    colorbar
+    
+    % assemble the figure path 
+    file_path = strjoin({'modelMatrix',data(datas).name,'.png'},'_');
+    saveas(gcf, fullfile(fig_path,file_path), 'png')
+end
+autoArrangeFigures
