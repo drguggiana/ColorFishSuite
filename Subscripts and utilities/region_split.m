@@ -1,7 +1,7 @@
 function [region_data,num_regions] = region_split(conc_trace,regions,name,varargin)
 
 % check if the flag is there
-if size(varargin,1) == 0
+if size(varargin,1) == 0 || varargin{1} == 0
     combined = 0;
 else
     combined = varargin{1};
@@ -11,11 +11,11 @@ end
 if combined == 0
     if contains(name,'syn')
         %define the region labels
-        reg_label = {'N/A','AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
+        reg_label = {'N/A','AF4','AF5','AF6','AF7','AF8','AF9','AF10','All'};
         reg_map = [0 4 5 6 7 8 9 10];
     else
         %define the region labels
-        reg_label = {'N/A','L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+        reg_label = {'N/A','L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt','All'};
         reg_map = [0:10];
     end
 
@@ -25,8 +25,7 @@ if combined == 0
     list_regions = unique(regions);
     % get the number of regions
     num_regions = length(list_regions)-1;
-
-    % allocate memory for the regions (excluding the 0)
+    % allocate memory for the regions
     region_data = cell(num_regions,3);
 
     % for all the regions (excluding the sero)
@@ -40,12 +39,12 @@ if combined == 0
     end
 
 else
-    if contains(name,'syn')
+    if contains(name,{'Syn', 'syn'})
         %define the region labels
-        reg_label = {'RGCs'};
+        reg_label = 'RGCs';
     else
         %define the region labels
-        reg_label = {'Tectum'};
+        reg_label = 'Tectum';
     end
     
     region_data = {conc_trace,reg_label,ones(size(conc_trace,1),1)};

@@ -2,7 +2,8 @@
 clearvars
 close all
 % addpath(genpath('E:\Behavioral data\Matlab\AF_proc\ColorFishSuite'))
-addpath(genpath('E:\Behavioral data\Matlab\AF_proc\ColorFishSuite'))
+load('paths.mat')
+addpath(genpath(paths(1).main_path))
 %% Define miscellaneous constants
 
 %maximum allowed area for a seed
@@ -344,7 +345,7 @@ for exp_ind = 1:num_exp
     if save_var == 1
 
         %define the save path
-        save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage1_extraction';
+        save_path = paths(1).stage1_path;
         %define the root of the save name
         [~,ori_name,~] = fileparts(tar_path);
     %     %if the clustering is on
@@ -381,18 +382,3 @@ for exp_ind = 1:num_exp
         end
     end
 end
-%% OFF Load analysis files
-% %define the load path
-% load_path = 'E:\Behavioral data\Matlab\AF_proc\Clustering results';
-% %provide the target loadding file name
-% ori_name = '20160610_SynG6s_3';
-% %save the clustering output
-% load_clu = strcat(ori_name,'_clusters.mat');
-% load(fullfile(load_path,load_clu),'pcs','GMModel','idx_clu','clu_num')
-% 
-% % save the trace cell extracted from the fluo data
-% load_trace = strcat(ori_name,'_traces.mat');
-% load(fullfile(load_path,load_trace),'trace_cell','seed_cell','shift_cell','ave_stack')
-% %also save the seed cell, behav cell, shift cell, bout_count and bout stim
-% load_trace = strcat(ori_name,'_behav.mat');
-% load(fullfile(load_path,load_trace),'behav_cell','bout_count','bout_stim')

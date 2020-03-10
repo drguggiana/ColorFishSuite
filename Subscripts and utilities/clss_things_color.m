@@ -63,8 +63,8 @@ for redec = 1:redec_num
     rest_all = period_of_interest(period,stim_num2,rep_num);
     %             rest_all = logical(ones(80*stim_num2,1));
     obs_num = sum(rest_all);
-    %calculate the time per stimulus
-    t_perstim = obs_num/stim_num2;
+%     %calculate the time per stimulus
+%     t_perstim = obs_num/stim_num2;
     %allocate memory to store the restless data
     stim_only = zeros(trace_num,obs_num);
     %extract the non-rest periods
@@ -95,8 +95,9 @@ for redec = 1:redec_num
     end
     %replace the original matrix
     stim_only = stim_bin;
-    %also update the observation counter
+    %also update the observation counter time per stimulus
     obs_num = bin_num;
+    t_perstim = obs_num/stim_num2;
     
     %if 5 color categories are desired
     if (classpcolor == 5)||(classpcolor == 6)

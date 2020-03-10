@@ -3,7 +3,8 @@
 %% clean up
 clearvars
 close all
-addpath(genpath('E:\Behavioral data\Matlab\AF_proc\ColorFishSuite'))
+load('paths.mat')
+addpath(genpath(paths(1).main_path))
 %define whether to save the output or not
 save_var = 1;
 %define the fish to combine
@@ -12,7 +13,7 @@ save_var = 1;
 %% Load the files and define paths
 
 %get the folder where the image files are
-tar_path_all = uipickfiles('FilterSpec','E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage1_extraction\*.mat');
+tar_path_all = uipickfiles('FilterSpec',strcat(paths(1).stage1_path,'*.mat'));
 
 %get the number of experiments selected
 num_exp = length(tar_path_all);
@@ -59,7 +60,7 @@ post_time = false(time_num,1);
 post_time(0.75*time_num+1:end) = 1;
 
 % load the thresholding constants
-snr_param = load('E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Subscripts and utilities\parameters.mat','snr_param');
+snr_param = load(paths(1).param_path,'snr_param');
 snr_param = snr_param.snr_param;
 
 % select the corresponding thresholds based on the dataset
@@ -192,62 +193,12 @@ end
 %get the program used
 % [~,name_whole,~] = fileparts(tar_path_all{1});
 % name_parts = strsplit(name_whole,'_');
-%if it's a gain program
-if any(strcmp(fname{3},{'p17b','p21'}))==1
-    %flip the middle stimuli in conc_trace to match wavelength
-    conc_trace = conc_trace(:,[1:80,161:240,81:160,241:320]);
-elseif strcmp(fname{3},'p20')==1
-    %flip the middle stimuli in conc_trace to match wavelength
-    conc_trace = conc_trace(:,[1:80,161:240,81:160,241:400]);
-elseif strcmp(fname{3},'p22')==1
-    %flip the middle stimuli in conc_trace to match wavelength
-    conc_trace = conc_trace(:,[1:80,161:240,81:160,241:320,...
-        321:400,481:560,401:480,561:640]);
-elseif strcmp(fname{3}, 'p6')==1
-    % if it's p6, remove the stimuli not to be used in the rest of the
-    % analysis when comparing to p8
-    
 
- 
-    %stimuli to exclude
-    exc_stim = [1:4 6 8 10 12:21 23]; %excludes all but 6
-
-    %get the new number of stimuli
-    new_stim = stim_num2-length(exc_stim);
-    %allocate memory for the new stim matrix
-    exc_trace = zeros(size(conc_trace,1),time_num.*new_stim);
-    %and for the new color code matrix
-    new_col = zeros(new_stim,time_num,8);
-    %initialize a time trace stim counter (to index the time trace)
-    stim_c = 1;
-    
-    %for all the stimuli
-    for stim = 1:stim_num2
-        %if the stimulus is not in the exclusion matrix
-        if ~any(stim==exc_stim)
-            %add it to the new matrix
-            exc_trace(:,stim_c:stim_c+time_num-1) = conc_trace(:,1+time_num*(stim-1):time_num*stim);
-            %and add the color code
-            new_col((stim_c-1+time_num)/time_num,:,:) = col_out(stim,:,:);
-            %update the counter
-            stim_c = stim_c + time_num;
-        end
-    end
-
-    % figure
-    % imagesc(conc_trace)
-    % figure
-    % imagesc(exc_trace)
-
-    %rewrite the conc_trace and stim_num2 variables 
-    stim_num2 = new_stim;
-    conc_trace = exc_trace;
-    %also modify the color code variable
-    col_out = new_col;
-    % also change the program variable to p8 for saving
-    fname{3} = 'p8';
-        
-end
+% save the original stimulus number and file name
+ori_fname = fname;
+ori_stim_num2 = stim_num2;
+% correct dataset specific mistakes
+[conc_trace, stim_num2, col_out, fname] = dataset_fixes(fname,conc_trace,stim_num2,col_out,time_num);
 %% Threshold the traces based on the snr calculation above
 
 %the idea is to exclude any trace that has a value under the threshold,
@@ -304,6 +255,13 @@ for fish = 1:num_data
     % load the single reps
     all_trace_reps = load(name_cell{fish,1},'all_trace_reps');
     all_trace_reps = all_trace_reps.all_trace_reps;
+    % get the number of traces
+    trace_num = size(all_trace_reps,1);
+    % reshape to have stimuli in one dimension
+    all_trace_reps = reshape(all_trace_reps,trace_num,time_num,stim_num2,[]);
+    % fix the dataset specific issues
+    [all_trace_reps, ~, ~, ~] = dataset_fixes(ori_fname,all_trace_reps,ori_stim_num2,[],time_num);
+
     
     %if it the first fish
     if fish == 1
@@ -346,7 +304,7 @@ cat_reps = cat_reps(snr_vec,:);
 
 
 %define the path for saving the concatenated files
-thres_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage2_threshold\';
+thres_path = paths(1).stage2_path;
 %define the saving path
 %     [thres_name,thres_fpath] = uiputfile(thres_path);
 

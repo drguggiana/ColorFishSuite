@@ -2,10 +2,11 @@
 
 clearvars
 close all
-addpath(genpath('E:\Behavioral data\Matlab\AF_proc\ColorFishSuite'))
+load('paths.mat')
+addpath(genpath(paths(1).main_path))
 
-cluster_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
-fig_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Figures\Model\';
+cluster_path = paths(1).stage3_path;
+fig_path = strcat(paths(1).fig_path,'Model\');
 
 data = load_clusters(cluster_path);
 %% Run the modelling 

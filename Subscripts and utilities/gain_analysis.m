@@ -1,4 +1,4 @@
-function delta_norm = gain_analysis(main_str,stim_time)
+function [delta_norm, qual_res, cross_res] = gain_analysis(main_str,stim_time)
 
 %% Get the useful variables from the structure
 

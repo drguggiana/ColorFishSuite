@@ -1,22 +1,26 @@
 function plot_trajectory(pca_mat,plot_col,options)
 
+% if the marker option is not there, set o as default
+if ~isfield(options,'marker')
+    options.marker = 'o';
+end
 %for all the points
 for points = 1:size(pca_mat,1)
     if options.threeD == 1
         plot3(pca_mat(points,1),pca_mat(points,2),pca_mat(points,3),...
-            'Marker','o','MarkerSize',points/5,'MarkerFaceColor',plot_col,...
+            'Marker',options.marker,'MarkerSize',points/5,'MarkerFaceColor',plot_col,...
             'MarkerEdgeColor',plot_col)
         hold('on')
 
     else
         subplot(1,2,1)
         plot(pca_mat(points,2),pca_mat(points,1),...
-            'Marker','o','MarkerSize',points/5,'MarkerFaceColor',plot_col,...
+            'Marker',options.marker,'MarkerSize',points/5,'MarkerFaceColor',plot_col,...
             'MarkerEdgeColor',plot_col)
         hold('on')
         subplot(1,2,2)
         plot(pca_mat(points,3),pca_mat(points,1),...
-            'Marker','o','MarkerSize',points/5,'MarkerFaceColor',plot_col,...
+            'Marker',options.marker,'MarkerSize',points/5,'MarkerFaceColor',plot_col,...
             'MarkerEdgeColor',plot_col)
         hold('on')
     end

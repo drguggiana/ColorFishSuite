@@ -2,12 +2,13 @@
 %% clean up
 clearvars
 close all force
-addpath(genpath('E:\Behavioral data\Matlab'))
+load('paths.mat')
+addpath(genpath(paths(1).main_path))
 %% Load the files and define paths
 
 %get the folder where the image files are
 tar_path_all = uipickfiles('FilterSpec',...
-    'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage2_threshold');
+    paths(1).stage2_path);
 
 %get the number of experiments selected
 num_exp = length(tar_path_all);
@@ -44,7 +45,7 @@ for files = 1:num_data
     [~,ori_name] = fileparts(name_cell{files,1});
     ori_name = ori_name(1:end-6);
     %path for the clustering BIC results
-    bic_name = strcat('E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\bic_files\',...
+    bic_name = strcat(paths(1).bic_path,...
     'GroupFile_',num2str(num_data),'_fish');
     %get the number of time points
     time_num = load(name_cell{files,1},'time_num');
@@ -371,14 +372,19 @@ for files = 1:num_data
     close all
     if contains(ori_name,'p17b')
         % get the gains
-        main_str(1).delta_norm = gain_analysis(main_str,stim_time);
+        [delta_norm, qual_res, cross_res] = gain_analysis(main_str,stim_time);
+        main_str(1).delta_norm = delta_norm;
+        main_str(1).qual_res = qual_res;
+        main_str(1).cross_res = cross_res;
     else
         main_str(1).delta_norm = [];
+        main_str(1).qual_res = [];
+        main_str(1).cross_res = [];
     end
     %% Save the structure
     
     %define the save path
-    save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\Stage3_cluster\';
+    save_path = paths(1).stage3_path;
 
     % assemble the file name
     save_clu = strcat(ori_name,'_clusters.mat');
