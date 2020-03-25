@@ -17,12 +17,21 @@ run_parallel = 1;
 % define which regions to include in the analysis
 tectum_regions = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Pt','R-Pt'};
 af_regions = {'AF9','AF10'};
+% tectum_regions = {'L-TcN','R-TcN','L-TcP','R-TcP'};
+% af_regions = {'AF10'};
 % define the number of repeats to run each classification scheme
 repeat_number = 10;
 % define whether to subsample
 subsample = 1;
 % combine regions
-region_combination = 0;
+region_combination = 1;
+%define whether to shuffle labels (for neutral classification)
+shuff_label = 1;
+%define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
+%p6p8 data)
+classpcolor = 10;
+%define the binning factor
+bin_width = 10;
 
 tic
 % allocate memory for both data sets
@@ -36,13 +45,6 @@ set_part = 1;
 % set the repetition number (not used since repeating outside the
 % classification function)
 redec_num = 1;
-%define whether to shuffle labels (for neutral classification)
-shuff_label = 1;
-%define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
-%p6p8 data)
-classpcolor = 1;
-%define the binning factor
-bin_width = 10;
 % define which portion of the trial to take (0 pre, 1 stim, 2 post,
 % 3 pre and post)
 portion = 1;
@@ -55,12 +57,9 @@ num_data = length(data);
 region_cell = cell(num_data,2);
 % for all data sets
 for datas = 1:num_data
-% check whether it's an anatomy-containing file or not
-    if isempty(data(datas).anatomy_info)
-        anatomy_info = [];
-    else
-        anatomy_info = data(datas).anatomy_info(:,1);
-    end
+    % load the anatomy info
+    anatomy_info = data(datas).anatomy_info(:,1);
+    
     % define the regions to be considered (depending on the stimulus protocol)
     if contains(data(datas).name,'syn')
         region_list = af_regions;
@@ -146,16 +145,6 @@ for datas = 1:num_data
             fish_classifiers = cell(3,num_fish);
             % for all the fish
             for fish = 1:num_fish
-
-    %             % normalize by stimulus
-    %             % reshape to get the stimuli
-    %             temp_stimuli = reshape(region_data{regions,1}(region_ori==fish_list(fish),:),[],time_num, stim_num, rep_num);
-    %             % normalize per stim and rep
-    %             for stim = 1:stim_num
-    %                 for reps = 1:rep_num
-    %                     temp_stimuli(:,:,stim,reps) = normr_1(temp_stimuli(:,:,stim,reps),1);
-    %                 end
-    %             end
 
                 % get the traces for this fish and reshape for normalization
                 temp_stimuli = reshape(region_traces(region_ori==fish_list(fish),:),[],time_num*stim_num,rep_num);
@@ -249,6 +238,8 @@ for datas = 1:length(data)
         
         axis square
         title(strjoin({reg_label{regs}, 'A', acc},'_'),'Interpreter','None')
+        % set the color scale to the max number of trials per category
+        set(gca,'CLim',[0, sum(class_cell{p_count}{1}(:,1))])
         %update the counter
         p_count = p_count + 1;
     end

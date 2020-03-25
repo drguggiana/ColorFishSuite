@@ -1,4 +1,5 @@
 function [region_data,num_regions] = region_split(conc_trace,regions,name,varargin)
+% separate the data in regions depending on the input parameters
 
 % check if the combine flag is there
 if size(varargin,2) == 0 
@@ -14,7 +15,7 @@ else
 end
 
 
-if contains(name,'syn')
+if contains(name,{'syn','Syn'})
     %define the region labels
     reg_label = {'N/A','AF4','AF5','AF6','AF7','AF8','AF9','AF10','All'};
     reg_map = [0 4 5 6 7 8 9 10];
@@ -24,24 +25,32 @@ else
     reg_map = [0:10];
 end
 
-% turn NaNs into 0
-regions(isnan(regions)) = 0;
-% get a list of the regions present
-list_regions = unique(regions);
-% check if a subselection was provided
-if ~isempty(region_selection)
-    % modify the set of regions present based on the selection
-    % for all the regions in the selection
-    for region = 1:size(list_regions,1)
-        % get the region name
-        region_name = reg_label{list_regions(region)==reg_map};
-        % if the region is not on the list, make it zero
-        if all(~contains(region_selection,region_name))
-            regions(regions==list_regions(region)) = 0;
-        end
-    end
-    % get list_regions again
+% monkey patch for the unannotated p8 syn dataset
+if ~contains(name,'p8')
+    % turn NaNs into 0
+    regions(isnan(regions)) = 0;
+    % get a list of the regions present
     list_regions = unique(regions);
+    % check if a subselection was provided
+    if ~isempty(region_selection)
+        % modify the set of regions present based on the selection
+        % for all the regions in the selection
+        for region = 1:size(list_regions,1)
+            % get the region name
+            region_name = reg_label{list_regions(region)==reg_map};
+            % if the region is not on the list, make it zero
+            if all(~contains(region_selection,region_name))
+                regions(regions==list_regions(region)) = 0;
+            end
+        end
+        % get list_regions again
+        list_regions = unique(regions);
+    end
+
+else
+    % lump all the regions in 1 (since the anatomy info is full of nans)
+    regions(isnan(regions)) = 1;
+    
 end
 
 % check combined
@@ -58,11 +67,12 @@ if combined == 1
         %define the region labels
         reg_label = {'N/A','Tectum'};
     end
-
+    
 end
 
 % get the number of regions
 num_regions = length(list_regions)-1;
+
 % allocate memory for the regions
 region_data = cell(num_regions,3);
 
