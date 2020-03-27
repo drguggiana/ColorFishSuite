@@ -6,7 +6,7 @@ load('paths.mat')
 addpath(genpath(paths(1).main_path))
 
 cluster_path = paths(1).stage3_path;
-fig_path = strcat(paths(1).fig_path,'Classify\');
+fig_path = strcat(paths(1).fig_path,'Distances\');
 
 data = load_clusters(cluster_path);
 %% Define which sorting index to use
@@ -47,9 +47,29 @@ switch sorting_constant
             sorting_cell{datas,3} = numbers;
         end
     case 3 % gain clusters
-        
-        
-        
+
+end
+
+% index out the non-tectal and non-AF10 traces
+% for all the datasets
+for datas = 1:num_data
+    region_combination = 1;
+    
+    % define which regions to keep depending on the dataset
+    if contains(data(datas).name, {'Syn','syn'})
+        region_list = {'AF10'};
+    else
+        region_list = {'R-TcN','R-TcP'};
+    end
+        % load the anatomy info
+    anatomy_info = data(datas).anatomy_info(:,1);
+    
+    % separate the traces by region
+    [region_cell,~] = region_split(data(datas).single_reps,...
+        anatomy_info,data(datas).name,region_combination,region_list);
+    % rewrite the index vector
+    sorting_cell{datas,1}(region_cell{3}==0) = 0;
+    
 end
 %% Get the distance distributions for each cluster
 
@@ -136,5 +156,61 @@ for datas = 1:num_data
     end
     t = sgtitle(data(datas).name);
     t.Interpreter = 'None';
+    % assemble the figure path
+    file_path = strjoin({'distanceCDF',data(datas).name,'sorting',num2str(sorting_constant),...
+        'nbins',num2str(n_bins),'rand',num2str(randomization),'.png'},'_');
+    saveas(gcf, fullfile(fig_path,file_path), 'png')
 end
 autoArrangeFigures
+%% Plot cluster anatomy
+close all
+
+% define the target clusters
+target_groups = [1,4];
+
+% for both datasets
+for datas = 1:num_data
+    % get the idx of the groups
+    sorting_index = sorting_cell{datas,1};
+    % get the number of groups
+    group_num = sorting_cell{datas,2};
+    % get the fish information
+    fish_ori = data.fish_ori;
+    % get the coordinates
+    xy_mat = data.xy_seed;
+    z_mat = data.z_seed;
+    % get the number of fish
+    fish_num = size(unique(fish_ori(:,1)),1);
+
+    % for all the fish
+    for fish = 1%:fish_num
+        figure
+        % get the z sections for this animal
+        fish_z = z_mat(fish_ori(:,1)==fish);
+        % get the number of z sections
+        z_num = length(unique(fish_z));
+        % get the slices of the stack for this fish
+        fish_stack = data(datas).ave_stack(:,:,unique(fish_z));
+        % for all the target groups
+        for group = 1:length(target_groups)
+            % get the coordinates of the seeds in this cluster and fish
+            fish_xy = xy_mat(fish_ori(:,1)==fish&sorting_index==target_groups(group));
+            % for all the z
+            for z = 1:z_num
+                % get the current frame
+                curr_frame = uint8(fish_stack(:,:,z));
+                % run through the seeds
+                for seeds = 1:size(fish_xy,1)
+                    % plot the seed in the frame
+                     curr_frame(fish_xy(seeds).pxlist) = 255;
+                end
+                subplot(round(sqrt(z_num)),ceil(sqrt(z_num)),z)
+                imshow(curr_frame)
+            end
+        end
+    end
+    
+    
+    
+end
+

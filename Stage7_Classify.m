@@ -15,27 +15,28 @@ data = load_clusters(cluster_path);
 % to parfor)
 run_parallel = 1;
 % define which regions to include in the analysis
-tectum_regions = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Pt','R-Pt'};
-af_regions = {'AF9','AF10'};
-% tectum_regions = {'L-TcN','R-TcN','L-TcP','R-TcP'};
-% af_regions = {'AF10'};
+% tectum_regions = {'R-TcN','R-TcP','R-Cb','R-Hb','R-Pt'};
+% af_regions = {'AF4','AF5','AF9','AF10'};
+tectum_regions = {'R-TcN','R-TcP'};
+af_regions = {'AF10'};
 % define the number of repeats to run each classification scheme
 repeat_number = 10;
-% define whether to subsample
-subsample = 1;
+% define whether to subsample. If subsampling from each region within a
+% dataset, use 1, if subsampling across datasets (usually with
+% combination=1) then use 2
+subsample = 2;
 % combine regions
 region_combination = 1;
 %define whether to shuffle labels (for neutral classification)
 shuff_label = 1;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
-classpcolor = 10;
+classpcolor = 11;
 %define the binning factor
 bin_width = 10;
 
 tic
-% allocate memory for both data sets
-data_struct = struct([]);
+
 % set leave one out cross validation
 loo = 1;
 % set the fraction of traces
@@ -61,7 +62,7 @@ for datas = 1:num_data
     anatomy_info = data(datas).anatomy_info(:,1);
     
     % define the regions to be considered (depending on the stimulus protocol)
-    if contains(data(datas).name,'syn')
+    if contains(data(datas).name,{'syn','Syn'})
         region_list = af_regions;
     else
         region_list = tectum_regions;
@@ -86,7 +87,8 @@ end
 
 % for all the data sets
 for datas = 1:num_data
-    
+    % allocate memory for the output
+    main_str = struct([]);
     % load the region info
     region_data = region_cell{datas,1};
     num_regions = region_cell{datas,2};
@@ -191,11 +193,30 @@ for datas = 1:num_data
     class_cell = class_cell(~empty_vec);
     
     % store the region info and the classifier results
-    data_struct(datas).region = region_data;
-    data_struct(datas).class = class_cell;
-    data_struct(datas).num_regions = num_regions;
-    data_struct(datas).empty_vec = empty_vec;    
+    main_str(1).region = region_data;
+    main_str(1).class = class_cell;
+    main_str(1).num_regions = num_regions;
+    main_str(1).empty_vec = empty_vec;
+    % also store the basic info
+    main_str(1).name = data(datas).name;
+    main_str(1).classpcolor = classpcolor;
+    main_str(1).subsample = subsample;
+    main_str(1).loo = loo;
+    main_str(1).shuff_label = shuff_label;
+    main_str(1).repeat_number = repeat_number;
+    main_str(1).bin_width = bin_width;
+    main_str(1).redec_num = redec_num;
+    %% Save the classifier
     
+    % assemble the file name
+    file_name = strjoin({'class',data(datas).name,'classp',num2str(classpcolor),...
+        'subsample',num2str(subsample),'loo',num2str(loo),'shuff',num2str(shuff_label),...
+        'reps',num2str(repeat_number),'bin',num2str(bin_width),'.mat'},'_');
+    % save the file
+    save(fullfile(paths.classifier_path,file_name),'main_str')
+    %% Plot the results
+
+    Stage7b_plotClassifier
 end
 
 % delete the pool of workers if it exists
@@ -204,112 +225,3 @@ if exist('worker_pool', 'var')
 end
 
 toc
-%% Plot the classifier results
-
-close all
-
-% for all the data sets
-for datas = 1:length(data)
-    % load the variables of interest
-    class_cell = data_struct(datas).class;
-    num_regions = data_struct(datas).num_regions;
-    reg_label = {data_struct(datas).region{:,2}};
-    empty_vec = data_struct(datas).empty_vec;
-    %get the number of non-empty classifiers
-    reg_full = size(class_cell,1);
-    
-    %plot the confusion matrices
-    figure
-    %for all the regions
-    %initialize a plot counter
-    p_count = 1;
-    for regs = 1:num_regions
-        if empty_vec(regs) == 1
-            continue
-        end
-        subplot(round(sqrt(reg_full)),ceil(sqrt(reg_full)),p_count)
-        if redec_num == 1 && repeat_number == 1
-            imagesc(class_cell{p_count}{1})
-        else
-            imagesc(mean(class_cell{p_count}{1},3))
-        end
-        % calculate the classifier accuracy
-        acc = num2str(round(mean(class_cell{p_count}{2}),2));
-        
-        axis square
-        title(strjoin({reg_label{regs}, 'A', acc},'_'),'Interpreter','None')
-        % set the color scale to the max number of trials per category
-        set(gca,'CLim',[0, sum(class_cell{p_count}{1}(:,1))])
-        %update the counter
-        p_count = p_count + 1;
-    end
-    % assemble the figure path 
-    file_path = strjoin({'confMatrix',data(datas).name,'classp',num2str(classpcolor),...
-        'subsample',num2str(subsample),'loo',num2str(loo),'shuff',num2str(shuff_label),...
-        'reps',num2str(repeat_number),'bin',num2str(bin_width),'.png'},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
-    
-    %plot the diagonal values
-    figure
-    %initialize a plot counter
-    p_count = 1;
-    %for all the regions
-    for regs = 1:num_regions
-        if empty_vec(regs) == 1
-            continue
-        end
-        plot(p_count,class_cell{p_count}{2},'ok')
-        hold('on')
-        % calculate the exact accuracy
-        exact_acc = mean(class_cell{p_count}{2});
-        % if there were repeats
-        if redec_num > 1 || repeat_number > 1
-            plot(p_count,exact_acc,'or')
-        end
-        p_count = p_count + 1;
-    end
-    set(gca,'XTick',1:reg_full,'XTickLabels',reg_label(~empty_vec),'FontSize',20,...
-        'XTickLabelRotation',45,'XLim',[0 reg_full+1])
-    ylabel('Classifier Accuracy (a.u.)','FontSize',20)
-    set(gca,'YLim',[0 1])
-    % assemble the figure path 
-    file_path = strjoin({'classAccuracy',data(datas).name,'classp',num2str(classpcolor),...
-        'subsample',num2str(subsample),'loo',num2str(loo),'shuff',num2str(shuff_label),...
-        'reps',num2str(repeat_number),'bin',num2str(bin_width),'.png'},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
-    
-%     %plot the diagonal values, normalized by number of traces
-%     figure
-%     %initialize a plot counter
-%     p_count = 1;
-%     %for all the regions
-%     for regs = 1:num_regions
-%         if empty_vec(regs) == 1
-%             continue
-%         end
-%         plot(p_count,class_cell{p_count}{2}/size(data_struct(datas).region{regs},1),'ok')
-%         hold('on')
-%         p_count = p_count + 1;
-%     end
-%     set(gca,'XTick',1:reg_full,'XTickLabels',reg_label(~empty_vec),'FontSize',20,...
-%         'XTickLabelRotation',45,'XLim',[0 reg_full+1])
-%     ylabel('Cluster Norm. Classifier Accuracy (a.u.)','FontSize',20)
-    
-%     %plot the diagonal values, normalized by the area
-%     figure
-%     %initialize a plot counter
-%     p_count = 1;
-%     %for all the regions
-%     for regs = 1:num_regions
-%         if empty_vec(regs) == 1
-%             continue
-%         end
-%         plot(p_count,class_cell{p_count}{2}/area_all(regs),'ok')
-%         hold('on')
-%         p_count = p_count + 1;
-%     end
-%     set(gca,'XTick',1:reg_full,'XTickLabels',reg_label(~empty_vec),'FontSize',20,...
-%         'XTickLabelRotation',45,'XLim',[0 reg_full+1])
-%     ylabel('Area Norm. Classifier Accuracy (a.u.)','FontSize',20)
-end
-autoArrangeFigures

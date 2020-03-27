@@ -10,20 +10,49 @@ fig_path = strcat(paths(1).fig_path,'UMAP\');
 % data = load_clusters(gains_path,{'_gains'});
 data = load_clusters(main_path);
 
+% get the number of dataset
+num_data = size(data,2);
+% allocate memory for the index
+index_cell = cell(num_data,1);
+% allocate memory for the region list
+region_list = cell(num_data,1);
+% for all the datasets
+for datas = 1:num_data
+    region_combination = 1;
+    
+    % define which regions to keep depending on the dataset
+    if contains(data(datas).name, {'Syn','syn'})
+%         region_list = {'AF10'};
+        region_list{datas} = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
+    else
+%         region_list = {'R-TcN','R-TcP'};
+        region_list{datas} = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+    end
+    % load the anatomy info
+    anatomy_info = data(datas).anatomy_info(:,1);
+    
+    % separate the traces by region
+    [region_cell,~] = region_split(data(datas).single_reps,...
+        anatomy_info,data(datas).name,region_combination,region_list{datas});
+    % rewrite the index vector
+    index_cell{datas} = region_cell{3}==1;
+    
+end
+
 % for all the datasets selected
 for datas = 1:length(data)
     close all
-    
-    %define the stim labels based on the paradigm
-    if contains(data(datas).name,'syn')
-        %define the region labels
-        reg_label = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
-        reg_map = [0 4 5 6 7 8 9 10];
-    else
-        %define the region labels
-        reg_label = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
-        reg_map = [0:10];
-    end
+% 
+%     %define the stim labels based on the paradigm
+%     if contains(data(datas).name,'syn')
+%         %define the region labels
+%         reg_label = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
+%         reg_map = [0 4 5 6 7 8 9 10];
+%     else
+%         %define the region labels
+%         reg_label = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+%         reg_map = [0:10];
+%     end
     %scan for the p17b
     if contains(data(datas).name,'p17b')
         %if it's p17b
@@ -32,6 +61,8 @@ for datas = 1:length(data)
         plot_col = [1 0 0;0 1 0;0 0 1;1 0 1];
         % set gain to on
         gains = 1;
+        % get the gains
+        delta_norm = data(datas).delta_norm(index_cell{datas}==1,:);
     else %if it's p6p8 instead
         %define the stim labels (for p6p8 data)
         stim_labels = {'Red CK','UV CK','Red GR','UV GR','Red FL','UV FL'};
@@ -43,12 +74,15 @@ for datas = 1:length(data)
     
     % get the PC info from the structure
     pcs = data(datas).pcs(:,1);
+    % get the data
+    conc_trace = data(datas).conc_trace(index_cell{datas}==1,:);
+
     % allocate memory for the vector
-    pc_matrix = zeros(size(data(datas).conc_trace,1),size(pcs{1},2),data(datas).stim_num);
+    pc_matrix = zeros(size(conc_trace,1),size(pcs{1},2),data(datas).stim_num);
     % define the stimulus time
     stim_time = 21:60;
     % get the data(datas) and reshape to separate stim and time
-    stim_data = reshape(data(datas).conc_trace,[],data(datas).time_num,data(datas).stim_num);
+    stim_data = reshape(conc_trace,[],data(datas).time_num,data(datas).stim_num);
     % for all the stimuli
     for stim = 1:data(datas).stim_num
         pc_matrix(:,:,stim) = stim_data(:,stim_time,stim)*pcs{stim};
@@ -68,12 +102,12 @@ for datas = 1:length(data)
     num_points = size(reduced_data,1);
     % close all
     % get the number of traces, time and stimuli
-    trace_num = size(data(datas).conc_trace,1);
+    trace_num = size(conc_trace,1);
     time_num = data(datas).time_num;
     stim_num = data(datas).stim_num;
     
     % get the reshaped activity
-    average_levels = reshape(data(datas).conc_trace,trace_num,time_num,stim_num);
+    average_levels = reshape(conc_trace,trace_num,time_num,stim_num);
     % take only the stimulation time
     average_levels = average_levels(:,stim_time,:);
     % take the absolute average
@@ -81,7 +115,7 @@ for datas = 1:length(data)
     if gains
         for i = 1:4
             % scale and center the gain values
-            color_raw = round(log(normr_1(data(datas).delta_norm(:,i),1))*200);
+            color_raw = round(log(normr_1(delta_norm(:,i),1))*200);
             % remove the inf values
             color_raw(isinf(color_raw)) = 0;
             % get the range of values
@@ -171,23 +205,24 @@ for datas = 1:length(data)
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
     
-    
-%     figure
-%     % color_raw = round(normr_1(data.fish_ori(:,1),1)*200);
-%     % color_raw = round(normr_1(data.idx_clu,1)*200);
-%     % color_raw = data.idx_clu;
-%     color_raw = data(datas).anatomy_info(:,1);
-%     color_raw(isnan(color_raw)) = 0;
-%     % color_raw = round(normr_1(pc_matrix(:,4),1)*200);
-%     color_edges = [nanmin(color_raw),nanmax(color_raw)];
-%     cmap = hsv(diff(color_edges)+1);
-%     % s = scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:));
-%     s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',10);
-%     legend(reg_label)
-%     
-%     % assemble the figure path
-%     file_path = strjoin({'UMAP',data(datas).name,'Region','.png'},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
+    if contains(data(datas).name,'p17')
+        figure
+        % color_raw = round(normr_1(data.fish_ori(:,1),1)*200);
+        % color_raw = round(normr_1(data.idx_clu,1)*200);
+        % color_raw = data.idx_clu;
+        color_raw = data(datas).anatomy_info(index_cell{datas}==1,1);
+        color_raw(isnan(color_raw)) = 0;
+        % color_raw = round(normr_1(pc_matrix(:,4),1)*200);
+        color_edges = [nanmin(color_raw),nanmax(color_raw)];
+        cmap = hsv(diff(color_edges)+1);
+        % s = scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:));
+        s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',10);
+        legend(region_list{datas})
+
+        % assemble the figure path
+        file_path = strjoin({'UMAP',data(datas).name,'Region','.png'},'_');
+        saveas(gcf, fullfile(fig_path,file_path), 'png')
+    end
     
     autoArrangeFigures
 end

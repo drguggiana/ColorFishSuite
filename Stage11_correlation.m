@@ -9,12 +9,36 @@ fig_path = strcat(paths(1).fig_path,'Correlations\');
 
 
 data = load_clusters(cluster_path);
+%% Get the region filtering index
+
+% get the number of dataset
+num_data = size(data,2);
+% allocate memory for the index
+index_cell = cell(num_data,1);
+% for all the datasets
+for datas = 1:num_data
+    region_combination = 1;
+    
+    % define which regions to keep depending on the dataset
+    if contains(data(datas).name, {'Syn','syn'})
+        region_list = {'AF10'};
+    else
+        region_list = {'R-TcN','R-TcP'};
+    end
+    % load the anatomy info
+    anatomy_info = data(datas).anatomy_info(:,1);
+    
+    % separate the traces by region
+    [region_cell,~] = region_split(data(datas).single_reps,...
+        anatomy_info,data(datas).name,region_combination,region_list);
+    % rewrite the index vector
+    index_cell{datas} = region_cell{3}==0;
+    
+end
 %% Calculate correlation matrices for each data set
 
 close all
 
-% get the number of dataset
-num_data = size(data,2);
 % get the number fo stimuli
 stim_num2 = data(1).stim_num;
 % get the number of time bins
@@ -66,7 +90,7 @@ for datas = 1:num_data
     % for all the fish
     for fish = 1:num_fish
         % get only the traces from this fish
-        resh_fish = resh_trace(fish_ori(:,1)==fish,:,:);
+        resh_fish = resh_trace(fish_ori(:,1)==fish&index_cell{datas}==1,:,:);
         % get the number of traces for this fish
         fish_trace_num = size(resh_fish,1);
         %now reshape again for calculating the correlation across traces for
@@ -107,7 +131,7 @@ axis square
 colorbar
 
 % assemble the figure path 
-file_path = strjoin({'corrOverall','delta','.png'},'_');
+file_path = strjoin({'corrOverall','delta',data(1).name,data(2).name,'.png'},'_');
 saveas(gcf, fullfile(fig_path,file_path), 'png')
 
 autoArrangeFigures
@@ -187,7 +211,7 @@ for datas = 1:num_data
         % for all the fish
         for fish = 1:num_fish
             % get only the traces from this fish
-            resh_fish = corr_trace(fish_ori(:,1)==fish,:,:);
+            resh_fish = corr_trace(fish_ori(:,1)==fish&index_cell{datas}==1,:,:);
 
             %calculate and plot an allvall corr matrix
             corr_perfish(:,:,fish) = corr(resh_fish);
@@ -315,7 +339,7 @@ for datas = 1:num_data
         % for all the fish
         for fish = 1:num_fish
             % get only the traces from this fish
-            resh_fish = corr_trace(fish_ori(:,1)==fish,:,:);
+            resh_fish = corr_trace(fish_ori(:,1)==fish&index_cell{datas}==1,:,:);
 
             %calculate and plot an allvall corr matrix
             corr_perfish(:,:,fish) = corr(resh_fish);
@@ -340,7 +364,11 @@ for datas = 1:num_data
        
 %         caxis(gca,c_lims)
         axis('square')
+        set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',8,...
+            'XTickLabelRotation',45)
+        set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',8)
         title(strcat('Time point:',num2str(times)));
+        sgtitle(strjoin({'Delta correlation',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
         % assemble the figure path
         file_path = strjoin({'corrOverTimeMatrix',data(datas).name,'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
@@ -354,16 +382,17 @@ figure
 for times =1:num_times
     subplot(round(sqrt(num_times)),ceil(sqrt(num_times)),times)
     imagesc(squeeze(tcorr_mat(1,times,:,:)-tcorr_mat(2,times,:,:)))
+    title(strcat('Time point:',num2str(times)));
     set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',8,...
-    'XTickLabelRotation',90)
+    'XTickLabelRotation',45)
     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',8)
     set(gca,'CLim',[-0.5,0.5])
-    title(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
+    sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
     axis square
     colorbar
 end
 
-file_path = strjoin({'corrOverTimeMatrix','delta','.png'},'_');
+file_path = strjoin({'corrOverTimeMatrix','delta',data(1).name,data(2).name,'.png'},'_');
 saveas(gcf, fullfile(fig_path,file_path), 'png')
 autoArrangeFigures
 %% Calculate correlation in the time dimension
@@ -416,7 +445,7 @@ for datas = 1:num_data
         % for all the fish
         for fish = 1:num_fish
             % get only the traces from this fish
-            corr_trace = stim_trace(fish_ori(:,1)==fish,:);
+            corr_trace = stim_trace(fish_ori(:,1)==fish&index_cell{datas}==1,:);
             %calculate and plot an allvall corr matrix
             corr_perfish(:,:,fish) = corr(corr_trace);
         end
@@ -428,6 +457,9 @@ for datas = 1:num_data
         correlations(:,:,stim,datas) = rho;
         subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
         imagesc(rho)
+        title(strjoin({'Stim:',num2str(stim)}))
+        sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
+        set(gca,'XTick',[],'YTick',[])
     %     set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
     %         'XTickLabelRotation',90)
     %     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
@@ -446,11 +478,13 @@ figure
 for stim =1:stim_num2
     subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
     imagesc(squeeze(correlations(:,:,stim,1)-correlations(:,:,stim,2)))
-    title(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
+    sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
+    title(strjoin({'Stim:',num2str(stim)}))
+    set(gca,'XTick',[],'YTick',[])
     axis square
     colorbar
 end
 % assemble the figure path
-file_path = strjoin({'corrTime','delta','.png'},'_');
+file_path = strjoin({'corrTime','delta',data(1).name,data(2).name,'.png'},'_');
 saveas(gcf, fullfile(fig_path,file_path), 'png')
 autoArrangeFigures
