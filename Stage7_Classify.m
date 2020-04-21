@@ -13,27 +13,43 @@ data = load_clusters(cluster_path);
 
 % define whether to run in parallel (need to also convert region for loop
 % to parfor)
-run_parallel = 1;
+run_parallel = 0;
+% define whether to classify on clusters or regions
+cluster_flag = 0;
+% define the region set to use
+region_set = 1;
 % define which regions to include in the analysis
-% tectum_regions = {'R-TcN','R-TcP','R-Cb','R-Hb','R-Pt'};
-% af_regions = {'AF4','AF5','AF9','AF10'};
-tectum_regions = {'R-TcN','R-TcP'};
-af_regions = {'AF10'};
+switch region_set
+    case 1
+        tectum_regions = {'R-TcN','R-TcP'};
+        af_regions = {'AF10'};
+    case 2
+        tectum_regions = {'R-TcN','R-TcP','R-Cb','R-Hb','R-Pt','L-TcN','L-TcP','L-Cb','L-Hb','L-Pt'};
+        af_regions = {'AF4','AF5','AF8','AF9','AF10'};
+end
+
+
 % define the number of repeats to run each classification scheme
 repeat_number = 10;
 % define whether to subsample. If subsampling from each region within a
 % dataset, use 1, if subsampling across datasets (usually with
-% combination=1) then use 2
+% combination=1) then use 2r
 subsample = 2;
 % combine regions
 region_combination = 1;
 %define whether to shuffle labels (for neutral classification)
-shuff_label = 1;
+shuff_label = 0;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
-classpcolor = 11;
+classpcolor = 16;
 %define the binning factor
 bin_width = 10;
+% define which portion of the trial to take (0 pre, 1 stim, 2 post,
+% 3 pre and post)
+portion = 1;
+
+% define the subsampling constant for the data
+sub_constant = 0.95;
 
 tic
 
@@ -46,9 +62,6 @@ set_part = 1;
 % set the repetition number (not used since repeating outside the
 % classification function)
 redec_num = 1;
-% define which portion of the trial to take (0 pre, 1 stim, 2 post,
-% 3 pre and post)
-portion = 1;
 
 % get the number of datasets
 num_data = length(data);
@@ -67,9 +80,14 @@ for datas = 1:num_data
     else
         region_list = tectum_regions;
     end
-    % separate the traces by region
-    [region_cell{datas,1},region_cell{datas,2}] = region_split(data(datas).single_reps,...
-        anatomy_info,data(datas).name,region_combination,region_list);
+    % separate the traces by region or cluster
+    if cluster_flag
+        [region_cell{datas,1},region_cell{datas,2}] = region_split(data(datas).single_reps,...
+            data(datas).idx_clu,data(datas).name,region_combination,[],cluster_flag);
+    else
+        [region_cell{datas,1},region_cell{datas,2}] = region_split(data(datas).single_reps,...
+            anatomy_info,data(datas).name,region_combination,region_list,cluster_flag);
+    end
 end
 
 % if subsample is 2, subsample across datasets
@@ -82,7 +100,7 @@ if subsample == 2
             num2cell(ones(region_cell{datas,2},1))));
     end
     % take the overall min as the subsample number
-    number_subsample = min(subsample_vector);
+    number_subsample = round(min(subsample_vector)*sub_constant);
 end
 
 % for all the data sets
@@ -94,8 +112,8 @@ for datas = 1:num_data
     num_regions = region_cell{datas,2};
     % if subsample is on, determine how many traces to take per rep
     if subsample == 1
-        number_subsample = min(cellfun(@size, region_data(:,1), ...
-            num2cell(ones(num_regions,1))));
+        number_subsample = round(min(cellfun(@size, region_data(:,1), ...
+            num2cell(ones(num_regions,1))))*sub_constant);
     end
     % allocate memory
     class_cell = cell(num_regions,1);
@@ -118,7 +136,7 @@ for datas = 1:num_data
 
     
     % for all the regions
-    parfor regions = 1:num_regions
+    for regions = 1:num_regions
         if isempty(region_data{regions,1})
             continue
         end
@@ -153,7 +171,11 @@ for datas = 1:num_data
 
                 % for all the reps
                 for reps = 1:rep_num
-                    temp_stimuli(:,:,reps) = normr_1(temp_stimuli(:,:,reps),0);
+                    temp_stimuli(:,:,reps) = normr_1(temp_stimuli(:,:,reps),0)-0.5;
+                    temp_stimuli(:,:,reps) = temp_stimuli(:,:,reps)./std(temp_stimuli(:,:,reps),0,2);
+                    % zscore per neuron
+%                     temp_stimuli(:,:,reps) = zscore(temp_stimuli(:,:,reps),0,2);
+%                     temp_stimuli(:,:,reps) = (temp_stimuli(:,:,reps))./std(temp_stimuli(:,:,reps),0,2);
                 end
 
                 % reshape back
@@ -206,12 +228,15 @@ for datas = 1:num_data
     main_str(1).repeat_number = repeat_number;
     main_str(1).bin_width = bin_width;
     main_str(1).redec_num = redec_num;
+    main_str(1).portion = portion;
+    main_str(1).cluster_flag = cluster_flag;
     %% Save the classifier
     
     % assemble the file name
     file_name = strjoin({'class',data(datas).name,'classp',num2str(classpcolor),...
         'subsample',num2str(subsample),'loo',num2str(loo),'shuff',num2str(shuff_label),...
-        'reps',num2str(repeat_number),'bin',num2str(bin_width),'.mat'},'_');
+        'reps',num2str(repeat_number),'bin',num2str(bin_width),'portion',num2str(portion),...
+        'cluster',num2str(cluster_flag),'.mat'},'_');
     % save the file
     save(fullfile(paths.classifier_path,file_name),'main_str')
     %% Plot the results

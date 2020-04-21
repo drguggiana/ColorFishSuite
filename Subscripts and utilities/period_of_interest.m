@@ -13,4 +13,12 @@ switch period
         rest_all = logical(repmat([rest_vec;rest_vec;rest_vec;stim_vec],stim_num*rep_num,1));
     case 3 % pre and post_stim
         rest_all = logical(repmat([stim_vec;rest_vec;rest_vec;stim_vec],stim_num*rep_num,1));
+    case 4 % beginning of stim period
+        rest_all = logical(repmat([rest_vec;stim_vec;rest_vec;rest_vec],stim_num*rep_num,1));
+    case 5 % end of stim period
+        rest_all = logical(repmat([rest_vec;rest_vec;stim_vec;rest_vec],stim_num*rep_num,1));
+    case 6 % first 10 time frames
+        rest_all = logical(repmat([rest_vec;stim_vec(1:10);rest_vec(1:10);rest_vec;rest_vec],stim_num*rep_num,1));
+    case 7 % last 10 time frames
+        rest_all = logical(repmat([rest_vec;rest_vec;rest_vec(1:10);stim_vec(11:end);rest_vec],stim_num*rep_num,1));
 end

@@ -132,7 +132,7 @@ for files = 1:num_data
 
     %define the vector of cluster numbers to try
     clu_vec = [5 10 20 30 50 70 100];
-%     clu_vec = 30;
+%     clu_vec = 50;
     
     replicates = 10;
     
@@ -141,6 +141,68 @@ for files = 1:num_data
     toc
     %save the original cluster number for the surrogate analysis
     ori_clu = clu_num;
+    %% Use correlation to merge clusters that are too similar
+    % define the correlation threshold
+    corr_threshold = 0.8;
+    close all
+    %allocate memory for the averages
+    clu_ave = zeros(clu_num,size(conc_trace,2));
+    %and for the trace number
+    clu_number = zeros(clu_num,1);
+    %for all the clusters
+    for clu = 1:clu_num
+        %calculate the cluster average
+        clu_ave(clu,:) = mean(conc_trace(idx_clu==clu,:),1);
+        %and store the number of traces going into each average
+        clu_number(clu) = sum(idx_clu==clu);
+    end
+    
+    % calculate the correlation matrix between clusters
+    [cluster_corr,pval] = corr(clu_ave');
+    % keep only the significant correlations
+    cluster_corr(pval>0.05) = NaN;
+    
+    figure
+    plot(clu_ave([11 3],:)')
+    figure
+    imagesc(cluster_corr)
+    figure
+    temp_corr = tril(cluster_corr,1);
+    histogram(temp_corr(:),'Normalization','cdf')
+
+    % get the matrix with correlation values
+    corr_submatrix = triu(cluster_corr,1);
+    % allocate memory for the new idx
+    new_idx = idx_clu;
+    % go through the clusters
+    for clu = 1:clu_num
+        % check if this cluster has already been eliminated
+        if all(isnan(corr_submatrix(clu,:)))
+            continue
+        end
+        % get the corresponding row
+        curr_corr = corr_submatrix(clu,:);
+        % nan the matching cluster
+        curr_corr(clu) = NaN;
+        % get the clusters that match with this one above threshold
+        matching_clusters = find(curr_corr>corr_threshold);
+        % for all the matching clusters
+        for match = 1:length(matching_clusters)
+            new_idx(new_idx==matching_clusters(match)) = clu;
+        end
+    end
+    % renumber the clusters consecutively
+    % get the new cluster numbers
+    new_numbers = unique(new_idx);
+    % get the new clu_num
+    new_clu_num = length(new_numbers);
+    % renumber
+    for clu = 1:new_clu_num
+        new_idx(new_idx==new_numbers(clu)) = clu;
+    end
+    % redefine the cluster number and idx
+    idx_clu = new_idx;
+    clu_num = new_clu_num;
     %% Exclude clusters with snr below a threshold and with too few traces
     
     % define the thresholds
@@ -340,6 +402,27 @@ for files = 1:num_data
     %     %also modify the color code variable
     %     col_out = new_col;
     % end
+    %% Add the framerate and official name based on the dataset
+    % can technically extract it from the original data folders, but for
+    % now this'll do
+    switch ori_name
+        case 'p8_gc6s'
+            framerate = 1./0.736;
+            figure_name = 'Tectum';
+        case 'p8_SynG6s'
+            framerate = 1./0.507;
+            figure_name = 'RGCs';
+        case 'p17b_gc6s'
+            framerate = 1./0.952;
+            figure_name = 'Tectum';
+        case 'p17b_syngc6s'
+            framerate = 1./0.952;
+            figure_name = 'RGCs';
+        case 'p17b_h2b6s'
+            framerate = 1./0.952;
+            figure_name = 'Tectum, Nuclear labelled';
+            
+    end
     %% Assemble the structure with the data
 
     % assemble a structure with all of the data
@@ -368,6 +451,8 @@ for files = 1:num_data
     main_str(1).ave_stack = ave_stack;
     main_str(1).snr_mat = snr_mat;
     main_str(1).region_clusters = region_clusters;
+    main_str(1).framerate = framerate;
+    main_str(1).figure_name = figure_name;
     %% Extract the gains
     close all
     if contains(ori_name,'p17b')

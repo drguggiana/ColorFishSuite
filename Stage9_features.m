@@ -10,11 +10,47 @@ cluster_path = paths(1).stage3_path;
 fig_path = strcat(paths(1).fig_path,'Features\');
 
 data = load_clusters(cluster_path);
+% define the color scheme depending on the stimulus type
+if contains(data(1).name,'p17')
+    color_scheme = [1 0 0;0 1 0;0 0 1;1 0 1];
+    cone_color_scheme = [0.5 0 0;0 0.5 0;0 0 0.5;0.5 0 0.5];
+else
+    color_scheme = distinguishable_colors(6);
+    cone_color_scheme = [];
+end
+% get the number of data sets
+num_data = size(data,2);
+%% OFF Define a subset of areas to work with
+
+
+% % get the number of dataset
+% num_data = size(data,2);
+% % allocate memory for the index
+% index_cell = cell(num_data,1);
+% % for all the datasets
+% for datas = 1:num_data
+%     region_combination = 1;
+%     
+%     % define which regions to keep depending on the dataset
+%     if contains(data(datas).name, {'Syn','syn'})
+%         region_list = {'AF10'};
+%     else
+%         region_list = {'R-TcN','R-TcP'};
+%     end
+%     % load the anatomy info
+%     anatomy_info = data(datas).anatomy_info(:,1);
+%     
+%     % separate the traces by region
+%     [region_cell,~] = region_split(data(datas).single_reps,...
+%         anatomy_info,data(datas).name,region_combination,region_list);
+%     % rewrite the index vector
+%     index_cell{datas} = region_cell{3}==1;
+%     
+% end
 %% Calculate overall average features
 
 close all
-% get the number of data sets
-num_data = size(data,2);
+
 % allocate memory for the averages
 ave_cell = cell(num_data,2);
 figure
@@ -30,12 +66,16 @@ for datas = 1:num_data
     hold on
     
 end
-title(strjoin({'Average_Trace',data(:).name},'_'),'Interpreter','None')
+title(strjoin({'Average Trace',data(:).figure_name},' '),'Interpreter','None')
 file_path = strjoin({'AverageTrace',data(:).name,'.png'},'_');
 saveas(gcf, fullfile(fig_path,file_path), 'png')
 %% Calculate averages per area
 
 close all
+% define the trace offset
+trace_offset = 5;
+% define the framerate
+framerate = 1/0.952;
 if contains(data(1).name,'p17b')
 
     % allocate memory for the output
@@ -61,17 +101,54 @@ if contains(data(1).name,'p17b')
         end
 
         figure
+        % initialize an area counter
+        a_count = 1;
+        % initialize a vector to store the areas plotted
+        plotted_area = zeros(area_number,1);
         % for all the areas
         for area = 1:area_number
+            % if it's AF7, skip
+            if contains(reg_label{area},'AF7')
+                continue
+            end
             % get the average trace
             ave_trace = nanmean(data(datas).conc_trace(data(datas).anatomy_info(:,1)==area_list(area),:),1);
             std_trace = nanstd(data(datas).conc_trace(data(datas).anatomy_info(:,1)==area_list(area),:),0,1);
-            % plot it
-            subplot(area_number,1,area)
-            shadedErrorBar(1:size(ave_trace,2),ave_trace,std_trace)
-            ylabel(reg_label{area})
+            ave_perstim = reshape(ave_trace,[],data(datas).stim_num);
+            std_perstim = reshape(std_trace,[],data(datas).stim_num);
+            time_vector = (0:size(ave_trace,2)-1)./framerate;
+            time_perstim = reshape(time_vector,[],data(datas).stim_num);
+            % split by stimulus
+            for stim = 1:data(datas).stim_num
+                % plot it
+                shadedErrorBar(time_perstim(:,stim),...
+                    ave_perstim(:,stim)+(a_count-1)*trace_offset,std_perstim(:,stim),...
+                    {'color',color_scheme(stim,:),'LineWidth',1})
+                hold on
+            end
+
+            % update the counter
+            plotted_area(area) = 1;
+            a_count = a_count + 1;
+
         end
-        sgtitle(strjoin({'Average_Trace_perArea',data(datas).name},'_'),'Interpreter','None')
+        
+        % plot the intermediate lines
+        for stim = 1:data(datas).stim_num-1
+            plot([time_perstim(end,stim),time_perstim(end,stim)],...
+                get(gca,'YLim'),'k','LineWidth',2)
+        end
+        pbaspect([2,1,1])
+        axis tight
+        set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',reg_label(plotted_area==1))
+        set(gca,'TickLength',[0 0])
+        xlabel('Time (s)')
+        sgtitle(strcat(data(datas).figure_name,'+'),'Interpreter','None')
+%         set(gca,'XLim',[0,time_perstim(end,end)])
+        box off
+
+        
+        % save the figure
         file_path = strjoin({'Average_Trace_perArea',data(datas).name,'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
@@ -82,7 +159,7 @@ end
 close all
 % define the number of parameters
 param_num = 3;
-param_label = {'LogMax_response','Delay_to_peak','Abs_Logmean_response'};
+param_label = {'LogMax response','Delay to peak','Abs Logmean response'};
 % define the interval to look at
 target_interval = 5:35;
 
@@ -117,10 +194,19 @@ for datas = 1:num_data
     % plot the results
     for param = 1:param_num
         figure
-        violin(squeeze(calcium_matrix(:,:,param)));
+        [h,L,MX,MED] = violin(squeeze(calcium_matrix(:,:,param)),'mc',[],'medc','k');
+        set(L,'visible','off')
+        % for all the stimuli
+        for stim = 1:data(datas).stim_num
+            set(h(stim),'facecolor',color_scheme(stim,:))
+        end
         hold on
-%         plotSpread(squeeze(calcium_matrix(:,:,param)))
-        sgtitle(strjoin({param_label{param},data(datas).name},'_'),'Interpreter','None')
+        set(gca,'XTick',[],'TickLength',[0 0])
+        axis tight
+        box off
+    %         plotSpread(squeeze(calcium_matrix(:,:,param)))
+        title(data(datas).figure_name)
+        ylabel(param_label{param},'Interpreter','None')
         file_path = strjoin({param_label{param},data(datas).name,'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
@@ -163,10 +249,11 @@ if contains(data(1).name,'p17b')
                 % plot it
                 subplot(round(sqrt(area_number)),ceil(sqrt(area_number)),area)
     %             violin(plot_matrix);
-                plotSpread(plot_matrix);
+                plotSpread(plot_matrix,'distributionColors',color_scheme);
                 ylabel(reg_label{area})
+                set(gca,'XTick',[])
             end
-            sgtitle(strjoin({param_label{param},'perRegion',data(datas).name},'_'),'Interpreter','None')
+            sgtitle(strjoin({param_label{param},'perRegion',data(datas).figure_name},' '),'Interpreter','None')
             file_path = strjoin({param_label{param},'perRegion',data(datas).name,'.png'},'_');
             saveas(gcf, fullfile(fig_path,file_path), 'png')
         end
@@ -239,7 +326,7 @@ if contains(data(1).name,'p17b')
                 plotSpread(plot_matrix);
                 ylabel(reg_label{area})
             end
-            sgtitle(strjoin({param_label{param},'perRegionCluster',data(datas).name},'_'),'Interpreter','None')
+            sgtitle(strjoin({param_label{param},'perRegionCluster',data(datas).figure_name},' '),'Interpreter','None')
             file_path = strjoin({param_label{param},'perRegionCluster',data(datas).name,'.png'},'_');
             saveas(gcf, fullfile(fig_path,file_path), 'png')
         end
@@ -262,10 +349,12 @@ if contains(data(1).name,'p17b')
         % plot it
 %         subplot(round(sqrt(area_number)),ceil(sqrt(area_number)),area)
 %         violin(plot_matrix);
-        plotSpread(plot_matrix);
+        plotSpread(plot_matrix,'distributionColors',cone_color_scheme);
 %         ylabel(reg_label{area})
-        
-        sgtitle(strjoin({'Gain',data(datas).name},'_'),'Interpreter','None')
+        set(gca,'XTick',[],'TickLength',[0 0])
+        axis tight
+        sgtitle(data(datas).figure_name,'Interpreter','None')
+        ylabel('Gain (a.u.)')
         file_path = strjoin({'Gain',data(datas).name,'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
@@ -308,7 +397,7 @@ if contains(data(1).name,'p17b')
             plotSpread(plot_matrix);
             ylabel(reg_label{area})
         end
-        sgtitle(strjoin({'GainPerRegion',data(datas).name},'_'),'Interpreter','None')
+        sgtitle(strjoin({'GainPerRegion',data(datas).figure_name},' '),'Interpreter','None')
         file_path = strjoin({'GainPerRegion',data(datas).name,'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
@@ -391,8 +480,57 @@ if contains(data(1).name,'p17b')
             plotSpread(plot_matrix);
             ylabel(reg_label{area})
         end
-        sgtitle(strjoin({'GainPerRegionCluster',data(datas).name},'_'),'Interpreter','None')
+        sgtitle(strjoin({'GainPerRegionCluster',data(datas).figure_name},' '),'Interpreter','None')
         file_path = strjoin({'GainPerRegionCluster',data(datas).name,'.png'},'_');
+        saveas(gcf, fullfile(fig_path,file_path), 'png')
+    end
+    autoArrangeFigures
+end
+%% Plot the region clusters in table format
+if contains(data(1).name,'p17b')
+
+    close all
+    
+    % for all of the datasets
+    for datas = 1:num_data
+        % get the cluster indexes
+        idx_clu = data(datas).idx_clu;
+        % get the gains
+        delta_norm = data(datas).delta_norm;
+        % get the cluster number
+        clu_num = data(datas).clu_num;
+        % get the traces per cluster
+        trace_number = data(datas).clu_number;
+        % allocate memory for the cluster gains
+        cluster_gains = zeros(clu_num,4);
+        % for all the clusters
+        for clu = 1:clu_num
+            %calculate the average gain
+            cluster_gains(clu,:) = mean(delta_norm(idx_clu==clu,:),1);
+        end
+        % sort the gains by trace number
+        [sort_trace,sort_idx] = sort(trace_number);
+        cluster_gains = cluster_gains(sort_idx,:);
+        % plot the gains
+        fig('height',14,'width',7)
+        [X,Y] = meshgrid(1:4,1:clu_num);
+        % for all colors
+        for color = 1:4
+            scatter(X(:,color),Y(:,color),normr_1(abs(cluster_gains(:,color)),1).*150+1,...
+                cone_color_scheme(color,:),'o','filled')
+            hold on
+            % select the negative gains
+            negative_idx = cluster_gains(:,color)<0;
+            % draw a black outline outside the negative circles
+            scatter(X(negative_idx,color),Y(negative_idx,color),...
+                normr_1(abs(cluster_gains(negative_idx,color)),1).*150+1,'w','*')
+        end
+        set(gca,'YTick',1:clu_num,'YTickLabel',sort_trace,'TickLength',[0 0])
+        set(gca,'XLim',[0.8,4.2],'YLim',[0,clu_num+1],'XTick',[])
+        pbaspect([1,2,1])
+        title(data(datas).figure_name,'Interpreter','None')
+        
+        file_path = strjoin({'AverageGainsCluster',data(datas).name,'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
     autoArrangeFigures

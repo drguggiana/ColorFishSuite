@@ -16,17 +16,26 @@ num_data = size(data,2);
 index_cell = cell(num_data,1);
 % allocate memory for the region list
 region_list = cell(num_data,1);
+% define the region set to use (1 tc vs rgc, 2 all vs all)
+region_set = 2;
+
 % for all the datasets
 for datas = 1:num_data
     region_combination = 1;
     
     % define which regions to keep depending on the dataset
     if contains(data(datas).name, {'Syn','syn'})
-%         region_list = {'AF10'};
-        region_list{datas} = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
+        if region_set == 1
+            region_list{datas} = {'AF10'};
+        elseif region_set == 2
+            region_list{datas} = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
+        end
     else
-%         region_list = {'R-TcN','R-TcP'};
-        region_list{datas} = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+        if region_set == 1
+            region_list{datas} = {'R-TcN','R-TcP'};
+        elseif region_set == 2
+            region_list{datas} = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+        end
     end
     % load the anatomy info
     anatomy_info = data(datas).anatomy_info(:,1);
@@ -106,12 +115,18 @@ for datas = 1:length(data)
     time_num = data(datas).time_num;
     stim_num = data(datas).stim_num;
     
-    % get the reshaped activity
-    average_levels = reshape(conc_trace,trace_num,time_num,stim_num);
-    % take only the stimulation time
-    average_levels = average_levels(:,stim_time,:);
-    % take the absolute average
-    average_levels = squeeze(mean(abs(average_levels),2));
+    % determine what to use for coloring depending on data set
+%     if contains(data(datas).name,'p17b')
+%         average_levels = data(datas).delta_norm;
+%         average_levels = average_levels(index_cell{datas},:);
+%     else
+        % get the reshaped activity
+        average_levels = reshape(conc_trace,trace_num,time_num,stim_num);
+        % take only the stimulation time
+        average_levels = average_levels(:,stim_time,:);
+        % take the absolute average
+        average_levels = squeeze(mean(abs(average_levels),2));
+%     end
     if gains
         for i = 1:4
             % scale and center the gain values
@@ -136,18 +151,22 @@ for datas = 1:length(data)
                     cmap = [intensities,filler,intensities];
             end
 
-            figure
-            scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:),'filled')
-            title(strjoin({'UMAP',data(datas).name,'Gain',num2str(i)},'_'),'Interpreter','None');
-            file_path = strjoin({'UMAP',data(datas).name,'Gain',num2str(i),'.png'},'_');
-            saveas(gcf, fullfile(fig_path,file_path), 'png')
+%             figure
+%             scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:),'filled')
+%             title(strjoin({'UMAP',data(datas).name,'Gain',num2str(i)},'_'),'Interpreter','None')
+%             set(gca,'TickLength',[0 0])
+%             file_path = strjoin({'UMAP',data(datas).name,'Gain',num2str(i),'set',num2str(region_set),'.png'},'_');
+%             saveas(gcf, fullfile(fig_path,file_path), 'png')
         end
         figure
         [~,max_values] = max(average_levels,[],2);
         cmap = [255,0,0; 0,255,0; 0,0,255; 255,0,255]/255;
-        scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(max_values,:),'filled','o')
-        title(strjoin({'UMAP',data(datas).name,'Combined'},'_'),'Interpreter','None');
-        file_path = strjoin({'UMAP',data(datas).name,'Combined','.png'},'_');
+%         scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(max_values,:),'filled','o')
+        gscatter(reduced_data(:,1),reduced_data(:,2),max_values,cmap,'.',10)
+        legend({'Red', 'Green', 'Blue', 'UV'})
+        set(gca,'TickLength',[0 0],'visible','off')
+        title(strjoin({'UMAP',data(datas).name,'Combined'},'_'),'Interpreter','None')
+        file_path = strjoin({'UMAP',data(datas).name,'Combined','set',num2str(region_set),'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     else
 
@@ -183,12 +202,13 @@ for datas = 1:length(data)
             end
 %             cmap = jet(diff(color_edges)+1);
 
-            figure
-
-            scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:),'filled',marker)
-            title(strjoin({data(datas).name,'Stim',stim_labels{i}},'_'),'Interpreter','None')
-            file_path = strjoin({'UMAP',data(datas).name,'Stim',stim_labels{i},'.png'},'_');
-            saveas(gcf, fullfile(fig_path,file_path), 'png')
+%             figure
+% 
+%             scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:),'filled',marker)
+%             title(strjoin({data(datas).name,'Stim',stim_labels{i}},'_'),'Interpreter','None')
+%             set(gca,'TickLength',[0 0],'visible','off')
+%             file_path = strjoin({'UMAP',data(datas).name,'Stim',stim_labels{i},'set',num2str(region_set),'.png'},'_');
+%             saveas(gcf, fullfile(fig_path,file_path), 'png')
         end
         
         figure
@@ -197,15 +217,16 @@ for datas = 1:length(data)
         % GR), pink (R FL), lavender (U FL)
         cmap = [128,0,0; 0,0,128; 245,130,48; 0,130,200; 250,190,190; 255,0,255]/255;
         scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(max_values,:),'filled','o')
-%         legend({'Red CK', 'UV CK', 'Red GR', 'UB GR', 'Red FL', 'UV FL'})
+        legend({'Red CK', 'UV CK', 'Red GR', 'UV GR', 'Red FL', 'UV FL'})
         colormap(cmap)
         colorbar('Ticklabels',stim_labels,'TickLabelInterpreter','None','Ticks',linspace(0.08,0.92,6))
         title(strjoin({data(datas).name,'Combined'},'_'),'Interpreter','None')
-        file_path = strjoin({'UMAP',data(datas).name,'Combined','.png'},'_');
+        set(gca,'TickLength',[0 0],'visible','off')
+        file_path = strjoin({'UMAP',data(datas).name,'Combined','set',num2str(region_set),'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
     
-    if contains(data(datas).name,'p17')
+    if contains(data(datas).name,'p17') && region_set == 2
         figure
         % color_raw = round(normr_1(data.fish_ori(:,1),1)*200);
         % color_raw = round(normr_1(data.idx_clu,1)*200);
@@ -214,18 +235,43 @@ for datas = 1:length(data)
         color_raw(isnan(color_raw)) = 0;
         % color_raw = round(normr_1(pc_matrix(:,4),1)*200);
         color_edges = [nanmin(color_raw),nanmax(color_raw)];
-        cmap = hsv(diff(color_edges)+1);
+%         cmap = lines(diff(color_edges)+1); 
+        cmap = distinguishable_colors(diff(color_edges)+1);
+        if contains(data(datas).name,'syn')
+            cmap(end,:) = [0.8 0.8 0.8];
+        end
         % s = scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:));
         s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',10);
         legend(region_list{datas})
-
+        set(gca,'TickLength',[0 0],'visible','off')
         % assemble the figure path
-        file_path = strjoin({'UMAP',data(datas).name,'Region','.png'},'_');
+        file_path = strjoin({'UMAP',data(datas).name,'Region','set',num2str(region_set),'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
     
     autoArrangeFigures
+    %% Plot the clusters in the embedding
+%     close all
+    figure
+    % get the cluster indexes
+    idx_clu = data(datas).idx_clu(index_cell{datas}==1);
+    
+    % get the number of clusters
+    clu_num = data(datas).clu_num;
+    
+    % set a colormap for them
+    cluster_cmap = distinguishable_colors(clu_num,[0 0 0;1 1 1]);
+    % plot the scatter
+    s = gscatter(reduced_data(:,1),reduced_data(:,2),idx_clu,cluster_cmap,'.',10);
+    legend(string(1:clu_num))
+    set(gca,'TickLength',[0 0],'visible','off')
+    % assemble the figure path
+    file_path = strjoin({'UMAP',data(datas).name,'Cluster','set',num2str(region_set),'.png'},'_');
+    saveas(gcf, fullfile(fig_path,file_path), 'png')
+    
 end
+
+
 %%
 % close all
 % 

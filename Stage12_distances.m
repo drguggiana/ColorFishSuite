@@ -13,7 +13,7 @@ data = load_clusters(cluster_path);
 % get the number of datasets
 num_data = size(data,2);
 % define the index
-sorting_constant = 2;
+sorting_constant = 3;
 %define the number of bins
 n_bins = 20;
 % define the number of random reps
@@ -22,14 +22,14 @@ randomization = 100;
 sorting_cell = cell(num_data,3);
 
 switch sorting_constant
-    case 1
+    case 1 % based on clusters
         % for all of the datasets
         for datas = 1:num_data
             sorting_cell{datas,1} = data(datas).idx_clu;
             sorting_cell{datas,2} = data(datas).clu_num;
             sorting_cell{datas,3} = data(datas).clu_number;
         end
-    case 2 % raw color classes
+    case 2 % based on gains
         % for all of the datasets
         for datas = 1:num_data
             % get the gains
@@ -46,8 +46,26 @@ switch sorting_constant
             end
             sorting_cell{datas,3} = numbers;
         end
-    case 3 % gain clusters
-
+    case 3 % based on stimulus max response
+        % for all of the datasets
+        for datas = 1:num_data
+            % get the gains
+            gains = data(datas).conc_trace;
+            % average during stimulus period
+            gains = reshape(gains,[],data(datas).time_num,data(datas).stim_num);
+            gains = squeeze(mean(gains(:,21:60,:),2));
+            % get the color with the max for each seed
+            [~,sorting_cell{datas,1}] = nanmax(abs(gains),[],2);
+            % set the number of groups
+            sorting_cell{datas,2} = 4;
+            % get the number of seeds per group
+            numbers = zeros(size(gains,1),1);
+            % for all the groups
+            for group = 1:4
+                numbers(group) = sum(sorting_cell{datas,1}==group);
+            end
+            sorting_cell{datas,3} = numbers;
+        end
 end
 
 % index out the non-tectal and non-AF10 traces
@@ -134,7 +152,9 @@ for datas = 1:num_data
         cdf_cell{randomized} = cdf_mat;
     end
     % store the average and standard error in the output
-    random_dist{datas} = {mean(cat(3,cdf_cell{:}),3),std(cat(3,cdf_cell{:}),0,3)};
+%     random_dist{datas} = {nanmean(cat(3,cdf_cell{:}),3),nanstd(cat(3,cdf_cell{:}),0,3)};
+    random_dist{datas} = {nanmean(cat(3,cdf_cell{:}),3),prctile(cat(3,cdf_cell{:}),95,3)-nanmean(cat(3,cdf_cell{:}),3),...
+        nanmean(cat(3,cdf_cell{:}),3)-prctile(cat(3,cdf_cell{:}),5,3)};
 end
 %% Plot the distributions compare to the surrogate
 close all
@@ -147,10 +167,19 @@ for datas = 1:num_data
     
     % for all the clusters
     for group = 1:group_num
-        subplot(round(sqrt(group_num)),ceil(sqrt(group_num)),group)
+        if contains(data(datas).name,'p8') 
+            subplot(round(sqrt(group_num)),ceil(sqrt(group_num)),group)
+        elseif contains(data(datas).name,'p17b') && contains(data(datas).name,{'Syn','syn'})
+            subplot(4,1,group)
+        else
+            subplot(1,4,group)
+        end
         plot(1:n_bins,files_dist{datas}(group,:))
         hold on
-        shadedErrorBar(1:n_bins,random_dist{datas}{1}(group,:),random_dist{datas}{2}(group,:))
+%         shadedErrorBar(1:n_bins,random_dist{datas}{1}(group,:),random_dist{datas}{2}(group,:))
+        shadedErrorBar(1:n_bins,random_dist{datas}{1}(group,:),cat(1,random_dist{datas}{2}(group,:),...
+            random_dist{datas}{3}(group,:)))
+        axis square
         set(gca,'XTick',[],'YTick',[])
         title(strjoin({num2str(group),num2str(members(group))},'_'),'Interpreter','None')
     end
@@ -162,6 +191,7 @@ for datas = 1:num_data
     saveas(gcf, fullfile(fig_path,file_path), 'png')
 end
 autoArrangeFigures
+error('Stop here')
 %% Plot cluster anatomy
 close all
 

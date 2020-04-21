@@ -14,8 +14,18 @@ else
     region_selection = [];
 end
 
+% check if the cluster training flag is on
+if size(varargin,2) > 2
+    cluster_flag = varargin{3};
+else
+    cluster_flag = false;
+end
 
-if contains(name,{'syn','Syn'})
+if cluster_flag
+    % define the region labels
+    reg_map = 0:max(regions);
+    reg_label = string(reg_map);
+elseif contains(name,{'syn','Syn'})
     %define the region labels
     reg_label = {'N/A','AF4','AF5','AF6','AF7','AF8','AF9','AF10','All'};
     reg_map = [0 4 5 6 7 8 9 10];

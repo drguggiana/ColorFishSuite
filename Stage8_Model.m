@@ -165,13 +165,15 @@ for datas = 1:size(data,2)
         end
     end
     % plot the matrix
-    figure
-    title(data(datas).name)
+    fig('height',15,'width',18)
     imagesc(combination_matrix)
+    title(data(datas).figure_name,'Fontsize',15)
     set(gca,'XTick',1:num_data,'XTickLabel',reg_label,'XTickLabelRotation',45)
     set(gca,'YTick',1:num_data,'YTickLabel',reg_label)
     axis square
-    colorbar
+    set(gca,'TickLength',[0 0])
+    h = colorbar;
+    set(h,'TickLength',0)
     
     % assemble the figure path 
     file_path = strjoin({'modelMatrix',data(datas).name,'.png'},'_');

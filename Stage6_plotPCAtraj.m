@@ -283,7 +283,7 @@ for datas = 1:num_data
         %get the file name
     %     temp_name = strsplit(name_cell{datas},'\');
     %     temp_name = strsplit(temp_name{end},'_');
-        sgtitle(strcat(data(datas).name,'_',region_data{region,2}),'FontSize',20,'Interpreter','None')
+        sgtitle(data(datas).figure_name,'FontSize',20,'Interpreter','None')
 %         xlabel('PC 1','FontSize',20)
 %         ylabel('PC 2','FontSize',20)
 %         zlabel('PC 3','FontSize',20)

@@ -18,10 +18,10 @@ tar_path_all = uipickfiles('FilterSpec',strcat(paths(1).stage1_path,'*.mat'));
 %get the number of experiments selected
 num_exp = length(tar_path_all);
 
-%if fish_comb wasn't specified, treat every file as an independent fish
-if ~exist('fish_comb','var')
-    fish_comb = [1:num_exp;1:num_exp];
-end
+% %if fish_comb wasn't specified, treat every file as an independent fish
+% if ~exist('fish_comb','var')
+%     fish_comb = [1:num_exp;1:num_exp];
+% end
 %define the list of labels to sort the files
 label_list = {'_traces.mat','_plot.mat'};
 
@@ -173,20 +173,58 @@ for fish = 1:num_data
     fish_count = seed_num + fish_count;
 end
 
+
+% mix fish that are separated in 2 experiments
+% allocate memory for the combination vector
+fish_comb = zeros(num_data,2);
+% parse the names
+for fish = 1:num_data
+    % get the filename
+    [~,name,~] = fileparts(name_cell{fish,1});
+    % split the filename
+    name_parts = strsplit(name,'_');
+    % if there's b in the number, put it in the second slot, otherwise the
+    % first one
+    if contains(name_parts{4},'b')
+        fish_comb(fish,2) = fish;
+    else
+        fish_comb(fish,1) = fish;
+    end
+end
+% get the number of fish
+num_fish = sum(fish_comb(:,1)>0);
 %modify fish ori to combine the fish on 2 different stacks based on the
 %fish_comb vector
-%start a file counter
-% file_c = 1;
+
+% allocate a copy of fish ori
+fish_ori_copy = zeros(size(fish_ori));
+fish_ori_copy(:,2) = fish_ori(:,2);
+% initialize a counter to move through fish_comb
+fish_counter = 1;
 %for all the cols in fish_comb
-for fcol = 1:size(fish_comb,2)
-    %if the previous file also was from the same fish
-    if fcol>1 && fish_comb(2,fcol)==fish_comb(2,fcol-1)
-        curr_coord = fish_ori(:,1)==fish_comb(1,fcol);
-        fish_ori(curr_coord,2) = fish_ori(curr_coord,2) + file_c;
+% for fcol = 1:size(fish_comb,2)
+for fish = 1:num_fish
+    % replace the indexes of this fish
+    fish_ori_copy(fish_ori(:,1)==fish_comb(fish_counter,1),1) = fish;
+    % increment the counter
+    fish_counter = fish_counter + 1;
+    % if the next position exists and is populated, also use that indexing
+    if size(fish_comb,1) >= fish_counter && fish_comb(fish_counter,2) > 0
+        fish_ori_copy(fish_ori(:,1)==fish_comb(fish_counter,2),1) = fish;
+        % increment the counter
+        fish_counter = fish_counter + 1;
     end
-    fish_ori(fish_ori(:,1)==fish_comb(1,fcol),1) = fish_comb(2,fcol);
-    file_c = max(fish_ori(fish_ori(:,1)==fish_comb(2,fcol),2));
+%     %if the previous file also was from the same fish
+%     if fcol>1 && fish_comb(2,fcol)==fish_comb(2,fcol-1)
+%         curr_coord = fish_ori(:,1)==fish_comb(1,fcol);
+%         fish_ori(curr_coord,2) = fish_ori(curr_coord,2) + file_c;
+%     end
+%     fish_ori(fish_ori(:,1)==fish_comb(1,fcol),1) = fish_comb(2,fcol);
+%     file_c = max(fish_ori(fish_ori(:,1)==fish_comb(2,fcol),2));
 end
+
+% replace fish_ori
+fish_ori = fish_ori_copy;
 
 %detect if the stimulus is p17b. if it is, reorder the stimuli in the
 %middle due to the projector switch
@@ -225,6 +263,17 @@ ylabel('Proportion of traces excluded')
 %based on the results above, I'll set the threshold to be at least 10
 %stimuli with significant signal, which excludes around 11% of the traces
 snr_vec = logical(sum(snr_bin,2)>stim_thres);
+
+% also remove the traces that have too high a signal (only a couple)
+% define the dfof threshold
+max_threshold = 100;
+% identify these traces first
+hightrace_idx = find(max(conc_trace,[],2)>max_threshold);
+% modify the snr_vector to exclude these traces too
+snr_vec(hightrace_idx) = 0;
+% report the number of traces excluded
+fprintf(strjoin({'Traces excluded because of max threshold:',...
+    num2str(length(hightrace_idx)),'\r\n'},'_'))
 
 %adapt the conc_trace and fish_ori matrices 
 conc_trace = conc_trace(snr_vec,:);
@@ -267,17 +316,17 @@ for fish = 1:num_data
     if fish == 1
         %just copy the z info
         cat_z{fish} = z_seed.z_seed;
+        z_max = 0;
     else %otherwise, add the last z from the previous set to the current
         %so they match the ave_stack
         cat_z{fish} = z_max + z_seed.z_seed; 
     end
-    
-    %rewrite the z_max variable for next iteration
-    z_max = max(cat_z{fish});
-    
     %load the ave_stack of each seed
     ave_stack = load(name_cell{fish,1},'ave_stack');
     cat_stack{fish} = ave_stack.ave_stack;
+    %rewrite the z_max variable for next iteration
+    z_max = size(cat_stack{fish},3) + z_max;
+    
     % if anatomy_info is empty, replace it with NaNs
     if isempty(anatomy_info)
         anatomy_info = nan(size(seed_concat.seed_concat,1),2);

@@ -9,6 +9,12 @@ fig_path = strcat(paths(1).fig_path,'Correlations\');
 
 
 data = load_clusters(cluster_path);
+% define the color scheme depending on the stimulus type
+if contains(data(1).name,'p17')
+    color_scheme = [1 0 0;0 1 0;0 0 1;1 0 1];
+else
+    color_scheme = distinguishable_colors(6);
+end
 %% Get the region filtering index
 
 % get the number of dataset
@@ -32,13 +38,9 @@ for datas = 1:num_data
     [region_cell,~] = region_split(data(datas).single_reps,...
         anatomy_info,data(datas).name,region_combination,region_list);
     % rewrite the index vector
-    index_cell{datas} = region_cell{3}==0;
+    index_cell{datas} = region_cell{3}==1;
     
 end
-%% Calculate correlation matrices for each data set
-
-close all
-
 % get the number fo stimuli
 stim_num2 = data(1).stim_num;
 % get the number of time bins
@@ -57,6 +59,10 @@ else %if it's p6p8 instead
     %define the stim labels (for p6p8 data)
     stim_labels = {'Red CK','UV CK','Red GR','UV GR','Red FL','UV FL'};
 end
+%% Calculate correlation matrices for each data set
+
+close all
+
 % allocate memory to save the labels
 correlations = zeros(stim_num2,stim_num2, num_data);
 
@@ -104,12 +110,14 @@ for datas = 1:num_data
     figure
     imagesc(rho)
     set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
-        'XTickLabelRotation',90)
+        'XTickLabelRotation',45)
     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
     set(gca,'CLim',[-1,1])
-    title(data(datas).name,'Interpreter','None')
+    set(gca,'TickLength',[0 0])
+    title(data(datas).figure_name,'Interpreter','None')
     axis square
-    colorbar
+    cbar = colorbar;
+    set(cbar,'TickLength',0)
     
     % assemble the figure path
     file_path = strjoin({'corrOverall',data(datas).name,'.png'},'_');
@@ -123,12 +131,14 @@ end
 figure
 imagesc(correlations(:,:,1)-correlations(:,:,2))
 set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
-    'XTickLabelRotation',90)
+    'XTickLabelRotation',45)
 set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
 % set(gca,'CLim',[-1,1])
-title(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',12)
+set(gca,'TickLength',[0 0])
+title('Delta correlation','Interpreter','None', 'FontSize',20)
 axis square
-colorbar
+cbar = colorbar;
+set(cbar,'TickLength',0)
 
 % assemble the figure path 
 file_path = strjoin({'corrOverall','delta',data(1).name,data(2).name,'.png'},'_');
@@ -139,20 +149,16 @@ autoArrangeFigures
 
 close all
 
-% %define the stim labels based on the paradigm
-% %extract the actual file name
-% [~,stim_name,~] = fileparts(name_cell{1});
-% %scan for the p17b
-% if ~isempty(strfind(stim_name,'p17b'))
-%     %if it's p17b
-%     stim_labels = {'Red','Green','Blue','UV'};
-% else %if it's p6p8 instead
-%     %define the stim labels (for p6p8 data)
-%     stim_labels = {'Red CK','UV CK','Red GR','UV GR','Red FL','UV FL'};
-% end
-
+% define the marker size
+marker_size = 2;
+% marker shape left
+shape_left_x = [-0.1 0 0];
+shape_left_y = [-0.01 -0.01 0.01];
+% marker shape right
+shape_right_x = [0.1 0 0];
+shape_right_y = [-0.01 -0.01 0.01];
 %define the sets of time regions to correlate
-time_corr = (1:40)';
+time_corr = (1:10)';
 % time_corr = [1:10;11:20;21:30;31:40];
 % time_corr = [1:5;6:10;11:15;16:20;21:25;26:30;31:35;36:40];
 
@@ -247,19 +253,26 @@ for datas = 1:num_data
     for combs = 1:comb_num
         dat1 = squeeze(tcorr_mat(datas,:,comb_vec(combs,1),comb_vec(combs,2)));
         sem1 = squeeze(tcorr_mat_sem(datas,:,comb_vec(combs,1),comb_vec(combs,2)));
-        errorbar(timep_axis,dat1,sem1,'-o','Color',c_map(combs,:),'MarkerFaceColor',c_map(combs,:),...
-            'MarkerEdgeColor',c_map(combs,:))
+%         errorbar(timep_axis,dat1,sem1,'-o','Color',c_map(combs,:),'MarkerFaceColor',c_map(combs,:),...
+%             'MarkerEdgeColor',c_map(combs,:))
+
+        % plot split markers
+        plotCustMarkMod(1:size(dat1,2),dat1,shape_left_x,shape_left_y,...
+            marker_size,color_scheme(comb_vec(combs,1),:),color_scheme(comb_vec(combs,1),:))
         hold('on')
+        plotCustMarkMod(1:size(dat1,2),dat1,shape_right_x,shape_right_y,...
+            marker_size,color_scheme(comb_vec(combs,2),:),color_scheme(comb_vec(combs,2),:))
         %assemble the legend
         legend_cell{combs} = strcat(stim_labels{comb_vec(combs,1)},'_',stim_labels{comb_vec(combs,2)});
     end
     set(gca,'FontSize',20)
     xlabel('Time (s)','FontSize',20)
-    ylabel('R (a.u.)','FontSize',20)
-    legend(legend_cell,'Interpreter','none','Location','bestoutside','FontSize',10)
-    axis square
-    title(data(datas).name,'Interpreter','None')
+    ylabel('Correlation (a.u.)','FontSize',20)
+%     legend(legend_cell,'Interpreter','none','Location','bestoutside','FontSize',10)
+    title(data(datas).figure_name,'Interpreter','None')
     set(gca,'YLim',[-0.8 1])
+    set(gca,'TickLength',[0 0])
+    axis tight
     % assemble the figure path
     file_path = strjoin({'corrOverTime',data(datas).name,'.png'},'_');
     saveas(gcf, fullfile(fig_path,file_path), 'png')
@@ -283,7 +296,7 @@ close all
 % end
 
 %define the sets of time regions to correlate
-% time_corr = (1:40)';
+% time_corr = (1:10)';
 time_corr = [1:10;11:20;21:30;31:40];
 % time_corr = [1:5;6:10;11:15;16:20;21:25;26:30;31:35;36:40];
 
@@ -361,14 +374,16 @@ for datas = 1:num_data
         colormap('parula')
 %         get(gca,'CLim')
         set(gca,'CLim',c_lims)
-       
+        set(gca,'TickLength',[0 0])
 %         caxis(gca,c_lims)
         axis('square')
         set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',8,...
             'XTickLabelRotation',45)
         set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',8)
         title(strcat('Time point:',num2str(times)));
-        sgtitle(strjoin({'Delta correlation',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
+        sgtitle(strjoin({'Correlation over time',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
+        colormap('hsv')
+        colorbar
         % assemble the figure path
         file_path = strjoin({'corrOverTimeMatrix',data(datas).name,'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
@@ -387,9 +402,11 @@ for times =1:num_times
     'XTickLabelRotation',45)
     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',8)
     set(gca,'CLim',[-0.5,0.5])
+    set(gca,'TickLength',[0 0])
     sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
     axis square
-    colorbar
+    cbar = colorbar;
+    set(cbar,'TickLength',0)
 end
 
 file_path = strjoin({'corrOverTimeMatrix','delta',data(1).name,data(2).name,'.png'},'_');
@@ -400,7 +417,7 @@ autoArrangeFigures
 close all
 
 % define the period to take
-corr_period = 1:time_num;
+corr_period = 11:30;
 % get the number of points
 t_perstim = length(corr_period);
 % allocate memory to save the matrices
@@ -457,9 +474,10 @@ for datas = 1:num_data
         correlations(:,:,stim,datas) = rho;
         subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
         imagesc(rho)
-        title(strjoin({'Stim:',num2str(stim)}))
-        sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
+        title(stim_labels{stim},'color',color_scheme(stim,:))
+%         sgtitle(strjoin({'Time Correlation',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
         set(gca,'XTick',[],'YTick',[])
+        set(gca,'TickLength',[0 0])
     %     set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
     %         'XTickLabelRotation',90)
     %     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
@@ -478,13 +496,67 @@ figure
 for stim =1:stim_num2
     subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
     imagesc(squeeze(correlations(:,:,stim,1)-correlations(:,:,stim,2)))
-    sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
-    title(strjoin({'Stim:',num2str(stim)}))
-    set(gca,'XTick',[],'YTick',[])
+%     sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
+    title(stim_labels{stim},'color',color_scheme(stim,:))
+    set(gca,'XTick',[],'YTick',[],'CLim',[-0.2 0.3])
+    set(gca,'TickLength',[0 0])
     axis square
-    colorbar
+    cbar = colorbar;
+    set(cbar,'TickLength',0)
 end
 % assemble the figure path
 file_path = strjoin({'corrTime','delta',data(1).name,data(2).name,'.png'},'_');
 saveas(gcf, fullfile(fig_path,file_path), 'png')
 autoArrangeFigures
+%% Plot the correlations between the gains
+close all
+if contains(data(1).name,'p17b')
+
+    close all
+    % allocate memory to save the correlations for later
+    correlations = zeros(data(1).stim_num,data(1).stim_num,num_data);
+
+    % for all of the datasets
+    for datas = 1:num_data
+        figure
+        % get the gains
+        delta_norm = data(datas).delta_norm;
+        % correlate the gains
+        gain_corr = corr(delta_norm);
+        % save the correlation for the delta
+        correlations(:,:,datas) = gain_corr;
+        % plot it
+        imagesc(gain_corr)
+        title(data(datas).figure_name,'Interpreter','None')
+        colorbar
+        set(gca,'TickLength',[0 0])
+        axis('square')
+        set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',15,...
+            'XTickLabelRotation',45)
+        set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',15)
+        colormap(cool)
+        % assemble the figure path
+        file_path = strjoin({'gainCorr',data(datas).name,'.png'},'_');
+        saveas(gcf, fullfile(fig_path,file_path), 'png')
+%         plotmatrix(delta_norm,strcat(colors{datas},'.'))
+%         hold on
+        
+    end
+    % also calculate a subtraction matrix
+    figure
+    imagesc(correlations(:,:,1)-correlations(:,:,2))
+    set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
+        'XTickLabelRotation',45)
+    set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
+    % set(gca,'CLim',[-1,1])
+    set(gca,'TickLength',[0 0])
+    title(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',12)
+    axis square
+    cbar = colorbar;
+    set(cbar,'TickLength',0)
+    colormap(cool)
+    autoArrangeFigures
+    % assemble the figure path
+    file_path = strjoin({'deltaGainCorr',data(1).name,data(2).name,'.png'},'_');
+    saveas(gcf, fullfile(fig_path,file_path), 'png')
+end

@@ -36,7 +36,7 @@ class_cell = cell(3,1);
 
 
 %remove the empty entries in the averages
-conc_trace = conc_trace(sum(conc_trace,2)>0,:);
+% conc_trace = conc_trace(sum(conc_trace,2)>0,:);
 
 %normalize the entries (feature scaling for the svm)
 % conc_trace = normr_1(conc_trace,[]);
@@ -216,27 +216,58 @@ for redec = 1:redec_num
             for i_type = 1:5
                 stim_label(1+(i_type-1):5:end) = i_type;
             end
-%             assignin('base','stim_label',stim_label)
-            
+        case 13
+            % label only UV and red, exclude the other colors
+            % get rid of the other colors
+            stim_only = stim_only(:,[1:t_perstim,3*t_perstim+1:4*t_perstim]);
+            % set the labels
+            %             stim_label = stim_label(1:2*t_perstim);
+            stim_label = cat(2,ones(1,t_perstim),2.*ones(1,t_perstim));
+            % also change the weight
+            weight_vec = ones(2*t_perstim,1);
+        case 14
+            % label only CK colors
+            % get rid of the other colors
+            stim_only = stim_only(:,1:2*t_perstim);
+            % set the labels
+            %             stim_label = stim_label(1:2*t_perstim);
+            stim_label = cat(2,ones(1,t_perstim),2.*ones(1,t_perstim));
+            % also change the weight
+            weight_vec = ones(2*t_perstim,1);
+        case 15
+            % label only GR colors
+            % get rid of the other colors
+            stim_only = stim_only(:,2*t_perstim+1:4*t_perstim);
+            % set the labels
+            %             stim_label = stim_label(1:2*t_perstim);
+            stim_label = cat(2,ones(1,t_perstim),2.*ones(1,t_perstim));
+            % also change the weight
+            weight_vec = ones(2*t_perstim,1);
+        case 16
+            % label only flash colors
+            % get rid of the other colors
+            stim_only = stim_only(:,4*t_perstim+1:6*t_perstim);
+            % set the labels
+            %             stim_label = stim_label(1:2*t_perstim);
+            stim_label = cat(2,ones(1,t_perstim),2.*ones(1,t_perstim));
+            % also change the weight
+            weight_vec = ones(2*t_perstim,1);
+              
     end
     %if not using 1 class per color
     if classpcolor > 1 && classpcolor < 10 && classpcolor ~= 6
         %get the highest number on the first category
         max_cat = max(stim_label);
         %for each stimulus increase the number of stimuli
-        %for all the reps
-%         for reps = 1:rep_num
-            for stim = 2:4
-                stim_label((stim-1)*t_perstim+1:stim*t_perstim) = ...
-                    stim_label((stim-1)*t_perstim+1:stim*t_perstim)+(stim-1)*max_cat;
-            end
-%         end
+        for stim = 2:4
+            stim_label((stim-1)*t_perstim+1:stim*t_perstim) = ...
+                stim_label((stim-1)*t_perstim+1:stim*t_perstim)+(stim-1)*max_cat;
+        end
     end
     %if shuffling of labels is on
     if shuff_label == 1
         stim_label = stim_label(randperm(length(stim_label)));
     end
-%     assignin('base','stim_label',stim_label)
     %get the number of categories
     categ_num = length(unique(stim_label));
     

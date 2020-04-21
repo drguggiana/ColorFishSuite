@@ -24,7 +24,7 @@ end
 % end
 
 %find a threshold by defining the 50th percentile on each stimulus
-snr_thres = prctile(clu_snr,50,1);
+snr_thres = prctile(clu_snr,50,2);
 
 %keep traces that pass the threshold in at least 1 stim
 snr_thres_all = bsxfun(@gt,clu_snr,snr_thres);
