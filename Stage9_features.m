@@ -15,7 +15,8 @@ if contains(data(1).name,'p17')
     color_scheme = [1 0 0;0 1 0;0 0 1;1 0 1];
     cone_color_scheme = [0.5 0 0;0 0.5 0;0 0 0.5;0.5 0 0.5];
 else
-    color_scheme = distinguishable_colors(6);
+%     color_scheme = distinguishable_colors(6);
+    color_scheme = [1 0 0;1 0 1;1 0 0;1 0 1;1 0 0;1 0 1];
     cone_color_scheme = [];
 end
 % get the number of data sets
@@ -136,27 +137,30 @@ if contains(data(1).name,'p17b')
         % plot the intermediate lines
         for stim = 1:data(datas).stim_num-1
             plot([time_perstim(end,stim),time_perstim(end,stim)],...
-                get(gca,'YLim'),'k','LineWidth',2)
+                [-1 (a_count-1)*trace_offset],'k','LineWidth',2)
         end
-        pbaspect([2,1,1])
+%         pbaspect([2,1,1])
         axis tight
         set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',reg_label(plotted_area==1))
         set(gca,'TickLength',[0 0])
         xlabel('Time (s)')
-        sgtitle(strcat(data(datas).figure_name,'+'),'Interpreter','None')
-%         set(gca,'XLim',[0,time_perstim(end,end)])
+        title(data(datas).figure_name,'Interpreter','None')
+%         set(gca,'YLim',[-0.5,])
         box off
-
+        axis tight
         
+        set(gca,'FontSize',20)
         % save the figure
         file_path = strjoin({'Average_Trace_perArea',data(datas).name,'.png'},'_');
-        saveas(gcf, fullfile(fig_path,file_path), 'png')
+%         saveas(gcf, fullfile(fig_path,file_path), 'png')
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
     end
     autoArrangeFigures
 end
 %% Calculate max response, delay to peak
 
 close all
+
 % define the number of parameters
 param_num = 3;
 param_label = {'LogMax response','Delay to peak','Abs Logmean response'};
@@ -194,7 +198,7 @@ for datas = 1:num_data
     % plot the results
     for param = 1:param_num
         figure
-        [h,L,MX,MED] = violin(squeeze(calcium_matrix(:,:,param)),'mc',[],'medc','k');
+        [h,L,MX,MED] = violin(squeeze(calcium_matrix(:,:,param)),'mc',[],'medc','k','facealpha',1);
         set(L,'visible','off')
         % for all the stimuli
         for stim = 1:data(datas).stim_num
@@ -207,8 +211,11 @@ for datas = 1:num_data
     %         plotSpread(squeeze(calcium_matrix(:,:,param)))
         title(data(datas).figure_name)
         ylabel(param_label{param},'Interpreter','None')
+        set(gca,'FontSize',20)
         file_path = strjoin({param_label{param},data(datas).name,'.png'},'_');
-        saveas(gcf, fullfile(fig_path,file_path), 'png')
+%         saveas(gcf, fullfile(fig_path,file_path), 'png')
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
+
     end
     
 end
@@ -335,28 +342,31 @@ if contains(data(1).name,'p17b')
 end
 %% Average Gain plots
 close all
+% define the fontsize
+fontsize = 20;
 if contains(data(1).name,'p17b')
     % for all of the datasets
     for datas = 1:num_data
 
         % get the corresponding calcium data
         plot_matrix = data(datas).delta_norm;
+        
+%         plot_matrix(:,4) = plot_matrix(:,4)./10;
 
+%         fig('units','centimeters','height',6,'width',9,'fontsize',20)
         figure
-  
-        % get the average trace
-%         plot_matrix = calcium_matrix(data(datas).anatomy_info(:,1)==area_list(area),:);
-        % plot it
-%         subplot(round(sqrt(area_number)),ceil(sqrt(area_number)),area)
+        
 %         violin(plot_matrix);
         plotSpread(plot_matrix,'distributionColors',cone_color_scheme);
-%         ylabel(reg_label{area})
+%         boxplot(plot_matrix)
         set(gca,'XTick',[],'TickLength',[0 0])
         axis tight
-        sgtitle(data(datas).figure_name,'Interpreter','None')
+        title(data(datas).figure_name,'Interpreter','None')
         ylabel('Gain (a.u.)')
+        set(gca,'FontSize',fontsize)
         file_path = strjoin({'Gain',data(datas).name,'.png'},'_');
-        saveas(gcf, fullfile(fig_path,file_path), 'png')
+%         saveas(gcf, fullfile(fig_path,file_path), 'png')
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
     end
     autoArrangeFigures
 end
@@ -512,7 +522,8 @@ if contains(data(1).name,'p17b')
         [sort_trace,sort_idx] = sort(trace_number);
         cluster_gains = cluster_gains(sort_idx,:);
         % plot the gains
-        fig('height',14,'width',7)
+%         fig('height',14,'width',7)
+        figure
         [X,Y] = meshgrid(1:4,1:clu_num);
         % for all colors
         for color = 1:4
@@ -523,15 +534,243 @@ if contains(data(1).name,'p17b')
             negative_idx = cluster_gains(:,color)<0;
             % draw a black outline outside the negative circles
             scatter(X(negative_idx,color),Y(negative_idx,color),...
-                normr_1(abs(cluster_gains(negative_idx,color)),1).*150+1,'w','*')
+                normr_1(abs(cluster_gains(negative_idx,color)),1).*150+10,'w','.')
         end
         set(gca,'YTick',1:clu_num,'YTickLabel',sort_trace,'TickLength',[0 0])
         set(gca,'XLim',[0.8,4.2],'YLim',[0,clu_num+1],'XTick',[])
-        pbaspect([1,2,1])
+        set(gca,'XTick',1:4,'XTickLabels',{'L','M','B','UV'})
+%         pbaspect([1,2,1])
         title(data(datas).figure_name,'Interpreter','None')
-        
+%         axis tight
+        set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
         file_path = strjoin({'AverageGainsCluster',data(datas).name,'.png'},'_');
-        saveas(gcf, fullfile(fig_path,file_path), 'png')
+%         saveas(gcf, fullfile(fig_path,file_path), 'png')
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
     end
     autoArrangeFigures
 end
+%% Find the gain patterns
+
+if contains(data(1).name,'p17b')
+    
+    close all
+    % allocate memory to store the matrices
+    type_cell = cell(num_data+1,3);
+    
+    %define the zero threshold
+    zero_threshold = 1e-3;
+    % 
+    % for all of the datasets
+    for datas = 1:num_data
+        
+        % use the gains
+        delta_norm = data(datas).delta_norm;
+        % zero the values below a threshold
+        delta_norm(delta_norm<zero_threshold&delta_norm>0) = 0;
+        % turn negatives into -1 and positives into 1
+        delta_norm(delta_norm>0) = 1;
+        delta_norm(delta_norm<0) = -1;
+
+%         % Use the raw data
+%         delta_norm = reshape(data(datas).conc_trace,[],data(datas).time_num,data(datas).stim_num);
+%         % get the p2p deflection
+%         [max_val,max_idx] = max(delta_norm,[],2);
+%         [min_val,min_idx] = min(delta_norm,[],2);
+%         
+%         p2p = max_val-min_val;
+%         % determine the null kernels
+%         sd_matrix = squeeze(std(delta_norm(:,1:20,:),0,2));
+%         null_kernels = squeeze(p2p)<(10.*sd_matrix);
+%         % get the on-off classification
+%         % allocate memory for the allocation
+%         on_off_matrix = zeros(size(max_idx,1),size(max_idx,3));
+%         on_off_matrix(squeeze(max_idx)>squeeze(min_idx)) = 1;
+%         on_off_matrix(squeeze(max_idx)<squeeze(min_idx)) = -1;
+%         on_off_matrix(null_kernels) = 0;
+%         delta_norm = on_off_matrix;
+        
+        
+        
+%         % sort rows and plot
+%         figure
+%         imagesc(sortrows(unique(delta_norm,'rows')))
+        
+        % quantify the occurrence of each pattern
+%         delta_norm(:,3) = 0;
+        [pattern,ia,ic] = unique(delta_norm,'rows');
+        
+        % get the number of patterns
+        pattern_num = length(ia);
+        
+        % allocate vector for the number
+        pattern_counts = zeros(pattern_num,1);
+        % count the occurrences
+        % for all the patterns
+        for pat = 1:pattern_num
+            pattern_counts(pat) = sum(ic==pat);
+        end
+        
+        % sort by abundance
+        [pattern_counts,sort_idx] = sort(pattern_counts,'descend');
+        
+        pattern = pattern(sort_idx,:);
+
+        % allocate memory for the colors
+        pattern_full = zeros(size(pattern,1),4,3);
+        % transform the indexes into colors
+        for channel = 1:3
+            pattern_full(pattern(:,channel)==1,channel,channel) = 1;
+            pattern_full(pattern(:,channel)==0,channel,:) = 1;
+            if channel == 1
+                pattern_full(pattern(:,4)==1,4,[1 3]) = 1;
+                pattern_full(pattern(:,4)==0,4,:) = 1;
+            end
+ 
+        end
+        
+        % store the matrix
+        type_cell{datas,1} = pattern;
+        type_cell{datas,2} = pattern_counts./sum(pattern_counts);
+        type_cell{datas,3} = pattern_full;
+        
+        figure
+        subplot(2,1,2)
+        image(permute(pattern_full,[2 1 3]))
+        set(gca,'TickLength',[0 0])
+%         imagesc(pattern')
+        subplot(2,1,1)
+        bar(pattern_counts)
+        set(gca,'YScale','linear')
+        set(gca,'TickLength',[0 0])
+%         set(gca,'XDir','reverse')
+        axis tight
+        
+    end
+end
+%% Load the Zhou et al. data
+
+% load the Zhou data
+ref_data = load(paths.reference_path);
+%% Plot the ref results
+% isolate the kernels for the color channels
+kernel_matrix = cat(3,ref_data.AK_R_Mat,ref_data.AK_G_Mat,ref_data.AK_B_Mat,ref_data.AK_UV_Mat);
+
+% get only the dorsal retina ones (ventral FOV)
+dorsal_bool = ref_data.Pos_Mat(:,1)>=1.5&ref_data.Pos_Mat(:,1)<=2.5;
+kernel_matrix = kernel_matrix(dorsal_bool,:,:);
+
+% calculate the 0 kernels based on the 10SD criterion used in the ref
+% calculate the SD
+sd_matrix = squeeze(std(kernel_matrix(:,1:100,:),0,2));
+
+% classify in on and off
+
+% get the maxima and minima
+[max_val,max_idx] = max(kernel_matrix,[],2);
+[min_val,min_idx] = min(kernel_matrix,[],2);
+
+% calculate the null kernels
+null_kernels = squeeze(max_val-min_val)<(10.*sd_matrix);
+% null_kernels = sd_matrix<10;
+
+% allocate memory for the allocation
+on_off_matrix = zeros(size(max_idx,1),size(max_idx,3));
+on_off_matrix(squeeze(max_idx)>squeeze(min_idx)) = 1;
+on_off_matrix(squeeze(max_idx)<squeeze(min_idx)) = -1;
+on_off_matrix(null_kernels) = 0;
+
+[pattern_ref,ia,ic] = unique(on_off_matrix,'rows');
+        
+% get the number of patterns
+pattern_num = length(ia);
+
+% allocate vector for the number
+pattern_counts = zeros(pattern_num,1);
+% count the occurrences
+% for all the patterns
+for pat = 1:pattern_num
+    pattern_counts(pat) = sum(ic==pat);
+end
+
+% sort by abundance
+[pattern_counts,sort_idx] = sort(pattern_counts,'descend');
+pattern_ref = pattern_ref(sort_idx,:);
+
+% allocate memory for the colors
+pattern_full = zeros(size(pattern_ref,1),4,3);
+% transform the indexes into colors
+for channel = 1:3
+    pattern_full(pattern_ref(:,channel)==1,channel,channel) = 1;
+    pattern_full(pattern_ref(:,channel)==0,channel,:) = 1;
+    if channel == 1
+        pattern_full(pattern_ref(:,4)==1,4,[1 3]) = 1;
+        pattern_full(pattern_ref(:,4)==0,4,:) = 1;
+    end
+    
+end
+
+% store the matrix
+type_cell{3,1} = pattern_ref;
+type_cell{3,2} = pattern_counts./sum(pattern_counts);
+type_cell{3,3} = pattern_full; 
+figure
+subplot(2,1,2)
+image(permute(pattern_full,[2 1 3]))
+set(gca,'TickLength',[0 0])
+%         imagesc(pattern')
+subplot(2,1,1)
+bar(pattern_counts)
+set(gca,'YScale','linear')
+set(gca,'TickLength',[0 0])
+%         set(gca,'XDir','reverse')
+axis tight
+
+autoArrangeFigures
+%% Compare the datasets
+
+close all
+
+% get the combinations
+comb_vector = nchoosek(1:3,2);
+
+% get the number of combinations
+num_comb = size(comb_vector,1);
+
+% for all the combinations
+for combs = 1:num_comb
+    figure
+    % get the correlation components
+    [corr_1,idx1] = sortrows(type_cell{comb_vector(combs,1),1});
+    [corr_2,idx2] = sortrows(type_cell{comb_vector(combs,2),1});
+    % get the correlation
+    corr_matrix = corr(corr_1',corr_2');
+    % filter the matrix
+    sorted_count1 = log(type_cell{comb_vector(combs,1),2}(idx1));
+    sorted_count2 = log(type_cell{comb_vector(combs,2),2}(idx2));
+    
+    % sort the patterns
+    sorted_pattern1 = type_cell{comb_vector(combs,1),3}(idx1,:,:);
+    sorted_pattern2 = type_cell{comb_vector(combs,2),3}(idx2,:,:);
+    
+    % multiply the rows and columns based on their quantities
+    corr_matrix = corr_matrix.*sorted_count1;
+    corr_matrix = (corr_matrix'.*sorted_count2)';
+    % then filter
+    corr_matrix(corr_matrix<20) = 0;
+    
+    
+    % calculate the correlation matrix and plot
+    subplot(20,1,1:18)
+    imagesc(corr_matrix)
+    set(gca,'TickLength',[0 0])
+%     colorbar
+    
+    axis equal
+    axis tight
+    
+    subplot(20,1,19:20)
+    image(permute(sorted_pattern2,[2 1 3]))
+    axis equal
+    axis tight
+end
+autoArrangeFigures

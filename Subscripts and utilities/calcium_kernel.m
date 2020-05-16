@@ -1,16 +1,63 @@
 % calcium kernel evaluation
+%% clean up
+clearvars
+close all force
+load('paths.mat')
+addpath(genpath(paths(1).main_path))
+%% Load the files and define paths
 
+% reset the rng to keep results reproducible
+rng(1);
+
+%get the folder where the image files are
+tar_path_all = uipickfiles('FilterSpec',...
+    paths(1).stage2_path);
+
+%get the number of experiments selected
+num_exp = length(tar_path_all);
+
+%define the list of labels to sort the files
+% label_list = {'_thres.mat','_thresBEH.mat'};
+label_list = {'_thres.mat'};
+
+%get the program used
+[~,name_whole,~] = fileparts(tar_path_all{1});
+name_parts = strsplit(name_whole,'_');
+
+%get the number of each type of data (the round is to avoid the nonscalar
+%warning for the for loop)
+num_data = round(num_exp./length(label_list));
+
+%allocate memory for the different types of files
+name_cell = cell(num_data,length(label_list));
+
+%for the types of files
+for f_type = 1:length(label_list)
+    %get the coordinates of the file names
+    name_map = ~cellfun(@isempty,strfind(tar_path_all,label_list{f_type}));
+    %store them in the corresponding layer of the name cell
+    name_cell(:,f_type) = tar_path_all(name_map);
+end
+%% Load traces and constants
+
+% load the main file
+main_file = load(name_cell{1});
+
+% get the components
+conc_trace = main_file.conc_trace;
+stim_num = main_file.stim_num2;
+time_num = main_file.time_num;
 %% Calculate a calcium kernel based on the onset of each stimulus
 
 close all
 
 %define whether to calculate from data or input a custom kernel
-data_kern = 0;
+data_kern = 1;
 %if data should be used to calculate the kernel
 if data_kern == 1
     %run the function. it will output the average "kernel" of the fastest
     %decaying stimulus
-    kernel_out = kernel_calc_1(conc_trace,stim_num2,time_num,0,'mean');
+    kernel_out = kernel_calc_1(conc_trace,stim_num,time_num,0,'mean');
 else
     %provide code to calculate a custom kernel
     kernel_out = exp(-(1:20).*0.9);
@@ -23,7 +70,11 @@ figure
 plot(kernel_out)
 %and save the kernel
 %define the save path
-save_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\ConvolutionKernels';
+save_path = paths.kernel_path;
+% get the name for saving
+[~,ori_name] = fileparts(name_cell{1});
+ori_name = ori_name(1:end-6);
+
 
 save_var = 1;
 if save_var == 1
@@ -32,14 +83,13 @@ if save_var == 1
     [ori_name,~] = uiputfile(strcat(save_path,'*.*'));
     %save the clustering output
     save_clu = strcat(ori_name,'_kernel.mat');
-    save(fullfile(save_path,save_clu),'kernel_out',...
-        'stim_num2','time_num','name_cell')
+    save(fullfile(save_path,save_clu),'kernel_out')
 end
 %% Load kernels for data processing (axonal vs soma)
 
 %load the kernels
 %define the load path
-load_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\ConvolutionKernels\';
+load_path = paths.kernel_path;
 
 %load the axonal kernel
 deconv_name = uigetfile(strcat(load_path,'*.mat'),'Select the axonal kernel');

@@ -13,6 +13,21 @@ else
     addpath(genpath(paths(1).main_path))
     classifier_path = paths(1).classifier_path;
     data_struct = load_clusters(classifier_path);
+    
+    % get the file names
+    file_names = {data_struct.name}';
+    classpcolor = cat(1,data_struct.classpcolor);
+    shuff_label = cat(1,data_struct.shuff_label);
+    feature_cell = cat(2,num2cell(classpcolor),file_names,num2cell(shuff_label));
+    
+    [sorted_cell,sorted_idx] = sortrows(feature_cell);
+    % allocate memory for a sorting vector
+    sorting_vector = zeros(length(data_struct),1);
+    % sort the files RGC, then Tectum
+    for files = 1:length(data_struct)
+        
+    end
+    
 end
 
 fig_path = strcat(paths(1).fig_path,'Classify\');
@@ -35,7 +50,7 @@ end
 % get the number of datasets
 num_data = size(data_struct,2);
 % get the number of stimuli
-stim_num2 = size(data_struct(1).class{1}{1},1);
+stim_num = size(data_struct(1).class{1}{1},1);
 %% Plot the classifier results
 
 % define the fontsize
@@ -99,15 +114,17 @@ for datas = 1:num_data
         % set the color scale to the max number of trials per category
         set(gca,'CLim',[0, sum(class_cell{p_count}{1}(:,1))])
         set(gca,'TickLength',[0 0])
-        set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',fontsize,...
+        set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',fontsize,...
             'XTickLabelRotation',45)
-        set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',fontsize)
+        set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',fontsize)
         %update the counter
         p_count = p_count + 1;
     end
     % assemble the figure path 
     file_path = strjoin({'confMatrix',name,suffix},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+%     saveas(gcf, fullfile(fig_path,file_path), 'png')
+    print(fullfile(fig_path,file_path), '-dpng','-r600')
+
     
     %plot the diagonal values
     figure
@@ -137,7 +154,9 @@ for datas = 1:num_data
     
     % assemble the figure path 
     file_path = strjoin({'classAccuracy',data_struct(datas).name,suffix},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+%     saveas(gcf, fullfile(fig_path,file_path), 'png')
+    print(fullfile(fig_path,file_path), '-dpng','-r600')
+
     
 end
 
@@ -150,12 +169,14 @@ if num_data == 2
     % set the color scale to the max number of trials per category
 %     set(gca,'CLim',[0, sum(class_cell{p_count}{1}(:,1))])
     set(gca,'TickLength',[0 0])
-    set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',fontsize,...
+    set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45)
-    set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',fontsize)
+    set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',fontsize)
     % assemble the figure path
     file_path = strjoin({'classDelta',data_struct(1).name,data_struct(2).name,suffix},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+%     saveas(gcf, fullfile(fig_path,file_path), 'png')
+    print(fullfile(fig_path,file_path), '-dpng','-r600')
+
 end
 autoArrangeFigures
 %% Plot the performances side by side
@@ -206,12 +227,14 @@ if subsample == 2 && num_data == 4
     a = get(gca);
 %     a.Position(4) = 2*h.Position(3);
     h.Position(4) = 2*h.Position(3);
+    box off
 %     axis tight
     % assemble the figure path
     % get the experiment name
     name = strsplit(data_struct(1).name,'_');
     file_path = strjoin({'classCompare',name{1},suffix},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+%     saveas(gcf, fullfile(fig_path,file_path), 'png')
+    print(fullfile(fig_path,file_path), '-dpng','-r600')
 
 end
 %% Plot the performances side by side by region
@@ -267,12 +290,357 @@ if subsample == 1 && num_data == 4
         pbaspect([1 2 1])
         h.Position(4) = 2*h.Position(3);
 
+
         % assemble the figure path
         % get the experiment name
         file_path = strjoin({'classRegCompare',data_struct(datas).name,suffix},'_');
-        saveas(gcf, fullfile(fig_path,file_path), 'png')
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
+%         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end
+end
+%% Plot the performances for the red UV combo
 
+if num_data > 11
+    close all
+    % set a counter for the x coordinate
+    x_counter = 1;
+    h = figure;
+    % for all the data sets
+    for datas = 1:2:num_data
+        % get the class cell
+        class_cell_real = data_struct(datas).class;
+        class_cell_shuff = data_struct(datas+1).class;
+        
+        plot(x_counter,class_cell_real{1}{2},'o','MarkerEdgeColor',[0 0 0]);
+        hold on
+        % calculate the exact accuracy
+        mean_acc = mean(class_cell_real{1}{2});
+        plot(x_counter,mean_acc,'o','MarkerFaceColor',[1 0 0],...
+            'MarkerEdgeColor',[1 0 0])
+%         std_acc = std(class_cell_real{1}{2});
+%         hold on
+%         errorbar(x_counter,mean_acc,std_acc,'o','MarkerFaceColor',[0 0 0],...
+%             'MarkerEdgeColor',[0 0 0],'Color',[0 0 0])
+        plot(x_counter,class_cell_shuff{1}{2},'o','MarkerEdgeColor',[0.5 0.5 0.5]);
+        mean_shuf = mean(class_cell_shuff{1}{2});
+        plot(x_counter,mean_shuf,'o','MarkerFaceColor',[0.5 0.5 0.5],...
+            'MarkerEdgeColor',[0.5 0.5 0.5])
+%         std_shuf = std(class_cell_shuff{1}{2});
+%         errorbar(x_counter,mean_shuf,std_shuf,'o',...
+%             'MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor',[0.5 0.5 0.5],...
+%             'Color',[0.5 0.5 0.5])
+        
+        % update the counter
+        x_counter = x_counter + 1;
 
+    end
+    set(gca,'TickLength',[0 0])
+    set(gca,'TickLength',[0 0])
+    set(gca,'XTick',1:num_data/2,'XTickLabels',{data_struct(1:2:num_data).figure_name},'FontSize',fontsize,...
+        'XTickLabelRotation',45,'XLim',[0 (num_data/2)+1],'TickLabelInterpreter','none')
+    ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
+%     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
+    set(gca,'YLim',[0 1])
+%     pbaspect([1 2 1])
+    a = get(gca);
+%     a.Position(4) = 2*h.Position(3);0
+    h.Position(4) = 2*h.Position(3);
+    box off
+%     axis tight
+    % assemble the figure path
+    % get the experiment name
+    name = strsplit(data_struct(1).name,'_');
+    file_path = strjoin({'classRedUVCompare',name{1},suffix},'_');
+    saveas(gcf, fullfile(fig_path,file_path), 'png')
+end
+%% Plot individual stimulus performances as a matrix
 
+close all
+% if there is only internal subsampling (i.e. there's regions), skip
+if subsample == 1 && num_data == 4
+    close all
+    
+    % allocate memory for the matrices from both data sets
+    data_cell = cell(num_data/2,1);
+    % for all the data sets
+    for datas = 1:2:num_data
+       
+%         h = figure;
+        % get the class cell
+        class_cell_real = data_struct(datas).class;
+        class_cell_shuff = data_struct(datas+1).class;
+        % get the number of regions
+        reg_number = size(class_cell_shuff,1);
+        
+        % allocate memory for the performance matrix (stim by shuffle or not)
+        performance_matrix = zeros(stim_num,reg_number,2);
+        % for all the regions
+        for regs = 1:reg_number
+
+            % calculate the mean confusion matrix
+            mean_acc = mean(class_cell_real{regs}{1},3);
+            % get the performances for each stimulus
+            stim_ave = diag(mean_acc)./sum(mean_acc,2);
+
+            mean_shuf = mean(class_cell_shuff{regs}{1},3);
+            stim_shuffle = diag(mean_shuf)./sum(mean_shuf,2);
+
+            % load them into the matrix
+            performance_matrix(:,regs,1) = stim_ave;
+            performance_matrix(:,regs,2) = stim_shuffle;
+        end
+        % save the matrix
+        data_cell{(datas+1)/2} = performance_matrix;
+        
+        % convert the rows to the stimulus color
+        % allocate memory for the output matrix
+        performance_colored = zeros(stim_num,reg_number,4,2);
+%         performance_matrix = normr_1(performance_matrix,1);
+        % for all the stimuli
+        for stim = 1:stim_num
+            switch stim
+                case 1
+                    performance_colored(stim,:,1,:) = ones(reg_number,1,2);
+                    performance_colored(stim,:,2,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,3,:) = 1-performance_matrix(stim,:,:);
+                case 2
+
+                    performance_colored(stim,:,1,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,2,:) = ones(reg_number,1,2);
+                    performance_colored(stim,:,3,:) = 1-performance_matrix(stim,:,:);
+                case 3
+
+                    performance_colored(stim,:,1,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,2,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,3,:) = ones(reg_number,1,2);
+                case 4
+
+                    performance_colored(stim,:,1,:) = ones(reg_number,1,2);
+                    performance_colored(stim,:,2,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,3,:) = ones(reg_number,1,2);
+            end
+            performance_colored(stim,:,4,:) = performance_matrix(stim,:,:);
+        end
+    end
+    figure
+    subplot(2,1,1)
+    
+%     imagesc(performance_matrix(:,:,1))
+    imagesc(data_cell{2}(:,:,1))
+    %         imagesc(performance_colored(:,:,1:3,1),'AlphaData',performance_colored(:,:,4,1))
+    set(gca,'TickLength',[0 0],'XTick',[],'FontSize',fontsize)
+    set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels)
+    set(gca,'CLim',[0 1])
+    reg_labels = data_struct(3).region(:,2);
+    set(gca,'XTick',1:length(reg_labels),'XTickLabels',reg_labels,'FontSize',fontsize,...
+        'XTickLabelRotation',45,'TickLabelInterpreter','none')
+    set(gca,'Position',[0.1300    0.5838    0.7050    0.2812])
+    %         set(gca,'CLim',[min(performance_colored(performance_colored(:,:,:,1)>0)),...
+    %             max(performance_colored(performance_colored(:,:,:,1)>0))])
+    
+    
+    subplot(2,1,2)
+    %         imagesc(performance_colored(:,:,1:3,2),'AlphaData',performance_colored(:,:,4,1))
+%     imagesc(performance_matrix(:,:,2))
+    imagesc(data_cell{1}(:,:,1))
+    set(gca,'Position',[0.1300    0.1500    0.7050    0.2812])
+    set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels)
+    set(gca,'TickLength',[0 0])
+    set(gca,'CLim',[0 1])
+    reg_labels = data_struct(1).region(:,2);
+    set(gca,'XTick',1:length(reg_labels),'XTickLabels',reg_labels,'FontSize',fontsize,...
+        'XTickLabelRotation',45,'TickLabelInterpreter','none')
+%     set(gca,'Position',[0.1300    0.5838    0.6750    0.3412])
+    
+    set(gca,'FontSize',15)
+    
+    cba = colorbar;
+    set(cba,'TickLength',0,'Position',[0.85 0.15 0.02 0.72])
+    ylabel(cba,'Classification Accuracy')
+    
+    % assemble the figure path
+    % get the experiment name
+%     set(gcf,'PaperUnits','Centimeters','PaperPosition',[0 0 20 13])
+    file_path = strjoin({'classRegPerStim',data_struct(datas).name,suffix},'_');
+    saveas(gcf, fullfile(fig_path,file_path), 'png')
+    
+end
+%% Plot the performances per stimulus as a matrix across data sets
+
+if subsample == 2 && num_data == 4
+     close all
+     h = figure;
+     % allocate memory for the performance matrix (stim by shuffle or not)
+     performance_matrix = zeros(stim_num,num_data/2,2);
+     % initialize data counter
+     data_counter = 1;
+    % for all the data sets
+    for datas = 1:2:num_data
+       
+        % get the class cell
+        class_cell_real = data_struct(datas).class;
+        class_cell_shuff = data_struct(datas+1).class;
+
+        % calculate the mean confusion matrix
+        mean_acc = mean(class_cell_real{1}{1},3);
+        % get the performances for each stimulus
+        stim_ave = diag(mean_acc)./sum(mean_acc,2);
+        
+        mean_shuf = mean(class_cell_shuff{1}{1},3);
+        stim_shuffle = diag(mean_shuf)./sum(mean_shuf,2);
+        
+        % load them into the matrix
+        performance_matrix(:,data_counter,1) = stim_ave;
+        performance_matrix(:,data_counter,2) = stim_shuffle;
+        % update the data counter
+        data_counter = data_counter + 1;
+        
+    end
+    
+    % convert the rows to the stimulus color
+    % allocate memory for the output matrix
+    performance_colored = zeros(stim_num,num_data/2,4,2);
+    %         performance_matrix = normr_1(performance_matrix,1);
+    % for all the stimuli
+    for stim = 1:stim_num
+        if contains(stim_name, 'p17b')
+            switch stim
+                case 1
+                    performance_colored(stim,:,1,:) = ones(num_data/2,1,2);
+                    performance_colored(stim,:,2,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,3,:) = 1-performance_matrix(stim,:,:);
+                case 2
+                    
+                    performance_colored(stim,:,1,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,2,:) = ones(num_data/2,1,2);
+                    performance_colored(stim,:,3,:) = 1-performance_matrix(stim,:,:);
+                case 3
+                    
+                    performance_colored(stim,:,1,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,2,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,3,:) = ones(num_data/2,1,2);
+                case 4
+                    
+                    performance_colored(stim,:,1,:) = ones(num_data/2,1,2);
+                    performance_colored(stim,:,2,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,3,:) = ones(num_data/2,1,2);
+            end
+            performance_colored(stim,:,4,:) = performance_matrix(stim,:,:);
+        else
+            switch stim
+                case 1
+                    performance_colored(stim,:,1,:) = ones(num_data/2,1,2);
+                    performance_colored(stim,:,2,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,3,:) = 1-performance_matrix(1,:,:);
+                    performance_colored(stim,:,4,:) = ones(num_data/2,1,2);
+                case 2
+                    
+                    performance_colored(stim,:,1,:) = ones(num_data/2,1,2);
+                    performance_colored(stim,:,2,:) = 1-performance_matrix(stim,:,:);
+                    performance_colored(stim,:,3,:) = ones(num_data/2,1,2);
+                    performance_colored(stim,:,4,:) = performance_matrix(stim,:,:);
+            end
+        end
+    end
+    
+    subplot(2,1,1)
+
+    imagesc(performance_matrix(:,:,1))
+%     imagesc(performance_colored(:,:,1:3,1),'AlphaData',performance_colored(:,:,4,1))
+    set(gca,'TickLength',[0 0],'XTick',[],'FontSize',fontsize)
+    set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels)
+    axis square
+    set(gca,'CLim',[0 1])
+    %         set(gca,'CLim',[min(performance_colored(performance_colored(:,:,:,1)>0)),...
+    %             max(performance_colored(performance_colored(:,:,:,1)>0))])
+    
+    
+    subplot(2,1,2)
+    imagesc(performance_matrix(:,:,2))
+%     imagesc(performance_colored(:,:,1:3,2))
+    set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels)
+    set(gca,'TickLength',[0 0])
+    set(gca,'CLim',[0 1])
+    set(gca,'XTick',1:2,'XTickLabels',{data_struct([1 3]).figure_name},'FontSize',fontsize,...
+        'XTickLabelRotation',45,'TickLabelInterpreter','none')
+    axis square
+    
+    % assemble the figure path
+    % get the experiment name
+    file_path = strjoin({'classPerStim',data_struct(1).name,suffix},'_');
+    saveas(gcf, fullfile(fig_path,file_path), 'png')
+    
+end
+%% Plot the p8 14-15-16 performances as a matrix
+% if there is only internal subsampling (i.e. there's regions), skip
+if subsample == 1 && num_data == 12
+    close all
+    
+
+    % initialize a counter
+    plot_count = 1;
+    % for all the data sets
+    for datas = 1:2:num_data
+       
+%         h = figure;
+        % get the class cell
+        class_cell_real = data_struct(datas).class;
+        class_cell_shuff = data_struct(datas+1).class;
+        % get the number of regions
+        reg_number = size(class_cell_shuff,1);
+        
+        % allocate memory for the performance matrix (stim by shuffle or not)
+        performance_matrix = zeros(stim_num,reg_number,2);
+        % for all the regions
+        for regs = 1:reg_number
+
+            % calculate the mean confusion matrix
+            mean_acc = mean(class_cell_real{regs}{1},3);
+            % get the performances for each stimulus
+            stim_ave = diag(mean_acc)./sum(mean_acc,2);
+
+            mean_shuf = mean(class_cell_shuff{regs}{1},3);
+            stim_shuffle = diag(mean_shuf)./sum(mean_shuf,2);
+
+            % load them into the matrix
+            performance_matrix(:,regs,1) = stim_ave;
+            performance_matrix(:,regs,2) = stim_shuffle;
+        end
+        % save the matrix
+%         data_cell{(datas+1)/2} = performance_matrix;
+        
+        % convert the rows to the stimulus color
+        % allocate memory for the output matrix
+%         performance_matrix = normr_1(performance_matrix,1);
+        fig('units','centimeter','width',10,'height',5)
+        %     subplot(2,1,1)
+
+        %     imagesc(performance_matrix(:,:,1))
+        imagesc(performance_matrix(:,:,1))
+        %         imagesc(performance_colored(:,:,1:3,1),'AlphaData',performance_colored(:,:,4,1))
+        set(gca,'TickLength',[0 0],'XTick',[],'FontSize',fontsize)
+        set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels(plot_count:plot_count+1))
+        set(gca,'CLim',[0 1])
+        reg_labels = data_struct(datas).region(:,2);
+        set(gca,'XTick',1:length(reg_labels),'XTickLabels',reg_labels,'FontSize',fontsize,...
+            'XTickLabelRotation',45,'TickLabelInterpreter','none')
+        %         set(gca,'CLim',[min(performance_colored(performance_colored(:,:,:,1)>0)),...
+        %             max(performance_colored(performance_colored(:,:,:,1)>0))])
+%         pbaspect([2,1,1])
+%         axis tight
+        % assemble the figure path
+        % get the experiment name
+        new_suffix = strrep(suffix,'classp_16',strcat('classp_',num2str(data_struct(datas).classpcolor)));
+        file_path = strjoin({'classp8PerStim',data_struct(datas).name,new_suffix},'_');
+        saveas(gcf, fullfile(fig_path,file_path), 'png')
+        % update the counter
+        if plot_count < 5
+            plot_count = plot_count + 2;
+        else
+            plot_count = 1;
+        end
+        
+    end
+    autoArrangeFigures
+    
 end

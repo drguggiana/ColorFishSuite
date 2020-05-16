@@ -6,6 +6,9 @@ load('paths.mat')
 addpath(genpath(paths(1).main_path))
 %% Load the files and define paths
 
+% reset the rng to keep results reproducible
+rng(1);
+
 %get the folder where the image files are
 tar_path_all = uipickfiles('FilterSpec',...
     paths(1).stage2_path);
@@ -103,10 +106,34 @@ for files = 1:num_data
     %reshape the matrix for conversion
     conc_trace2 = reshape(conc_trace,trace_num,time_num,[]);
     %eliminate the undesired time fragments
-    conc_trace2 = conc_trace2(:,21:60,:);
+    conc_trace2 = conc_trace2(:,stim_time,:);
     %rewrite the time_num and conc_trace variables
     time_num2 = size(conc_trace2,2);
     conc_trace2 = reshape(conc_trace2,trace_num,[]);
+    %% assemble a structure with all of the data
+    
+    % create the structure
+    main_str = struct([]);
+    
+    % fill in basic values
+    main_str(1).name = ori_name;
+    main_str(1).conc_trace = conc_trace;
+    main_str(1).single_reps = single_reps;
+    main_str(1).col_out = col_out;
+    main_str(1).stim_num = stim_num2;
+    main_str(1).time_num = time_num;
+    %% Extract the gains
+    if contains(ori_name,'p17b')
+        % get the gains
+        [delta_norm, qual_res, cross_res] = gain_analysis(main_str,stim_time);
+        main_str(1).delta_norm = delta_norm;
+        main_str(1).qual_res = qual_res;
+        main_str(1).cross_res = cross_res;
+    else
+        main_str(1).delta_norm = [];
+        main_str(1).qual_res = [];
+        main_str(1).cross_res = [];
+    end    
     %% OFF Normalize by stimulus
 
 %     %reshape the matrix to make the stimuli more accessible
@@ -134,10 +161,11 @@ for files = 1:num_data
     clu_vec = [5 10 20 30 50 70 100];
 %     clu_vec = 50;
     
-    replicates = 10;
+    replicates = 20;
     
     [idx_clu,GMModel,clu_num,pcs,bic_vec] = sPCA_GMM_cluster_Color(conc_trace2,bounds...
         ,K,t_bins,pca_vec,bic_name,clu_vec,replicates);
+
     toc
     %save the original cluster number for the surrogate analysis
     ori_clu = clu_num;
@@ -244,6 +272,12 @@ for files = 1:num_data
             close all
             % get the traces for the region
             region_traces = conc_trace2(anatomy_info(:,1)==region_set(regions),:);
+            if contains(ori_name,'p17b')
+                % also the gains
+                region_gains = main_str(1).delta_norm(anatomy_info(:,1)==region_set(regions),:);
+            else
+                region_gains = [];
+            end
                 % is there's less than num_thres traces, skip
                 if size(region_traces,1) < num_thres || size(region_traces,1) < sum(K)
                     region_clusters(regions).idx_clu = [];
@@ -254,7 +288,7 @@ for files = 1:num_data
                 end
                 % cluster them as above
                 [idx_clu_region,~,clu_num_region] = sPCA_GMM_cluster_Color(region_traces,bounds...
-                ,K,t_bins,pca_vec,bic_name,clu_vec,replicates);
+                ,K,t_bins,pca_vec,bic_name,clu_vec,replicates,region_gains);
 
                 % filter the traces based on the above
                 [idx_clu_region,clu_num_region] = cluster_snr(snr_mat(anatomy_info(:,1)==region_set(regions),:),...
@@ -411,10 +445,10 @@ for files = 1:num_data
             figure_name = 'Tectum';
         case 'p8_SynG6s'
             framerate = 1./0.507;
-            figure_name = 'RGCs';
+            figure_name = 'AF10';
         case 'p17b_gc6s'
             framerate = 1./0.952;
-            figure_name = 'Tectum';
+            figure_name = 'RAs';
         case 'p17b_syngc6s'
             framerate = 1./0.952;
             figure_name = 'RGCs';
@@ -425,12 +459,7 @@ for files = 1:num_data
     end
     %% Assemble the structure with the data
 
-    % assemble a structure with all of the data
-    main_str = struct([]);
-    main_str(1).name = ori_name;
-    main_str(1).conc_trace = conc_trace;
-    main_str(1).single_reps = single_reps;
-    main_str(1).col_out = col_out;
+    % continue filling the structure
     main_str(1).fish_ori = fish_ori;
     main_str(1).anatomy_info = anatomy_info;
     main_str(1).pcs = pcs;
@@ -440,8 +469,6 @@ for files = 1:num_data
     main_str(1).K = K;
     main_str(1).t_bins = t_bins;
     main_str(1).pca_vec = pca_vec;
-    main_str(1).stim_num = stim_num2;
-    main_str(1).time_num = time_num;
     main_str(1).bic_vec = bic_vec;
     main_str(1).clu_num = clu_num;
     main_str(1).clu_number = clu_number;
@@ -453,19 +480,6 @@ for files = 1:num_data
     main_str(1).region_clusters = region_clusters;
     main_str(1).framerate = framerate;
     main_str(1).figure_name = figure_name;
-    %% Extract the gains
-    close all
-    if contains(ori_name,'p17b')
-        % get the gains
-        [delta_norm, qual_res, cross_res] = gain_analysis(main_str,stim_time);
-        main_str(1).delta_norm = delta_norm;
-        main_str(1).qual_res = qual_res;
-        main_str(1).cross_res = cross_res;
-    else
-        main_str(1).delta_norm = [];
-        main_str(1).qual_res = [];
-        main_str(1).cross_res = [];
-    end
     %% Save the structure
     
     %define the save path

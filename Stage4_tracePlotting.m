@@ -40,9 +40,10 @@ for datas = 1:length(data)
     imagesc(sort_idx)
     colormap(gca,'colorcube')
     set(gca,'XTick',[],'YTick',[])
-    
+    set(gca,'FontSize',30)
     file_path = strjoin({'traces',data(datas).name,'.png'},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+%     saveas(gcf, fullfile(fig_path,file_path), 'png')
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
 end
 
 
@@ -70,8 +71,8 @@ autoArrangeFigures
 close all
 
 for datas = 1:length(data)
-   
-    fig('units','centimeters','width',10,'height',20)
+    figure
+%     fig('units','centimeters','width',10,'height',20)
     a_count = 1;
     % get the clusters indexes
     idx_clu = data(datas).idx_clu;
@@ -83,6 +84,8 @@ for datas = 1:length(data)
     clu_num = data(datas).clu_num;
     % define the trace offset
     trace_offset = 5;
+    % calculate the top of the plot
+    plot_top = trace_offset*(clu_num-1);
     % framerate added manually, need to fix this
     framerate = data(datas).framerate;
     % for all the clusters
@@ -98,7 +101,7 @@ for datas = 1:length(data)
         for stim = 1:stim_num
             % plot it
             shadedErrorBar(time_perstim(:,stim),...
-                ave_perstim(:,stim)+(a_count-1)*trace_offset,std_perstim(:,stim),...
+                ave_perstim(:,stim)+(plot_top-(a_count-1)*trace_offset),std_perstim(:,stim),...
                 {'color',color_scheme(stim,:),'LineWidth',1})
             hold on
         end
@@ -113,9 +116,9 @@ for datas = 1:length(data)
         plot([time_perstim(end,stim),time_perstim(end,stim)],...
             get(gca,'YLim'),'k','LineWidth',2)
     end
-    pbaspect([1,2,1])
+%     pbaspect([1,2,1])
     axis tight
-    set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',string(1:clu_num))
+    set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',string(clu_num:-1:1))
     set(gca,'TickLength',[0 0])
     xlabel('Time (s)')
 %     sgtitle(strjoin({'Average_Trace_perArea',data(datas).name},'_'),'Interpreter','None')
@@ -124,10 +127,14 @@ for datas = 1:length(data)
     
     
 
-    title(strcat(data(datas).figure_name,'+'),'Interpreter','None')
+    title(data(datas).figure_name,'Interpreter','None')
+    set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
     % assemble the figure path 
+    set(gca,'FontSize',10)
     file_path = strjoin({'clusterTraces',data(datas).name,'.png'},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+%     saveas(gcf, fullfile(fig_path,file_path), 'png')
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
+
 end
 
 
@@ -140,8 +147,7 @@ target_trace = 1050;
 % initialize a variable to lift the traces
 trace_lift = 5;
 % define the frame rate
-% TODO: add to structure
-framerate = 1/0.952;
+framerate = data(1).framerate;
 
 % define the color scheme depending on the stimulus type
 if contains(data(1).name,'p17')
@@ -167,7 +173,7 @@ for datas = 1:length(data)
 end
 
 % plot the intermediate lines
-for stim = 1:data(datas).stim_num-1
+for stim = 1:data(1).stim_num-1
     plot([time_perstim(end,stim),time_perstim(end,stim)],...
         get(gca,'YLim'),'k','LineWidth',2)
 end
@@ -179,8 +185,77 @@ set(gca,'TickLength',[0 0])
 xlabel('Time (s)')
 pbaspect([2,1,1])
 axis tight
-
+set(gca,'FontSize',15)
 % assemble the figure path
 file_path = strjoin({'SingleTrace',data.name,'.png'},'_');
-saveas(gcf, fullfile(fig_path,file_path), 'png')
+% saveas(gcf, fullfile(fig_path,file_path), 'png')
+print(fullfile(fig_path,file_path),'-dpng','-r600')
+%% Clusters per area
 
+% plot a matrix indicating how many instances of a cluster are in each
+% region
+
+% only do this for the p17 dataset
+if contains(data(datas).name,'p17b')
+    close all
+%     % define the region labels
+%     region_labels = {'Red','Green','Blue','UV'};
+    % define the fontsize
+    fontsize = 10;
+    
+    % for all the datasets
+    for datas = 1:length(data)
+        figure
+        
+        % get the anatomy info
+        anatomy_info = data(datas).anatomy_info;
+
+        % define the labels and exclude AF 6 and 7 cause too few terminals
+        switch data(datas).figure_name
+            case {'RAs','Tectum'}
+                region_labels = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+            case {'RGCs','AF10'}
+                region_labels = {'AF4','AF5','AF8','AF9','AF10'};
+                anatomy_info(anatomy_info(:,1)==6) = NaN;
+                anatomy_info(anatomy_info(:,1)==7) = NaN;
+        end
+        % get the list and number of regions
+        region_list = unique(anatomy_info(:,1));
+        region_list = region_list(~isnan(region_list));
+        region_num = length(region_list);
+        % get the clusters
+        idx_clu = data(datas).idx_clu;
+        % get the number of clusters
+        clu_num = data(datas).clu_num;
+        
+        % allocate memory for the matrix
+        cluster_perregion = zeros(clu_num,region_num);
+        % go through all of the regions and clusters filling up the matrix
+        for clu = 1:clu_num
+            for region = 1:region_num
+                cluster_perregion(clu,region) = sum(anatomy_info(:,1)==region_list(region) & ...
+                    idx_clu==clu);
+            end
+        end
+        imagesc(normr_1(cluster_perregion,2))
+        set(gca,'TickLength',[0 0])
+        set(gca,'XTick',1:region_num,'XTickLabels',region_labels,'FontSize',fontsize,...
+            'XTickLabelRotation',45)
+        set(gca,'YTick',1:clu_num,'FontSize',fontsize)
+        axis square
+        title(data(datas).figure_name)
+        set(gca,'FontSize',15)
+        
+        
+        cba = colorbar;
+        set(cba,'TickLength',0)
+        ylabel(cba,'Fraction traces/cluster')
+        
+        % assemble the figure path
+        file_path = strjoin({'clusterPerArea',data(datas).name,'.png'},'_');
+%         saveas(gcf, fullfile(fig_path,file_path), 'png')
+        print(fullfile(fig_path,file_path),'-dpng','-r600') 
+
+    end
+    autoArrangeFigures
+end

@@ -62,4 +62,4 @@ end
 
 %overwrite the old variables
 idx_clu = new_idx;
-clu_num = numel(unique(idx_clu))-1;
+clu_num = numel(unique(idx_clu(idx_clu>0)));

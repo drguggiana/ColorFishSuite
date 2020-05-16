@@ -100,36 +100,37 @@ for redec = 1:redec_num
     t_perstim = obs_num/stim_num2;
     
     %if 5 color categories are desired
-    if (classpcolor == 5)||(classpcolor == 6)
-        %bin the matrix matching the redundant intensity points
-        
-        %allocate memory to store the averaged data
-        ave_stim = zeros(trace_num,5,obs_num/8);
-        %reshape the data to be able to average
-        stim_resh = reshape(stim_only,trace_num,8,obs_num/8);
-        %for each one of the averaging intervals
-        for interv = 1:5
-            switch interv
-                case {1,5}
-                    %select the corresponding points and average
-                    ave_stim(:,interv,:) = stim_resh(:,interv+2,:);
-                case 2
-                    %select the corresponding points and average
-                    ave_stim(:,interv,:) = stim_resh(:,4,:);
-                case 3
-                    %select the corresponding points and average
-                    ave_stim(:,interv,:) = stim_resh(:,5,:);
-                case 4
-                    %select the corresponding points and average
-                    ave_stim(:,interv,:) = stim_resh(:,6,:);
+    switch classpcolor
+        case {5,6}
+            %bin the matrix matching the redundant intensity points
+
+            %allocate memory to store the averaged data
+            ave_stim = zeros(trace_num,5,obs_num/8);
+            %reshape the data to be able to average
+            stim_resh = reshape(stim_only,trace_num,8,obs_num/8);
+            %for each one of the averaging intervals
+            for interv = 1:5
+                switch interv
+                    case {1,5}
+                        %select the corresponding points and average
+                        ave_stim(:,interv,:) = stim_resh(:,interv+2,:);
+                    case 2
+                        %select the corresponding points and average
+                        ave_stim(:,interv,:) = stim_resh(:,4,:);
+                    case 3
+                        %select the corresponding points and average
+                        ave_stim(:,interv,:) = stim_resh(:,5,:);
+                    case 4
+                        %select the corresponding points and average
+                        ave_stim(:,interv,:) = stim_resh(:,6,:);
+                end
             end
-        end
-        %reshape the matrix back to 2D shape
-        stim_only = reshape(ave_stim,trace_num,5*obs_num/8);
-        %recalculate the obs_num
-        obs_num = size(stim_only,2);
-        %also redefine the time per stimulus
-        t_perstim = obs_num/stim_num2;
+            %reshape the matrix back to 2D shape
+            stim_only = reshape(ave_stim,trace_num,5*obs_num/8);
+            %recalculate the obs_num
+            obs_num = size(stim_only,2);
+            %also redefine the time per stimulus
+            t_perstim = obs_num/stim_num2;
     end
     
     %allocate memory for the stimulus labels
@@ -252,7 +253,16 @@ for redec = 1:redec_num
             stim_label = cat(2,ones(1,t_perstim),2.*ones(1,t_perstim));
             % also change the weight
             weight_vec = ones(2*t_perstim,1);
-              
+        case 17
+            if bin_width > 1
+                error('bin widht must be 1')
+            end
+            % leave only max UV and 127 RGB
+            stim_only = reshape(stim_only,trace_num,[],stim_num2,3);
+            stim_only = cat(3,stim_only(:,[1,9,17,25,33],1:3,:),stim_only(:,[7,15,23,31,39],4,:));
+            stim_only = reshape(stim_only,trace_num,[]);
+            stim_label = repmat(cat(2,ones(1,5),2.*ones(1,5),3.*ones(1,5),4.*ones(1,5)),1,3);
+            weight_vec = ones(size(stim_label,2),1); 
     end
     %if not using 1 class per color
     if classpcolor > 1 && classpcolor < 10 && classpcolor ~= 6
@@ -314,7 +324,7 @@ for redec = 1:redec_num
         %set parallel computing parameters
         options = statset('UseParallel',0);
         %calculate the decoder
-        af_deco = fitcecoc(train_set,train_label,'LeaveOut','on','Verbose',1,...
+        af_deco = fitcecoc(train_set,train_label,'LeaveOut','on','Verbose',0,...
             'Learners',learner_vec{learn_var},'Coding','onevsall','Prior','Empirical',...
             'Weights',weight_vec,'Options',options);
         
@@ -323,7 +333,7 @@ for redec = 1:redec_num
         af_pred = kfoldPredict(af_deco);
     else
         %calculate the decoder
-        af_deco = fitcecoc(train_set,train_label,'LeaveOut','off','Verbose',1,...
+        af_deco = fitcecoc(train_set,train_label,'LeaveOut','off','Verbose',0,...
             'Learners',learner_vec{learn_var},'Coding','onevsall');
         
         %use the decoder to predict the data

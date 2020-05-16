@@ -18,13 +18,9 @@ if nargin > 2 && ~isempty(varargin{1})
     
     %for each group of stimuli
     for stimg = 1:g_num
-  
-      
-            
+   
         %load the part of the trace corresponding to this stimulus    
         a_data{stimg} = data_in(:,bounds(1,stimg):bounds(2,stimg));
-%         a_data{stimg} = clu_mat(:,bounds(1,stimg):bounds(2,stimg));
-       
         
         %get the number of columns
         col_num = size(a_data{stimg},2);
@@ -47,12 +43,12 @@ if nargin > 2 && ~isempty(varargin{1})
     
     % K = [8 2 8 8];
     
-    delta = Inf;
+    delta = 1000;
     % stop_var = -10;
     stop_var = -t_bins;
     maxSteps = 500;
     convergenceCriterion = 1e-9;
-    verbose = true;
+    verbose = false;
     
     %allocate memory for the PCs
     pcs = cell(g_num,5);
@@ -63,9 +59,7 @@ if nargin > 2 && ~isempty(varargin{1})
         [pcs{stimg,1},pcs{stimg,2},pcs{stimg,3},pcs{stimg,4},pcs{stimg,5}] = ...
             spca(a_data{stimg},[],K(stimg), delta, stop_var, maxSteps, convergenceCriterion, verbose);
     end
-    
-    
-    
+      
     %visualize spca results
     figure
     %for all the groups
@@ -106,6 +100,13 @@ if nargin > 2 && ~isempty(varargin{1})
         end
     end
     
+    % if data was supplied for direct clustering combined with the spca
+    % data
+    if length(varargin) > 7
+        % concatenate the matrices
+        f_data = horzcat(f_data,varargin{8});
+    end
+    
     %standardize each column
     %for all the features
     for ft = 1:ft_num
@@ -121,6 +122,12 @@ if nargin > 2 && ~isempty(varargin{1})
 else %if not with spca
     %just reassign the input data
     f_data = data_in;
+    ft_num = size(f_data,2);
+    %standardize each column
+    %for all the features
+    for ft = 1:ft_num
+        f_data(:,ft) = (f_data(:,ft) - mean(f_data(:,ft)))./std(f_data(:,ft));
+    end
 end
 %% Get the ideal cluster number based on the BIC
 
@@ -138,6 +145,7 @@ model_vec = cell(clu_ran,1);
 clu_count = 1;
 %for all the clu num to evaluate
 for clu = clu_vec
+    fprintf(strjoin({'Current clu num:',num2str(clu_count),'of',num2str(length(clu_vec)),'\r\n'},'_'))
     % if the target cluster number is higher than the dimensionality, skip
     if clu >= size(f_data,1) || size(f_data,1) < size(f_data,2)
         bic_vec(clu_count) = NaN;
@@ -148,20 +156,16 @@ for clu = clu_vec
     %generate the model
     GM_temp = fitgmdist(f_data,clu,'CovarianceType','diagonal',...
         'RegularizationValue',1e-3,'Options',statset('MaxIter',500,...
-        'Display','iter'),'Replicates',varargin{7});
+        'Display','final'),'Replicates',varargin{7});
     
     bic_vec(clu_count) = GM_temp.BIC;
     model_vec{clu_count} = GM_temp;
     clu_count = clu_count + 1;
 end
 
-%extract the desired name and path for the bic file from the inputs
-% [bic_path,bic_rawname] = fileparts(varargin{5});
-% bic_name = strcat(bic_rawname,'_bicvector_',datestr(now,30),'.mat');
-% save(fullfile(bic_path,bic_name),'bic_vec','clu_vec')
 % Plot the BIC levels
 figure
-plot(clu_vec,bic_vec)
+plot(clu_vec(2:end),2.*log10(abs(diff((bic_vec)))))
 %send out the BIC levels
 varargout{2} = bic_vec;
 %assign the cluster number as the minimum of the BIC function
@@ -178,34 +182,3 @@ else
     %cluster the data based on the model
     idx_clu = cluster(GMModel,f_data);
 end
-% end
-%% Cluster the data using a Gaussian Mixture model
-% tic
-% s_path = 'E:\Behavioral data\Matlab\clustering_figs\';
-% 
-% run = 6;
-% clu_count = 1;
-% clus_vec = [90 100 150];
-
-% gm_cell = cell(length(clus_vec),1);
-% for clus = clus_vec
-
-%load the model file
-% [m_name,m_path] = uigetfile('*mat');
-
-% m_path = 'E:\Behavioral data\Matlab\clustering_figs\';
-% m_name = '201602024_preab_gmmodel.mat';
-% GM_load = load(fullfile(m_path,m_name));
-% field = fieldnames(GM_load);
-% GMModel = GM_load.(field{1});
-% %define the number of clusters 
-% clu_num = GMModel.NumComponents;
-% %redefine the cluster vector
-% clu_vec = 1:clu_num;
-
-%fit a GM model to the data
-% GMModel = fitgmdist(f_data,clu_num,'CovarianceType','diagonal','RegularizationValue',1e-5,'Options',statset('MaxIter',300,'Display','iter'),'Replicates',1);
-% GGModel = fitgmdist(f_data,clu_num,'CovarianceType','diagonal','RegularizationValue',1e-5);
-% GMModel = fitgmdist(f_data,clu_num,'CovarianceType','diagonal','RegularizationValue',1e-5,...
-%     'Options',statset('MaxIter',500,'Display','iter'));
-

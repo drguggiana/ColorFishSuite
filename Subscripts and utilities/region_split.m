@@ -36,7 +36,7 @@ else
 end
 
 % monkey patch for the unannotated p8 syn dataset
-if ~contains(name,'p8')
+if ~contains(name,'p8') || cluster_flag == true
     % turn NaNs into 0
     regions(isnan(regions)) = 0;
     % get a list of the regions present

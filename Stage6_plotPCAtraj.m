@@ -12,6 +12,8 @@ data = load_clusters(cluster_path);
 %% Calculate PCA trajectories, Niessing-style
 
 close all
+% define the stimulus set to use
+stim_set = 3;
 
 %define the stim labels based on the paradigm
 %extract the actual file name
@@ -27,7 +29,8 @@ else %if it's p6p8 instead
     %define the stim labels (for p6p8 data)
     stim_labels = {'Red CK','UV CK','Red GR','UV GR','Red FL','UV FL'};
     %define the plot colors
-    plot_col = [1 0 0;0 0 1;0.8 0 0;0 0 0.8;0.4 0 0;0 0 0.4];
+%     plot_col = [1 0 0;0 0 1;0.8 0 0;0 0 0.8;0.4 0 0;0 0 0.4];
+    plot_col = [1 0 0;1 0 1;1 0 0;1 0 1;1 0 0;1 0 1];
     plot_marker = {'o', 'o', 's', 's', 'd', 'd'};
 end
 
@@ -60,7 +63,10 @@ for datas = 1:num_data
     
     % get the time and stim nums
     time_num = data(datas).time_num;
-    stim_num2 = data(datas).stim_num;
+    stim_num = data(datas).stim_num;
+    
+    % get the stimuli to use
+    stim_vector = pick_stim_vector(stim_set,stim_num,data(datas).name);
 
     %if a normal data set
     if datas <= num_data
@@ -69,7 +75,7 @@ for datas = 1:num_data
         %get the number of traces
         trace_num = size(conc_trace,1);
         %reshape the matrix to calculate correlations between stimuli
-        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num2);
+        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num);
         %extract only the stim period
         resh_trace = resh_trace(:,21:60,:);
     else
@@ -79,7 +85,7 @@ for datas = 1:num_data
         %get the number of traces
         trace_num = size(resh_trace,1);
         %reshape the matrix 
-        resh_trace = reshape(resh_trace,trace_num,size(resh_trace,2)/stim_num2,stim_num2);
+        resh_trace = reshape(resh_trace,trace_num,size(resh_trace,2)/stim_num,stim_num);
     end
     
     % separate the traces by region
@@ -101,10 +107,10 @@ for datas = 1:num_data
             continue
         end
         % run the PCA    
-        pca_mat = zeros(size(resh_trace,2),3,stim_num2);
+        pca_mat = zeros(size(resh_trace,2),3,stim_num);
         figure
         %for all the times
-        for stim = 1:stim_num2
+        for stim = stim_vector
 
 
             %         %get the number of time points per stimulus
@@ -151,9 +157,11 @@ for datas = 1:num_data
 %         xlabel('PC 1','FontSize',20)
 %         ylabel('PC 2','FontSize',20)
 %         zlabel('PC 3','FontSize',20)
+        
         % assemble the figure path 
-        file_path = strjoin({'trajectory',data(datas).name,'region',region_data{region,2},'.png'},'_');
-        saveas(gcf, fullfile(fig_path,file_path), 'png')
+%         file_path = strjoin({'trajectory',data(datas).name,...
+%           'region',region_data{region,2},'set',num2str(stim_set),'.png'},'_');
+%         saveas(gcf, fullfile(fig_path,file_path), 'png')
     
     end
 end
@@ -163,17 +171,20 @@ close all
 %define the minimal dimension threshold for CCA
 min_dim = 3;%10;
 % define the variance threshold
-var_threshold = 0.6;%0.9;
+var_threshold = 0.9;%0.9;
 
 %for all the fish
 for datas = 1:num_data
     
     %show the current fish
     fprintf(strcat('Current dataset:',num2str(datas),'\r\n'))
+        
+    % get the stimuli to use
+    stim_vector = pick_stim_vector(stim_set,stim_num,data(datas).name);
 
     raw_trace = data(datas).conc_trace;
     
-    resh_trace = reshape(raw_trace,size(raw_trace,1),time_num,stim_num2);
+    resh_trace = reshape(raw_trace,size(raw_trace,1),time_num,stim_num);
     %clip the edges away
     resh_trace = resh_trace(:,21:60,:);
     
@@ -192,12 +203,12 @@ for datas = 1:num_data
     % for all the regions
     for region = 1:num_regions
         
-        pca_mat = zeros(size(resh_trace,2),3,stim_num2);
+        pca_mat = zeros(size(resh_trace,2),3,stim_num);
         % initialize the skipped fish counter
-        skip_count = 0;
+        skip_count = 1;
         figure
         %for all the times
-        for stim = 1:stim_num2
+        for stim = stim_vector
             % allocate a structure to store the pca data
             pca_struct = struct([]);
                     % split between animals
@@ -288,7 +299,8 @@ for datas = 1:num_data
 %         ylabel('PC 2','FontSize',20)
 %         zlabel('PC 3','FontSize',20)
         % assemble the figure path 
-        file_path = strjoin({'trajectoryCCA',data(datas).name,'region',region_data{region,2},'.png'},'_');
+        file_path = strjoin({'trajectoryCCA',data(datas).name,...
+            'region',region_data{region,2},'set',num2str(stim_set),'.png'},'_');
         saveas(gcf, fullfile(fig_path,file_path), 'png')
     end 
 end

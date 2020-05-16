@@ -13,7 +13,7 @@ data = load_clusters(cluster_path);
 
 % define whether to run in parallel (need to also convert region for loop
 % to parfor)
-run_parallel = 0;
+run_parallel = 1;
 % define whether to classify on clusters or regions
 cluster_flag = 0;
 % define the region set to use
@@ -33,17 +33,17 @@ end
 repeat_number = 10;
 % define whether to subsample. If subsampling from each region within a
 % dataset, use 1, if subsampling across datasets (usually with
-% combination=1) then use 2r
+% combination=1) then use 2
 subsample = 2;
 % combine regions
 region_combination = 1;
 %define whether to shuffle labels (for neutral classification)
-shuff_label = 0;
+shuff_label = 1;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
-classpcolor = 16;
+classpcolor = 17;
 %define the binning factor
-bin_width = 10;
+bin_width = 1;
 % define which portion of the trial to take (0 pre, 1 stim, 2 post,
 % 3 pre and post)
 portion = 1;
@@ -136,7 +136,7 @@ for datas = 1:num_data
 
     
     % for all the regions
-    for regions = 1:num_regions
+    parfor regions = 1:num_regions
         if isempty(region_data{regions,1})
             continue
         end
@@ -144,7 +144,8 @@ for datas = 1:num_data
         class_repeats = cell(3,repeat_number);
         % for all of the repeats
         for repeat = 1:repeat_number
-            
+            fprintf(strjoin({'Current data:',num2str(datas),'reg',num2str(regions),...
+                'rep:',num2str(repeat),'\r\n'},'_'))
             % get the traces
             region_traces = region_data{regions,1};
             % get the origin fish for these region traces

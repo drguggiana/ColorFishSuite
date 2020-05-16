@@ -4,6 +4,13 @@ function fishave_cell = reformat_fish(data,fish_ori,num_files,im_info_cell,aff_c
 cat_seed_all = data.xy_seed;
 cat_z_all = data.z_seed;
 
+% define the frame size based on the dataset
+if contains(data.name,'p8_SynG6s')
+    frame_size = 256;
+else
+    frame_size = 320;
+end
+
 %allocate memory for the registered fish
 fishave_cell = cell(num_files,2);
 
@@ -35,10 +42,10 @@ for seeds = 1:size(cat_seed_all,1)
             %and the actual pixels
             list_pix = cat_seed_all(seeds).pxlist;
             %transform the indexes to subindexes
-            [sub_y,sub_x] = ind2sub([320 320],list_pix);
+            [sub_y,sub_x] = ind2sub([frame_size frame_size],list_pix);
     end
     %flip the x indexes
-    sub_y = 320 - sub_y + 1;
+    sub_y = frame_size - sub_y + 1;
     %load the transformed indexes and the z into the fish_xyz
     %matrix
     fish_xyz(seed_c:seed_c+num_pix-1,:) = ...
