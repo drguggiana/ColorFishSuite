@@ -455,6 +455,15 @@ for files = 1:num_data
         case 'p17b_h2b6s'
             framerate = 1./0.952;
             figure_name = 'Tectum, Nuclear labelled';
+        otherwise
+            if contains(ori_name,'conv')&&contains(ori_name,'p17b')
+                framerate = 1/0.952;
+                figure_name = 'Delayed RGCs';
+            else
+                framerate = 0;
+                figure_name = 'Other';
+            end
+                
             
     end
     %% Assemble the structure with the data

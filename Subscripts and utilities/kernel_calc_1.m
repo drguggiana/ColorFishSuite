@@ -1,4 +1,4 @@
-function kernel_out = kernel_calc_1(conc_trace,stim_num2,time_num,plot_flag,type_var)
+function [kernel_out, fit_val]= kernel_calc_1(conc_trace,stim_num2,time_num,plot_flag,type_var)
 
 % get the number of clusters
 trace_num = size(conc_trace,1);

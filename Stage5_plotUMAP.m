@@ -51,6 +51,9 @@ for datas = 1:num_data
     
 end
 
+% define the labels for the gain histogram
+gain_labels = {'NR','Red','Green','Blue','UV','2-chrom','3-chrom','4-chrom'};
+
 % Allocate memory to store the embeddings
 UMAP_cell = cell(num_data,1);
 % for all the datasets selected
@@ -102,7 +105,7 @@ for datas = 1:length(data)
 end
 %% Plot the results based on stimulus
 close all
-
+histo = figure;
 for datas = 1:num_data
     
     % load the embedding
@@ -117,13 +120,15 @@ for datas = 1:num_data
     stim_num = data(datas).stim_num;
     
     
-%     % get the reshaped activity
-%     average_levels = reshape(conc_trace,trace_num,time_num,stim_num);
-%     % take only the stimulation time
-%     average_levels = average_levels(:,stim_time,:);
-    average_levels = abs(data(datas).delta_norm(index_cell{datas}==1,:));
+    % get the reshaped activity
+    average_levels = reshape(conc_trace,trace_num,time_num,stim_num);
+    % take only the stimulation time
+    average_levels = average_levels(:,stim_time,:);
     % take the absolute average
-%     average_levels = squeeze(mean(abs(average_levels),2));
+    average_levels = squeeze(mean(abs(average_levels),2));
+%     % use the actual gains
+%     average_levels = abs(data(datas).delta_norm(index_cell{datas}==1,:));
+
     if gains
         for i = 1:4
             % scale and center the gain values
@@ -155,7 +160,6 @@ for datas = 1:num_data
 %             file_path = strjoin({'UMAP',data(datas).name,'Gain',num2str(i),'set',num2str(region_set),'.png'},'_');
 %             saveas(gcf, fullfile(fig_path,file_path), 'png')
         end
-        figure
 %         % use the max value of the parameter (either average resp or gain)
 %         [~,max_values] = max(average_levels,[],2);
         % use the top percentile of the gain
@@ -164,7 +168,7 @@ for datas = 1:num_data
         max_values = zeros(size(average_levels,1),1);
         temp_values = zeros(size(average_levels));
         % for all colors
-        for stim = 1:stim_num
+        for stim = 1:size(average_levels,2)
             % get the ROIs passing threshold in each color
             temp_values(average_levels(:,stim)>perc_values(stim),stim) = 1;
             
@@ -177,9 +181,24 @@ for datas = 1:num_data
         % join it with the max_values
         max_values(opponents~=0) = opponents(opponents~=0);
         max_values = max_values + 1;
+        figure(histo)
+        histogram(max_values,'Normalization','pdf')
+        hold on
+
+        if datas == num_data
+            box off
+            set(gca,'XTick',1:8,'XTickLabels',gain_labels,'XTickLabelRotation',45)
+            set(gca,'FontSize',15)
+            title('Response Gains')  
+            legend({'OT','AF10'})
+            file_path = strjoin({'histoUMAP',data(1).name,data(2).name,'Combined','set',num2str(region_set),'.png'},'_');
+            print(fullfile(fig_path,file_path),'-dpng','-r600')
+        end
+        
+        figure
         
 %         cmap = [255,0,0; 0,255,0; 0,0,255; 255,0,255]/255;
-        cmap = [0.8 0.8 0.8;1 0 0;0 1 0;0 0 1;1 0 1;0 1 1;0.8 0.8 0;0 0 0];
+        cmap = [0.8 0.8 0.8;1 0 0;0 1 0;0 0 1;1 0 1;0 0 0;0 0 0;0 0 0];
 %         scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(max_values,:),'filled','o')
         gscatter(reduced_data(:,1),reduced_data(:,2),max_values,cmap,'.',10)
 %         legend({'Red', 'Green', 'Blue', 'UV'})
@@ -189,7 +208,6 @@ for datas = 1:num_data
         set(gca,'TickLength',[0 0],'visible','off')
         title(strjoin({'UMAP',data(datas).name,'Combined'},'_'),'Interpreter','None')
         file_path = strjoin({'UMAP',data(datas).name,'Combined','set',num2str(region_set),'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
         print(fullfile(fig_path,file_path),'-dpng','-r600')
     else
 
@@ -257,6 +275,7 @@ for datas = 1:num_data
 %         saveas(gcf, fullfile(fig_path,file_path), 'png')
         print(fullfile(fig_path,file_path),'-dpng','-r600')
     end
+    autoArrangeFigures
 end
 %% Plot the results based on region
 for datas = 1:num_data
@@ -317,6 +336,9 @@ end
 %% Plot the p8 UMAPs separately by stimulus modality
 close all
 if contains(data(datas).name,'p8')
+    % allocate memory to store the color raw vectors
+    color_cell = cell(num_data,stim_num/2);
+    % for all datasets
     for datas = 1:num_data
 
         % load the embedding
@@ -324,49 +346,92 @@ if contains(data(datas).name,'p8')
         num_points = size(reduced_data,1);
         % close all
         % get the number of traces, time and stimuli
+        conc_trace = data(datas).conc_trace;
         trace_num = size(conc_trace,1);
         time_num = data(datas).time_num;
         stim_num = data(datas).stim_num;
 
         % get the reshaped activity
-        average_levels = reshape(conc_trace,trace_num,time_num,stim_num);
+        average_levels2 = reshape(conc_trace,trace_num,time_num,stim_num);
         % take only the stimulation time
-        average_levels = average_levels(:,stim_time,:);
+        average_levels2 = average_levels2(:,stim_time,:);
         % take the absolute average
-        average_levels = squeeze(mean(abs(average_levels),2));
-
-        [~,max_values] = max(average_levels,[],2);
+        average_levels2 = squeeze(mean(abs(average_levels2),2));
+% 
+%         [~,max_values] = max(average_levels,[],2);
+        
+                % use the top percentile of the gain
+        
+        
 
         % define the colormap
-        cmap = [0.8 0.8 0.8;1 0 0;1 0 1];
+        cmap = [0.8 0.8 0.8;1 0 0;1 0 1;0 0 0];
         % for all stimulus types
         for stim = 1:2:5
     %         fig('units','centimeters','width',10,'height',8,'fontsize',5)
             figure
+            
+            % copy the corresponding average_levels
+            average_levels = average_levels2(:,stim:stim+1);
+            
+            perc_values = prctile(average_levels,75,1);
+            % allocate memory for the max_values
+            max_values = zeros(size(average_levels,1),1);
+            temp_values = zeros(size(average_levels));
+            % for all colors
+            for stim2 = 1:2
+                % get the ROIs passing threshold in each color
+                temp_values(average_levels(:,stim2)>perc_values(stim2),stim2) = 1;
+                
+                max_values(average_levels(:,stim2)>perc_values(stim2)) = stim2;
+            end
+            
+            % get the ROIs with more than 1 selectivity
+            opponents = sum(temp_values,2)+1;
+            opponents(opponents<3) = 0;
+            % join it with the max_values
+            max_values(opponents~=0) = opponents(opponents~=0);
+            color_raw = max_values + 1;
 
             % create a temporary color scheme to plot the other stim gray
-            color_raw = zeros(size(reduced_data,1),1);
-            color_raw(max_values==stim) = 2;
-            color_raw(max_values==stim+1) = 3;
-            color_raw(color_raw==0) = 1;
+%             color_raw = zeros(size(reduced_data,1),1);
+%             color_raw(max_values==stim) = 2;
+%             color_raw(max_values==stim+1) = 3;
+%             
+%             color_raw(max_values>6) = 4;
+%             
+%             color_raw(color_raw==0) = 1;
+            % save the color_raw vector for quantification
+            color_cell{datas,(stim+1)/2} = color_raw;
             % plot the scatter
             s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',...
-                20);
+                20,'off');
     %         scatter(reduced_data(max_values==stim,1),reduced_data(max_values==stim,2),...
     %             [],'o','MarkerFaceColor',cmap(1,:))
     %         hold on
     %         scatter(reduced_data(max_values==stim+1,1),reduced_data(max_values==stim+1,2),...
     %             [],'o','MarkerFaceColor',cmap(2,:))
 
-            legend(s(2:3),stim_labels([stim,stim+1]),'Location','northwest','Fontsize',20)
+%             legend(s(2:3),stim_labels([stim,stim+1]),'Location','northwest','Fontsize',20)
             colormap(cmap)
     %         colorbar('Ticklabels',stim_labels,'TickLabelInterpreter','None','Ticks',linspace(0.08,0.92,6))
             title(strjoin({data(datas).name,'Combined'},'_'),'Interpreter','None')
             set(gca,'TickLength',[0 0],'visible','off')
             file_path = strjoin({'UMAP',data(datas).name,'Stim',num2str(stim),'set',num2str(region_set),'.png'},'_');
-    %         saveas(gcf, fullfile(fig_path,file_path), 'png')
             print(fullfile(fig_path,file_path),'-dpng','-r600')
         end
-
+        %% Produce a circular graph
+        
+        figure
+        % collapse the vectors for this dataset
+        color_all = horzcat(color_cell{datas,:});
+        imagesc(sortrows(color_all))
+        set(gca,'TickLength',[0 0],'XTick',1:3,'XTickLabels',{'Checker','Grating','Flash'})
+        set(gca,'YDir','normal','FontSize',15)
+        ylabel('ROIs')
+        colormap(cmap)
+        title(data(datas).figure_name)
+        file_path = strjoin({'barsUMAP',data(datas).name,'.png'},'_');
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
     end
 end

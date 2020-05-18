@@ -2,27 +2,6 @@ function [class_cell] = clss_things_color(conc_trace,loo,trace_frac,set_part,red
 
 % close all
 
-% %define whether to use leave one out cross validation (0 is no)
-% loo = 1;
-% %define the fraction of the traces to keep
-% trace_frac = 1;
-% %define the partition to use
-% set_part = 1;
-% %set the number of reps
-% redec_num = 1;
-% %define whether to shuffle labels (for neutral classification)
-% shuff_label = 0;
-% %define wether to use clusters or the whole data
-% all_data = 0;
-% %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
-% %p6p8 data)
-% classpcolor = 5;
-% %define the binning factor
-% bin_width = 1;
-%define the vector of lambdas to try
-% lambda_vec = [0.1 0.3 1 3 10 30 100];
-% lambda_vec = [300 1000 3000 10000 30000 100000];
-% lambda_vec = 5;
 lambda_vec = 'auto';
 %select the learning method
 template_log = templateLinear('Learner','svm','Lambda',lambda_vec);
@@ -33,13 +12,6 @@ learn_var = 4;
 %1 conc conf matrix,2 conc diagonal frac,3 shuff ave and shuff std
 %4 mut_inf and shuff_mutinf
 class_cell = cell(3,1);
-
-
-%remove the empty entries in the averages
-% conc_trace = conc_trace(sum(conc_trace,2)>0,:);
-
-%normalize the entries (feature scaling for the svm)
-% conc_trace = normr_1(conc_trace,[]);
 
 %allocate memory for the results
 redec_cell = cell(redec_num,2);
@@ -54,9 +26,7 @@ for redec = 1:redec_num
     
     %keep only that fraction of traces
     tar_mat = tar_mat(rand_trace(1:round(size(tar_mat,1)*trace_frac)),:);
-    
-    % tar_mat = raw_trace + rand(size(raw_trace)).*0.01;
-    % tar_mat = clu_ave;
+
     %get the number of traces
     trace_num = size(tar_mat,1);
     % get the period of interest labeled with ones
@@ -78,8 +48,7 @@ for redec = 1:redec_num
     
     %get the number of bins
     bin_num = ceil(obs_num/bin_width);
-    % %get the indexes for each bin
-    % [~,~,bin_ind] = histcounts(1:obs_num,'BinWidth',bin_width);
+ 
     %bin the array
     %allocate memory for the binned array
     stim_bin = zeros(trace_num,bin_num);
@@ -255,14 +224,54 @@ for redec = 1:redec_num
             weight_vec = ones(2*t_perstim,1);
         case 17
             if bin_width > 1
-                error('bin widht must be 1')
+                error('bin width must be 1')
             end
-            % leave only max UV and 127 RGB
+            % leave only max UV and 127 RGB to have more matching colors
             stim_only = reshape(stim_only,trace_num,[],stim_num2,3);
             stim_only = cat(3,stim_only(:,[1,9,17,25,33],1:3,:),stim_only(:,[7,15,23,31,39],4,:));
             stim_only = reshape(stim_only,trace_num,[]);
             stim_label = repmat(cat(2,ones(1,5),2.*ones(1,5),3.*ones(1,5),4.*ones(1,5)),1,3);
             weight_vec = ones(size(stim_label,2),1); 
+        case 18
+            % label only pre stim and stim CK
+            % get the length of a single cycle
+            cycle_length = size(stim_only,2)/(stim_num2*rep_num);
+            
+            % get rid of the unused data
+            stim_only = reshape(stim_only,trace_num,cycle_length,stim_num2,rep_num);
+            stim_only = reshape(stim_only(:,:,[1 2],:),trace_num,[]);
+            stim_label = repmat(cat(2,ones(1,cycle_length/2),2.*ones(1,cycle_length/2)),1,rep_num*2);
+            weight_vec = ones(size(stim_label,2),1);
+        case 19
+            % label only pre stim and stim GR
+            % get the length of a single cycle
+            cycle_length = size(stim_only,2)/(stim_num2*rep_num);
+            
+            % get rid of the unused data
+            stim_only = reshape(stim_only,trace_num,cycle_length,stim_num2,rep_num);
+            stim_only = reshape(stim_only(:,:,[3 4],:),trace_num,[]);
+            stim_label = repmat(cat(2,ones(1,cycle_length/2),2.*ones(1,cycle_length/2)),1,rep_num*2);
+            weight_vec = ones(size(stim_label,2),1);
+        case 20
+            % label only pre stim and stim FL
+            % get the length of a single cycle
+            cycle_length = size(stim_only,2)/(stim_num2*rep_num);
+            
+            % get rid of the unused data
+            stim_only = reshape(stim_only,trace_num,cycle_length,stim_num2,rep_num);
+            stim_only = reshape(stim_only(:,:,[5 6],:),trace_num,[]);
+            stim_label = repmat(cat(2,ones(1,cycle_length/2),2.*ones(1,cycle_length/2)),1,rep_num*2);
+            weight_vec = ones(size(stim_label,2),1);
+        case 21
+            % label only pre stim and stim FL
+            % get the length of a single cycle
+            cycle_length = size(stim_only,2)/(stim_num2*rep_num);
+            
+            % get rid of the unused data
+            stim_only = reshape(stim_only,trace_num,cycle_length,stim_num2,rep_num);
+            stim_only = reshape(stim_only(:,:,[1 4],:),trace_num,[]);
+            stim_label = repmat(cat(2,ones(1,cycle_length/2),2.*ones(1,cycle_length/2)),1,rep_num*2);
+            weight_vec = ones(size(stim_label,2),1);
     end
     %if not using 1 class per color
     if classpcolor > 1 && classpcolor < 10 && classpcolor ~= 6

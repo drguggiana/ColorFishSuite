@@ -223,10 +223,11 @@ if subsample == 2 && num_data == 4
     ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
 %     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
     set(gca,'YLim',[0 1])
-    pbaspect([1 2 1])
-    a = get(gca);
-%     a.Position(4) = 2*h.Position(3);
-    h.Position(4) = 2*h.Position(3);
+%     pbaspect([1 2 1])
+%     a = get(gca);
+%     h.Position(4) = 2*h.Position(3);
+    set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
+
     box off
 %     axis tight
     % assemble the figure path
@@ -241,7 +242,7 @@ end
 % if there is only internal subsampling (i.e. there's regions), skip
 if subsample == 1 && num_data == 4
     close all
-
+    fontsize = 8;
 %     % set a counter for the x coordinate
 %     x_counter = 1;
     % for all the data sets
@@ -273,7 +274,13 @@ if subsample == 1 && num_data == 4
             plot(regs,mean_shuf,'o','MarkerFaceColor',[0.5 0.5 0.5],...
                 'MarkerEdgeColor',[0.5 0.5 0.5])
         end
-       
+        % rescale of the max value is too low
+        results_perregion = horzcat(class_cell_real{:});
+        if max(vertcat(results_perregion{2,:})) < 0.5
+            y_lim = [0 0.5];
+        else
+            y_lim = [0 1];
+        end
 %         std_shuf = std(class_cell_shuff{1}{2});
 %         errorbar(x_counter,mean_shuf,std_shuf,'o',...
 %             'MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor',[0.5 0.5 0.5],...
@@ -282,14 +289,14 @@ if subsample == 1 && num_data == 4
 %         % update the counter
 %         x_counter = x_counter + 1;
         set(gca,'TickLength',[0 0])
-        set(gca,'TickLength',[0 0])
+        set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 8])
         set(gca,'XTick',1:reg_number,'XTickLabels',data_struct(datas).region(:,2),'FontSize',fontsize,...
             'XTickLabelRotation',45,'TickLabelInterpreter','none')
         ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
-        set(gca,'YLim',[0 1],'XLim',[0 reg_number + 1])
+        set(gca,'YLim',y_lim,'XLim',[0 reg_number + 1])
         pbaspect([1 2 1])
         h.Position(4) = 2*h.Position(3);
-
+        box off
 
         % assemble the figure path
         % get the experiment name
@@ -302,9 +309,13 @@ end
 
 if num_data > 11
     close all
+    
+    % reorder the input data
+    data_struct = data_struct([3 4 1 2 11 12 5 6 13 14 7 8 15 16 9 10]);
     % set a counter for the x coordinate
     x_counter = 1;
     h = figure;
+    
     % for all the data sets
     for datas = 1:2:num_data
         % get the class cell
@@ -350,8 +361,8 @@ if num_data > 11
     % assemble the figure path
     % get the experiment name
     name = strsplit(data_struct(1).name,'_');
-    file_path = strjoin({'classRedUVCompare',name{1},suffix},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+    file_path = strjoin({'classRedUVCompare',num2str(classpcolor)},'_');
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
 end
 %% Plot individual stimulus performances as a matrix
 
@@ -430,7 +441,7 @@ if subsample == 1 && num_data == 4
     %         imagesc(performance_colored(:,:,1:3,1),'AlphaData',performance_colored(:,:,4,1))
     set(gca,'TickLength',[0 0],'XTick',[],'FontSize',fontsize)
     set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels)
-    set(gca,'CLim',[0 1])
+    set(gca,'CLim',[0 0.4])
     reg_labels = data_struct(3).region(:,2);
     set(gca,'XTick',1:length(reg_labels),'XTickLabels',reg_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45,'TickLabelInterpreter','none')
@@ -446,7 +457,7 @@ if subsample == 1 && num_data == 4
     set(gca,'Position',[0.1300    0.1500    0.7050    0.2812])
     set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels)
     set(gca,'TickLength',[0 0])
-    set(gca,'CLim',[0 1])
+    set(gca,'CLim',[0 0.4])
     reg_labels = data_struct(1).region(:,2);
     set(gca,'XTick',1:length(reg_labels),'XTickLabels',reg_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45,'TickLabelInterpreter','none')
@@ -457,12 +468,11 @@ if subsample == 1 && num_data == 4
     cba = colorbar;
     set(cba,'TickLength',0,'Position',[0.85 0.15 0.02 0.72])
     ylabel(cba,'Classification Accuracy')
-    
     % assemble the figure path
     % get the experiment name
 %     set(gcf,'PaperUnits','Centimeters','PaperPosition',[0 0 20 13])
     file_path = strjoin({'classRegPerStim',data_struct(datas).name,suffix},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
     
 end
 %% Plot the performances per stimulus as a matrix across data sets
@@ -564,14 +574,12 @@ if subsample == 2 && num_data == 4
     set(gca,'XTick',1:2,'XTickLabels',{data_struct([1 3]).figure_name},'FontSize',fontsize,...
         'XTickLabelRotation',45,'TickLabelInterpreter','none')
     axis square
-    
     % assemble the figure path
     % get the experiment name
     file_path = strjoin({'classPerStim',data_struct(1).name,suffix},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
-    
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
 end
-%% Plot the p8 14-15-16 performances as a matrix
+%% Plot the p8 14-15-16 and 18-19-20 performances as a matrix
 % if there is only internal subsampling (i.e. there's regions), skip
 if subsample == 1 && num_data == 12
     close all
@@ -628,11 +636,12 @@ if subsample == 1 && num_data == 12
         %             max(performance_colored(performance_colored(:,:,:,1)>0))])
 %         pbaspect([2,1,1])
 %         axis tight
+        box off
         % assemble the figure path
         % get the experiment name
         new_suffix = strrep(suffix,'classp_16',strcat('classp_',num2str(data_struct(datas).classpcolor)));
         file_path = strjoin({'classp8PerStim',data_struct(datas).name,new_suffix},'_');
-        saveas(gcf, fullfile(fig_path,file_path), 'png')
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
         % update the counter
         if plot_count < 5
             plot_count = plot_count + 2;

@@ -14,10 +14,12 @@ data = load_clusters(cluster_path);
 if contains(data(1).name,'p17')
     color_scheme = [1 0 0;0 1 0;0 0 1;1 0 1];
     cone_color_scheme = [0.5 0 0;0 0.5 0;0 0 0.5;0.5 0 0.5];
+    stim_labels = {'Red','Green','Blue','UV'};
 else
 %     color_scheme = distinguishable_colors(6);
     color_scheme = [1 0 0;1 0 1;1 0 0;1 0 1;1 0 0;1 0 1];
     cone_color_scheme = [];
+    stim_labels = [];
 end
 % get the number of data sets
 num_data = size(data,2);
@@ -544,7 +546,6 @@ if contains(data(1).name,'p17b')
 %         axis tight
         set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
         file_path = strjoin({'AverageGainsCluster',data(datas).name,'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
         print(fullfile(fig_path,file_path),'-dpng','-r600')
     end
     autoArrangeFigures
@@ -557,14 +558,16 @@ if contains(data(1).name,'p17b')
     % allocate memory to store the matrices
     type_cell = cell(num_data+1,3);
     
-    %define the zero threshold
-    zero_threshold = 1e-3;
+%     %define the zero threshold
+%     zero_threshold = 1e-3;
     % 
     % for all of the datasets
     for datas = 1:num_data
         
         % use the gains
         delta_norm = data(datas).delta_norm;
+        % get the 10th percentile
+        zero_threshold = prctile(abs(delta_norm),5,1);
         % zero the values below a threshold
         delta_norm(delta_norm<zero_threshold&delta_norm>0) = 0;
         % turn negatives into -1 and positives into 1
@@ -636,14 +639,20 @@ if contains(data(1).name,'p17b')
         figure
         subplot(2,1,2)
         image(permute(pattern_full,[2 1 3]))
-        set(gca,'TickLength',[0 0])
+        set(gca,'TickLength',[0 0],'FontSize',15)
+        set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels)
+        ylabel('Cone')
 %         imagesc(pattern')
         subplot(2,1,1)
         bar(pattern_counts)
-        set(gca,'YScale','linear')
-        set(gca,'TickLength',[0 0])
+        set(gca,'YScale','log','XTick',[])
+        set(gca,'TickLength',[0 0],'FontSize',15)
+        ylabel('Nr ROIs')
+        sgtitle(data(datas).figure_name)
 %         set(gca,'XDir','reverse')
         axis tight
+        file_path = strjoin({'responseTypes',data(datas).name,'.png'},'_');
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
         
     end
 end

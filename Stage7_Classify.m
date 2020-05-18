@@ -11,9 +11,11 @@ fig_path = strcat(paths(1).fig_path,'Classify\');
 data = load_clusters(cluster_path);
 %% Train a classifier for each region
 
+% reset the RNG
+rng(1)
 % define whether to run in parallel (need to also convert region for loop
 % to parfor)
-run_parallel = 1;
+run_parallel = 0;
 % define whether to classify on clusters or regions
 cluster_flag = 0;
 % define the region set to use
@@ -41,12 +43,13 @@ region_combination = 1;
 shuff_label = 1;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
-classpcolor = 17;
+classpcolor = 18;
 %define the binning factor
-bin_width = 1;
+bin_width = 10;
 % define which portion of the trial to take (0 pre, 1 stim, 2 post,
-% 3 pre and post)
-portion = 1;
+% 3 pre and post,4 first half stim, 5 second half stim, 6 first 10 frames
+% stim, 7 last 10 frames stim, 8 last 10 pre stim, middle 10 stim)
+portion = 8;
 
 % define the subsampling constant for the data
 sub_constant = 0.95;
@@ -136,7 +139,7 @@ for datas = 1:num_data
 
     
     % for all the regions
-    parfor regions = 1:num_regions
+    for regions = 1:num_regions
         if isempty(region_data{regions,1})
             continue
         end

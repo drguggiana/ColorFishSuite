@@ -21,4 +21,7 @@ switch period
         rest_all = logical(repmat([rest_vec;stim_vec(1:10);rest_vec(1:10);rest_vec;rest_vec],stim_num*rep_num,1));
     case 7 % last 10 time frames
         rest_all = logical(repmat([rest_vec;rest_vec;rest_vec(1:10);stim_vec(11:end);rest_vec],stim_num*rep_num,1));
+    case 8 %10 frames of pre stim and 10 frames in the middle of stim
+        rest_all = logical(repmat([rest_vec(1:10);stim_vec(1:10);rest_vec(1:15);stim_vec(1:10);...
+            rest_vec(1:15);rest_vec],stim_num*rep_num,1));
 end

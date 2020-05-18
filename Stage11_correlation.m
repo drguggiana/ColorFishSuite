@@ -21,6 +21,7 @@ end
 num_data = size(data,2);
 % allocate memory for the index
 index_cell = cell(num_data,1);
+fig_name = cell(num_data,1);
 % for all the datasets
 for datas = 1:num_data
     region_combination = 1;
@@ -28,8 +29,10 @@ for datas = 1:num_data
     % define which regions to keep depending on the dataset
     if contains(data(datas).name, {'Syn','syn'})
         region_list = {'AF10'};
+        fig_name{datas} = 'AF10';
     else
         region_list = {'R-TcN','R-TcP'};
+        fig_name{datas} = 'OT';
     end
     % load the anatomy info
     anatomy_info = data(datas).anatomy_info(:,1);
@@ -114,7 +117,7 @@ for datas = 1:num_data
     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
     set(gca,'CLim',[-1,1])
     set(gca,'TickLength',[0 0])
-    title(data(datas).figure_name,'Interpreter','None')
+    title(fig_name{datas},'Interpreter','None')
     axis square
     cbar = colorbar;
     set(cbar,'TickLength',0)
@@ -160,7 +163,7 @@ shape_left_y = [-0.01 -0.01 0.01];
 shape_right_x = [0.1 0 0];
 shape_right_y = [-0.01 -0.01 0.01];
 %define the sets of time regions to correlate
-time_corr = (1:10)';
+time_corr = (1:40)';
 % time_corr = [1:10;11:20;21:30;31:40];
 % time_corr = [1:5;6:10;11:15;16:20;21:25;26:30;31:35;36:40];
 
@@ -180,6 +183,8 @@ num_times = size(time_corr,1);
 tcorr_mat = zeros(num_data,num_times,stim_num2,stim_num2);
 tcorr_mat_sem = zeros(num_data,num_times,stim_num2,stim_num2);
 
+% create a common figure
+both = figure;
 %for both data sets
 for datas = 1:num_data
    
@@ -250,31 +255,39 @@ for datas = 1:num_data
     c_map = parula(comb_num);
     %allocate memory for the legend
     legend_cell = cell(comb_num,1);
-    figure
+    figure(both)
     %for all the combs
     for combs = 1:comb_num
+        % only plot the green blue correlation
+        if ~(comb_vec(combs,1)==2 && comb_vec(combs,2)==3)
+            continue
+        end
+        
+        
         dat1 = squeeze(tcorr_mat(datas,:,comb_vec(combs,1),comb_vec(combs,2)));
         sem1 = squeeze(tcorr_mat_sem(datas,:,comb_vec(combs,1),comb_vec(combs,2)));
 %         errorbar(timep_axis,dat1,sem1,'-o','Color',c_map(combs,:),'MarkerFaceColor',c_map(combs,:),...
 %             'MarkerEdgeColor',c_map(combs,:))
-
+        errorbar(timep_axis,dat1,sem1)
+        hold on
         % plot split markers
-        plotCustMarkMod(1:size(dat1,2),dat1,shape_left_x,shape_left_y,...
-            marker_size,color_scheme(comb_vec(combs,1),:),color_scheme(comb_vec(combs,1),:))
-        hold('on')
-        plotCustMarkMod(1:size(dat1,2),dat1,shape_right_x,shape_right_y,...
-            marker_size,color_scheme(comb_vec(combs,2),:),color_scheme(comb_vec(combs,2),:))
+%         plotCustMarkMod(1:size(dat1,2),dat1,shape_left_x,shape_left_y,...
+%             marker_size,color_scheme(comb_vec(combs,1),:),color_scheme(comb_vec(combs,1),:))
+%         hold('on')
+%         plotCustMarkMod(1:size(dat1,2),dat1,shape_right_x,shape_right_y,...
+%             marker_size,color_scheme(comb_vec(combs,2),:),color_scheme(comb_vec(combs,2),:))
         %assemble the legend
         legend_cell{combs} = strcat(stim_labels{comb_vec(combs,1)},'_',stim_labels{comb_vec(combs,2)});
     end
-    set(gca,'FontSize',20)
-    xlabel('Time (s)','FontSize',20)
-    ylabel('Correlation (a.u.)','FontSize',20)
+    set(gca,'FontSize',15)
+    xlabel('Time (s)','FontSize',15)
+    ylabel('Correlation (a.u.)','FontSize',15)
+    legend(fig_name,'location','northoutside','orientation','horizontal')
 %     legend(legend_cell,'Interpreter','none','Location','bestoutside','FontSize',10)
-    title(data(datas).figure_name,'Interpreter','None')
-    set(gca,'YLim',[-0.8 1])
+%     title(fig_name{datas},'Interpreter','None')
+    set(gca,'YLim',[-0.1 0.6])
     set(gca,'TickLength',[0 0])
-    axis tight
+%     axis tight
     % assemble the figure path
     file_path = strjoin({'corrOverTime',data(datas).name,'.png'},'_');
 %     saveas(gcf, fullfile(fig_path,file_path), 'png')
@@ -515,7 +528,6 @@ for stim =1:stim_num2
 end
 % assemble the figure path
 file_path = strjoin({'corrTime','delta',data(1).name,data(2).name,'.png'},'_');
-% saveas(gcf, fullfile(fig_path,file_path), 'png')
 print(fullfile(fig_path,file_path),'-dpng','-r600')
 autoArrangeFigures
 %% Plot the correlations between the gains
@@ -750,4 +762,95 @@ if contains(data(1).name,'p8')
     print(fullfile(fig_path,file_path),'-dpng','-r600')
 
 
+end
+%% Correlation between individual traces
+
+if num_data > 1 && contains(data(1).name,'p17b')
+    close all
+    figure
+    
+    % define the colors to compare
+    color_sets = [2,3;1,4];
+    % get the number of tests
+    set_number = size(color_sets,1);
+    % allocate memory for the correlations
+    rho_cell = cell(set_number,1);
+    % define the number of shuffles
+    num_shuffles = 500;
+    % allocate memory for the clusters
+    clu_ave = cell(2,set_number);
+    % for all the combinations
+    for sets = 1:set_number
+
+        % load the clusters and get the cluster averages
+        for datas = 1:2
+            % load the data and clusters
+            conc_trace = data(datas).conc_trace(index_cell{datas}==1,:);
+            conc_trace = reshape(conc_trace,[],data(datas).time_num,data(datas).stim_num);
+            conc_trace = reshape(conc_trace(:,21:60,color_sets(sets,:)),size(conc_trace,1),[]);
+            idx = data(datas).idx_clu(index_cell{datas}==1);
+            clu_num = data(datas).clu_num;
+            % allocate memory for the averages
+            temp_ave = zeros(clu_num,size(conc_trace,2));
+            for clu = 1:clu_num
+                temp_ave(clu,:) = mean(conc_trace(idx==clu,:),1);
+            end
+            % store the average
+            clu_ave{datas,sets} = temp_ave;
+
+        end
+
+        % calculate the correlation
+%         [rho,pval] = corr(sort_traces(clu_ave{1})',sort_traces(clu_ave{2})');
+        [rho,pval] = corr(clu_ave{1,sets}',clu_ave{2,sets}');
+        rho(pval>0.05) = NaN;
+        rho_cell{sets} = rho;
+
+%         [N,edges] = histcounts(rho,20,'Normalization','cdf');
+%         plot(N)
+        histogram(rho,20,'Normalization','pdf');
+        hold on
+        set(gca,'TickLength',[0 0],'Fontsize',20)
+        xlabel('Correlation (a.u.)')
+        ylabel('Nr clusters')
+    end
+    box off
+    legend({'Green-Blue','Red-UV'},'location','northwest')
+    title('Cluster set correlation')
+    % assemble the figure path
+    file_path = strjoin({'corrClusters',data(1).name,data(2).name,'.png'},'_');
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    
+    % calculate the delta rho
+    delta_rho = abs(nanmean(rho_cell{1}(:)-rho_cell{2}(:)));
+    
+    % allocate memory for the shuffles
+    shuffle_matrix = zeros(num_shuffles,1);
+    % get the matrix of clusters
+    clu_matrix = vertcat(clu_ave{:});
+%     clu_num_ori = vertcat(data.clu_num);
+    clu_num = size(clu_matrix,1);
+    % calculate a confidence interval for the delta
+    for shuff = 1:num_shuffles
+        % shuffle the matrix
+        shuff_idx = randperm(clu_num);
+        mat1 = clu_matrix(shuff_idx(1:clu_num/2),:);
+        mat2 = clu_matrix(shuff_idx((clu_num/2)+1:end),:);
+        
+        % get the correlation matrix
+        [rho1,pval1] = corr(mat1(1:data(1).clu_num,:)',mat1(data(1).clu_num+1:end,:)');
+%         rho1(pval1>0.05) = NaN;
+        [rho2,pval2] = corr(mat2(1:data(1).clu_num,:)',mat2(data(1).clu_num+1:end,:)');
+%         rho2(pval2>0.05) = NaN;
+        
+        % calculate the delta and store
+        shuffle_matrix(shuff) = abs(nanmean(rho1(:)-rho2(:)));
+    end
+    
+    figure
+    histogram(shuffle_matrix)
+    hold on
+    plot([delta_rho delta_rho],get(gca,'YLim'),'r')
+    % get the std of the shuffles
+    prctile(shuffle_matrix,95)<delta_rho
 end

@@ -18,14 +18,14 @@ tectum_numbers = 1:10;
 af_regions = {'AF4','AF5','AF8','AF9','AF10'};
 af_numbers = [1 2 5 6 7];
 
-num_data = size(data,2);
+num_datasets = size(data,2);
 
 % allocate memory to store the model data
 model_cell = cell(size(data,2),1);
 % allocate memory to store the region information
-region_cell = cell(num_data,2);
+region_cell = cell(num_datasets,2);
 % for all the data sets
-for datas = 1:num_data
+for datas = 1:num_datasets
     % get the region info
     region_info = data(datas).anatomy_info(:,1);
     % define the regions to be considered (depending on the stimulus protocol)
