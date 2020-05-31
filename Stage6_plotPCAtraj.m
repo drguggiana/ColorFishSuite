@@ -339,7 +339,7 @@ for datas = 1:num_data
             all_animals = mean(cat(3,pca_struct.new_space),3);
             plot_trajectory(all_animals(:,1:3),plot_col(stim,:),options)
             view(2)
-            set(gca,'TickLength',[0 0])
+            set(gca,'TickLength',[0 0],'LineWidth',2)
             % store the cca data (only for 1 region
             cca_cell{datas,stim} = pca_struct;
 
@@ -394,7 +394,7 @@ if num_data == 2 && region_set == 1
     % normalize by column and plot the subtraction
     plot(normr_1(pc_matrix{1}(:,3:6),0)-normr_1(pc_matrix{2}(:,3:6),0))
 
-    % define the offset
+    % define the offsett 
     offset = 1;
     % define the colors
     % colors = {[0 1 0],[1-0.8 0 1-0.8];[0 1 0],[1-0.8 0 1-0.8];[0 0 1],[1-0.8 1-0.8 0];[0 0 1],[1-0.8 1-0.8 0]};
@@ -414,7 +414,7 @@ if num_data == 2 && region_set == 1
     end
     axis tight
     box off
-    set(gca,'TickLength',[0 0],'YTick',[],'FontSize',15)
+    set(gca,'TickLength',[0 0],'YTick',[],'FontSize',15,'LineWidth',2)
     xlabel('Time (s)')
     file_path = strjoin({'averageComponentCCA',data(1).name,data(2).name,...
         'set',num2str(stim_set),'.png'},'_');

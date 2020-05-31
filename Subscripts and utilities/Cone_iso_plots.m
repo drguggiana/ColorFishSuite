@@ -12,6 +12,9 @@ close all force
 load('paths.mat')
 addpath(genpath(paths(1).main_path))
 
+% define the figure path
+fig_path = strcat(paths(1).fig_path,'Setup\');
+
 %define figure counter
 f_c = 0;
 %define the save variable (if ==1 it saves)
@@ -276,6 +279,58 @@ end
 xlabel('Wavelength (nm)','FontSize',30)
 ylabel('Intensity (a.u.)','FontSize',30)
 set(gca,'FontSize',50)
+%% Create a combined spectra figure
+
+close all
+
+% define the font size
+fontsize = 12;
+% define the level threshold
+level_threshold = 1e-2;
+% define the tint factor
+tint_factor = 0.5;
+% plot the cone spectra
+figure
+
+% define the cone colors
+cone_colors = [1 0 0;0 1 0;0 0 1;1 0 1];
+% define the projector colors
+projector_colors = tint_colormap(cone_colors,tint_factor);
+
+%for all the cones
+for cone = 1:cone_num
+%     %get rid of the zeros in the trace (for figure purposes only)
+%     non_zero = S_all(:,cone)>0.001;
+    non_zero = true(length(S_all(:,cone)),1);
+    % normalize the spetrum
+    norm_spectrum = S_all(non_zero,cone)./max(S_all(non_zero,cone));
+    % remove values below the threshold
+    norm_spectrum(norm_spectrum<level_threshold) = NaN;
+    plot(wav1(non_zero),norm_spectrum,'Color',cone_colors(cone,:)...
+        ,'Linewidth',3)
+    hold on
+end
+
+
+
+% plot the projector spectra
+for led = 1:led_num
+    % normalize the spectrum
+    norm_led = spectra_m(:,led)./max(spectra_m(:,led));
+    % remove sub threshold values
+    norm_led(norm_led<level_threshold) = NaN;
+    plot(wav1,norm_led,'Color',projector_colors(led,:),'LineWidth',3,'LineStyle','--')
+    plot(wav1,norm_led,'Color',projector_colors(led,:),'LineWidth',1,'LineStyle','-')
+end
+% title('Absorption spectra of the Zebrafish cones','Fontsize',30)
+xlabel('Wavelength (nm)','Fontsize',fontsize)
+ylabel('Absorption/Emission  ','Fontsize',fontsize)
+set(gca,'TickLength',[0 0],'FontSize',fontsize,'LineWidth',2)
+box off
+set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 10 5])
+
+file_path = 'combinedSpectra.png';
+print(fullfile(fig_path,file_path),'-dpng','-r600')
 %% OFF Get the spectra from the projector (also fits)
 
 % %here I create the Gaussian-based spectra of the projector LEDs based on

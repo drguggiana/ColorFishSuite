@@ -748,12 +748,13 @@ set(gca,'TickLength',[0 0])
 set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',fontsize,...
     'XTickLabelRotation',45)
 set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',fontsize)
-set(gca,'FontSize',20)
-
-cba = colorbar;
-set(cba,'TickLength',0)
-ylabel(cba,'Dissimilarity Index')
+set(gca,'FontSize',20,'LineWidth',2)
+if ~contains(data.name,{'Syn','syn'})
+    cba = colorbar;
+    set(cba,'TickLength',0,'LineWidth',2)
+    ylabel(cba,'Dissimilarity Index')
+end
+colormap(magma)
 % assemble the figure path
 file_path = strjoin({'anatomicalOverlap',stim_name},'_');
-% saveas(gcf, fullfile(fig_path,file_path), 'png')
 print(fullfile(fig_path,file_path),'-dpng','-r600')

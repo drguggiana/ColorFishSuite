@@ -12,8 +12,10 @@ data = load_clusters(cluster_path);
 % define the color scheme depending on the stimulus type
 if contains(data(1).name,'p17')
     color_scheme = [1 0 0;0 1 0;0 0 1;1 0 1];
+    dataset_labels = {'RAs','RGCs'};
 else
     color_scheme = distinguishable_colors(6);
+    dataset_labels = {'Tectum','AF10'};
 end
 %% Plot all the trial averaged traces
 
@@ -28,21 +30,21 @@ for datas = 1:length(data)
     subplot(1,20,1:19)
     set(gcf,'color','w')
     imagesc(normr_1(data(datas).conc_trace(sort_traces,:),0))
-    title(data(datas).figure_name,'Interpreter','None')
-    set(gca,'YTick',1:1000:length(data(datas).idx_clu),...
-        'XTick',0:(30/0.952):size(data(datas).conc_trace,2),...
-        'XTickLabel',0:30:size(data(datas).conc_trace,2)/0.952)
+    title(dataset_labels{datas},'Interpreter','None')
+    set(gca,'YTick',[1,length(data(datas).idx_clu)],...
+        'XTick',0:(100/0.952):size(data(datas).conc_trace,2),...
+        'XTickLabel',0:100:size(data(datas).conc_trace,2)/0.952)
     xlabel('Time (s)')
     ylabel('ROI')
-    set(gca,'TickLength',[0 0])
+    set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',12)
     
 %     subplot(1,20,20)
 %     imagesc(sort_idx)
 %     colormap(gca,'colorcube')
 %     set(gca,'XTick',[],'YTick',[])
 %     set(gca,'FontSize',30)
+    colormap(magma)
     file_path = strjoin({'traces',data(datas).name,'.png'},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
     print(fullfile(fig_path,file_path),'-dpng','-r600')
 end
 
@@ -130,9 +132,8 @@ for datas = 1:length(data)
     title(data(datas).figure_name,'Interpreter','None')
     set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
     % assemble the figure path 
-    set(gca,'FontSize',10)
+    set(gca,'FontSize',10,'LineWidth',2)
     file_path = strjoin({'clusterTraces',data(datas).name,'.png'},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
     print(fullfile(fig_path,file_path),'-dpng','-r600')
 
 end
@@ -181,7 +182,7 @@ set(gca,'XLim',[0,time_perstim(end,end)])
 set(gca,'YTick',linspace(0,(length(data)-1)*trace_lift,length(data)),...
     'YTickLabels',{data.figure_name},'TickLabelInterpreter','None')
 box off
-set(gca,'TickLength',[0 0])
+set(gca,'TickLength',[0 0],'LineWidth',2)
 xlabel('Time (s)')
 pbaspect([2,1,1])
 axis tight
@@ -244,13 +245,13 @@ if contains(data(datas).name,'p17b')
         set(gca,'YTick',1:clu_num,'FontSize',fontsize)
         axis square
         title(data(datas).figure_name)
-        set(gca,'FontSize',15)
+        set(gca,'FontSize',15,'LineWidth',2)
         
         
         cba = colorbar;
-        set(cba,'TickLength',0)
+        set(cba,'TickLength',0,'LineWidth',2)
         ylabel(cba,'Fraction traces/cluster')
-        
+        colormap(plasma)
         % assemble the figure path
         file_path = strjoin({'clusterPerArea',data(datas).name,'.png'},'_');
 %         saveas(gcf, fullfile(fig_path,file_path), 'png')
@@ -259,3 +260,66 @@ if contains(data(datas).name,'p17b')
     end
     autoArrangeFigures
 end
+%% Plot the traces per area
+
+close all
+
+% for all datasets
+for datas = 1:length(data)
+    % load the traces
+    conc_trace = data(datas).conc_trace;
+    
+    % load the anatomy info
+    anatomy_info = data(datas).anatomy_info;
+    
+    % define the labels and exclude AF 6 and 7 cause too few terminals
+    switch data(datas).figure_name
+        case {'RAs','Tectum'}
+            region_labels = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+        case {'RGCs','AF10'}
+            region_labels = {'AF4','AF5','AF8','AF9','AF10'};
+            anatomy_info(anatomy_info(:,1)==6) = NaN;
+            anatomy_info(anatomy_info(:,1)==7) = NaN;
+    end
+    % load the cluster info
+    idx_clu = data(datas).idx_clu;
+    % get a list of regions
+    region_list = unique(anatomy_info(:,1));
+    % exclude NaNs
+    region_list = region_list(~isnan(region_list));
+    % get the number of regions
+    region_number = length(region_list);
+    
+    % for all the regions
+    for region = 1:region_number
+        
+        figure
+        % get the indexes and traces for this region
+        idx_region = idx_clu(region_list(region)==anatomy_info(:,1));
+        conc_region = conc_trace(region_list(region)==anatomy_info(:,1),:);
+        
+        % sort the traces by the index
+%         [~,sort_idx] = sort(idx_region);
+%         sorted_traces = conc_region(sort_idx,:);
+        sorted_traces = sort_traces(conc_region);
+        
+        % plot
+        imagesc(normr_1(sorted_traces,1))
+        colormap(magma)
+        set(gca,'LineWidth',2,'TickLength',[0 0],'FontSize',15)
+        set(gca,'YTick',[1,length(idx_region)],...
+            'XTick',0:(100/data(datas).framerate):size(sorted_traces,2),...
+            'XTickLabel',0:100:size(sorted_traces,2)/data(datas).framerate)
+        xlabel('Time (s)')
+        ylabel('ROIs')
+        title(region_labels{region})
+        axis tight
+        file_path = strjoin({'regionTraces',data(datas).name,region_labels{region},'.png'},'_');
+        print(fullfile(fig_path,file_path),'-dpng','-r600')
+    end
+    
+    
+
+    
+end
+autoArrangeFigures

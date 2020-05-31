@@ -47,6 +47,16 @@ if contains(data_struct(1).name,'p17')
 else
     color_scheme = distinguishable_colors(6);
 end
+
+% define the colors for the dataset
+if data_struct(1).subsample == 1
+    dataset_colors = [0 153 143;224 255 102]./255;
+    dataset_labels = {'RGCs','RAs'};
+else
+    dataset_colors = [255 164 5;255 168 187]./255;
+    dataset_labels = {'AF10','Tectum'};
+
+end
 % get the number of datasets
 num_data = size(data_struct,2);
 % get the number of stimuli
@@ -122,7 +132,6 @@ for datas = 1:num_data
     end
     % assemble the figure path 
     file_path = strjoin({'confMatrix',name,suffix},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
     print(fullfile(fig_path,file_path), '-dpng','-r600')
 
     
@@ -154,7 +163,6 @@ for datas = 1:num_data
     
     % assemble the figure path 
     file_path = strjoin({'classAccuracy',data_struct(datas).name,suffix},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
     print(fullfile(fig_path,file_path), '-dpng','-r600')
 
     
@@ -174,7 +182,6 @@ if num_data == 2
     set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',fontsize)
     % assemble the figure path
     file_path = strjoin({'classDelta',data_struct(1).name,data_struct(2).name,suffix},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
     print(fullfile(fig_path,file_path), '-dpng','-r600')
 
 end
@@ -188,17 +195,17 @@ if subsample == 2 && num_data == 4
     x_counter = 1;
     h = figure;
     % for all the data sets
-    for datas = 1:2:num_data
+    for datas = [3 1]
         % get the class cell
         class_cell_real = data_struct(datas).class;
         class_cell_shuff = data_struct(datas+1).class;
         
-        plot(x_counter,class_cell_real{1}{2},'o','MarkerEdgeColor',[0 0 0]);
+        plot(x_counter,class_cell_real{1}{2},'o','MarkerEdgeColor',dataset_colors((datas+1)/2,:));
         hold on
         % calculate the exact accuracy
         mean_acc = mean(class_cell_real{1}{2});
-        plot(x_counter,mean_acc,'o','MarkerFaceColor',[1 0 0],...
-            'MarkerEdgeColor',[1 0 0])
+        plot(x_counter,mean_acc,'o','MarkerFaceColor',dataset_colors((datas+1)/2,:),...
+            'MarkerEdgeColor',dataset_colors((datas+1)/2,:))
 %         std_acc = std(class_cell_real{1}{2});
 %         hold on
 %         errorbar(x_counter,mean_acc,std_acc,'o','MarkerFaceColor',[0 0 0],...
@@ -218,11 +225,11 @@ if subsample == 2 && num_data == 4
     end
     set(gca,'TickLength',[0 0])
     set(gca,'TickLength',[0 0])
-    set(gca,'XTick',1:num_data/2,'XTickLabels',{data_struct(1:2:num_data).figure_name},'FontSize',fontsize,...
+    set(gca,'XTick',1:num_data/2,'XTickLabels',dataset_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45,'XLim',[0 (num_data/2)+1],'TickLabelInterpreter','none')
     ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
 %     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
-    set(gca,'YLim',[0 1])
+    set(gca,'YLim',[0 1],'LineWidth',2)
 %     pbaspect([1 2 1])
 %     a = get(gca);
 %     h.Position(4) = 2*h.Position(3);
@@ -234,7 +241,6 @@ if subsample == 2 && num_data == 4
     % get the experiment name
     name = strsplit(data_struct(1).name,'_');
     file_path = strjoin({'classCompare',name{1},suffix},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
     print(fullfile(fig_path,file_path), '-dpng','-r600')
 
 end
@@ -242,7 +248,7 @@ end
 % if there is only internal subsampling (i.e. there's regions), skip
 if subsample == 1 && num_data == 4
     close all
-    fontsize = 8;
+    fontsize = 12;
 %     % set a counter for the x coordinate
 %     x_counter = 1;
     % for all the data sets
@@ -259,8 +265,8 @@ if subsample == 1 && num_data == 4
             hold on
             % calculate the exact accuracy
             mean_acc = mean(class_cell_real{regs}{2});
-            plot(regs,mean_acc,'o','MarkerFaceColor',[1 0 0],...
-                'MarkerEdgeColor',[1 0 0])
+            plot(regs,mean_acc,'o','MarkerFaceColor',[0 0 0],...
+                'MarkerEdgeColor',[0 0 0])
         end
 
 %         std_acc = std(class_cell_real{1}{2});
@@ -288,14 +294,14 @@ if subsample == 1 && num_data == 4
 %         
 %         % update the counter
 %         x_counter = x_counter + 1;
-        set(gca,'TickLength',[0 0])
-        set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 8])
+        set(gca,'TickLength',[0 0],'LineWidth',2)
+        set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 8 8])
         set(gca,'XTick',1:reg_number,'XTickLabels',data_struct(datas).region(:,2),'FontSize',fontsize,...
             'XTickLabelRotation',45,'TickLabelInterpreter','none')
         ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
         set(gca,'YLim',y_lim,'XLim',[0 reg_number + 1])
-        pbaspect([1 2 1])
-        h.Position(4) = 2*h.Position(3);
+%         pbaspect([1 2 1])
+%         h.Position(4) = 2*h.Position(3);
         box off
 
         % assemble the figure path
@@ -366,11 +372,10 @@ if num_data > 11
 end
 %% Plot individual stimulus performances as a matrix
 
-close all
 % if there is only internal subsampling (i.e. there's regions), skip
 if subsample == 1 && num_data == 4
     close all
-    
+    fontsize = 15;
     % allocate memory for the matrices from both data sets
     data_cell = cell(num_data/2,1);
     % for all the data sets
@@ -441,14 +446,15 @@ if subsample == 1 && num_data == 4
     %         imagesc(performance_colored(:,:,1:3,1),'AlphaData',performance_colored(:,:,4,1))
     set(gca,'TickLength',[0 0],'XTick',[],'FontSize',fontsize)
     set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels)
-    set(gca,'CLim',[0 0.4])
+%     set(gca,'CLim',[0 0.4])
+    set(gca,'CLim',[0 1],'LineWidth',2)
     reg_labels = data_struct(3).region(:,2);
     set(gca,'XTick',1:length(reg_labels),'XTickLabels',reg_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45,'TickLabelInterpreter','none')
     set(gca,'Position',[0.1300    0.5838    0.7050    0.2812])
     %         set(gca,'CLim',[min(performance_colored(performance_colored(:,:,:,1)>0)),...
     %             max(performance_colored(performance_colored(:,:,:,1)>0))])
-    
+    set(gca,'FontSize',fontsize)
     
     subplot(2,1,2)
     %         imagesc(performance_colored(:,:,1:3,2),'AlphaData',performance_colored(:,:,4,1))
@@ -457,17 +463,19 @@ if subsample == 1 && num_data == 4
     set(gca,'Position',[0.1300    0.1500    0.7050    0.2812])
     set(gca,'YTick',1:stim_num,'YTickLabel',stim_labels)
     set(gca,'TickLength',[0 0])
-    set(gca,'CLim',[0 0.4])
+%     set(gca,'CLim',[0 0.4])
+    set(gca,'CLim',[0 1],'LineWidth',2)
     reg_labels = data_struct(1).region(:,2);
     set(gca,'XTick',1:length(reg_labels),'XTickLabels',reg_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45,'TickLabelInterpreter','none')
 %     set(gca,'Position',[0.1300    0.5838    0.6750    0.3412])
     
-    set(gca,'FontSize',15)
+    set(gca,'FontSize',fontsize)
     
     cba = colorbar;
     set(cba,'TickLength',0,'Position',[0.85 0.15 0.02 0.72])
     ylabel(cba,'Classification Accuracy')
+    colormap(plasma)
     % assemble the figure path
     % get the experiment name
 %     set(gcf,'PaperUnits','Centimeters','PaperPosition',[0 0 20 13])

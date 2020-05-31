@@ -15,6 +15,14 @@ if contains(data(1).name,'p17')
 else
     color_scheme = distinguishable_colors(6);
 end
+
+% define the dataset colors (assuming only AF10 vs Tectum)
+% dataset_colors = [255 164 5;255 168 187]./255;
+% dataset_colors = distinguishable_colors(2,{'w','k','r','g','b','m'});
+dataset_colors = magma(3);
+dataset_colors = dataset_colors(1:2,:);
+% define the colormap
+cmap = magma;
 %% Get the region filtering index
 
 % get the number of dataset
@@ -32,7 +40,7 @@ for datas = 1:num_data
         fig_name{datas} = 'AF10';
     else
         region_list = {'R-TcN','R-TcP'};
-        fig_name{datas} = 'OT';
+        fig_name{datas} = 'Tectum';
     end
     % load the anatomy info
     anatomy_info = data(datas).anatomy_info(:,1);
@@ -105,6 +113,7 @@ for datas = 1:num_data
         %now reshape again for calculating the correlation across traces for
         %each stimulus
         corr_trace = reshape(resh_fish,fish_trace_num*t_perstim,stim_num2);
+
         %calculate and plot an allvall corr matrix
         corr_perfish(:,:,fish) = corr(corr_trace);
     end
@@ -116,11 +125,12 @@ for datas = 1:num_data
         'XTickLabelRotation',45)
     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
     set(gca,'CLim',[-1,1])
-    set(gca,'TickLength',[0 0])
+    set(gca,'TickLength',[0 0],'LineWidth',2)
     title(fig_name{datas},'Interpreter','None')
     axis square
     cbar = colorbar;
-    set(cbar,'TickLength',0)
+    colormap(cmap)
+    set(cbar,'TickLength',0,'LineWidth',2)
     
     % assemble the figure path
     file_path = strjoin({'corrOverall',data(datas).name,'.png'},'_');
@@ -138,11 +148,12 @@ set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
     'XTickLabelRotation',45)
 set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
 % set(gca,'CLim',[-1,1])
-set(gca,'TickLength',[0 0])
+set(gca,'TickLength',[0 0],'LineWidth',2)
 title('Delta correlation','Interpreter','None', 'FontSize',20)
 axis square
 cbar = colorbar;
-set(cbar,'TickLength',0)
+colormap(cmap)
+set(cbar,'TickLength',0,'LineWidth',2)
 
 % assemble the figure path 
 file_path = strjoin({'corrOverall','delta',data(1).name,data(2).name,'.png'},'_');
@@ -183,8 +194,6 @@ num_times = size(time_corr,1);
 tcorr_mat = zeros(num_data,num_times,stim_num2,stim_num2);
 tcorr_mat_sem = zeros(num_data,num_times,stim_num2,stim_num2);
 
-% create a common figure
-both = figure;
 %for both data sets
 for datas = 1:num_data
    
@@ -255,42 +264,40 @@ for datas = 1:num_data
     c_map = parula(comb_num);
     %allocate memory for the legend
     legend_cell = cell(comb_num,1);
-    figure(both)
+    figure
     %for all the combs
     for combs = 1:comb_num
-        % only plot the green blue correlation
-        if ~(comb_vec(combs,1)==2 && comb_vec(combs,2)==3)
-            continue
-        end
+%         % only plot the green blue correlation
+%         if ~(comb_vec(combs,1)==2 && comb_vec(combs,2)==3)
+%             continue
+%         end
         
         
         dat1 = squeeze(tcorr_mat(datas,:,comb_vec(combs,1),comb_vec(combs,2)));
         sem1 = squeeze(tcorr_mat_sem(datas,:,comb_vec(combs,1),comb_vec(combs,2)));
-%         errorbar(timep_axis,dat1,sem1,'-o','Color',c_map(combs,:),'MarkerFaceColor',c_map(combs,:),...
-%             'MarkerEdgeColor',c_map(combs,:))
-        errorbar(timep_axis,dat1,sem1)
+
         hold on
         % plot split markers
-%         plotCustMarkMod(1:size(dat1,2),dat1,shape_left_x,shape_left_y,...
-%             marker_size,color_scheme(comb_vec(combs,1),:),color_scheme(comb_vec(combs,1),:))
-%         hold('on')
-%         plotCustMarkMod(1:size(dat1,2),dat1,shape_right_x,shape_right_y,...
-%             marker_size,color_scheme(comb_vec(combs,2),:),color_scheme(comb_vec(combs,2),:))
+        plotCustMarkMod(1:size(dat1,2),dat1,shape_left_x,shape_left_y,...
+            marker_size,color_scheme(comb_vec(combs,1),:),color_scheme(comb_vec(combs,1),:))
+        hold('on')
+        plotCustMarkMod(1:size(dat1,2),dat1,shape_right_x,shape_right_y,...
+            marker_size,color_scheme(comb_vec(combs,2),:),color_scheme(comb_vec(combs,2),:))
         %assemble the legend
         legend_cell{combs} = strcat(stim_labels{comb_vec(combs,1)},'_',stim_labels{comb_vec(combs,2)});
     end
     set(gca,'FontSize',15)
     xlabel('Time (s)','FontSize',15)
     ylabel('Correlation (a.u.)','FontSize',15)
-    legend(fig_name,'location','northoutside','orientation','horizontal')
-%     legend(legend_cell,'Interpreter','none','Location','bestoutside','FontSize',10)
-%     title(fig_name{datas},'Interpreter','None')
+    box off
+    legend(legend_cell,'Interpreter','none','Location','bestoutside','FontSize',10)
+    title(fig_name{datas},'Interpreter','None')
     set(gca,'YLim',[-0.1 0.6])
-    set(gca,'TickLength',[0 0])
-%     axis tight
+    set(gca,'TickLength',[0 0],'LineWidth',2)
+    colormap(cmap)
+    axis tight
     % assemble the figure path
     file_path = strjoin({'corrOverTime',data(datas).name,'.png'},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
     print(fullfile(fig_path,file_path),'-dpng','-r600')
 end
 
@@ -398,7 +405,7 @@ for datas = 1:num_data
         set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',8)
         title(strcat('Time point:',num2str(times)));
         sgtitle(strjoin({'Correlation over time',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
-        colormap('hsv')
+        colormap(cmap)
         
         
         % assemble the figure path
@@ -426,6 +433,7 @@ for times =1:num_times
     axis square
     cbar = colorbar;
     set(cbar,'TickLength',0)
+    colormap(cmap)
 end
 
 file_path = strjoin({'corrOverTimeMatrix','delta',data(1).name,data(2).name,'.png'},'_');
@@ -474,9 +482,10 @@ for datas = 1:num_data
     %now reshape again for calculating the correlation across traces for
     %each stimulus
 %     corr_trace = reshape(resh_trace,trace_num*t_perstim,stim_num2);
-    figure
+    
     % for all the stimuli
     for stim = 1:stim_num2
+        figure
         % get the traces for this stim
         stim_trace = resh_trace(:,:,stim);
         % for all the fish
@@ -492,19 +501,20 @@ for datas = 1:num_data
         rho = mean(corr_perfish,3);
         % store the matrix for later use
         correlations(:,:,stim,datas) = rho;
-        subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
+%         subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
         imagesc(rho)
         title(stim_labels{stim},'color',color_scheme(stim,:))
 %         sgtitle(strjoin({'Time Correlation',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
         set(gca,'XTick',[],'YTick',[])
-        set(gca,'TickLength',[0 0])
+        set(gca,'TickLength',[0 0],'LineWidth',2)
     %     set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
     %         'XTickLabelRotation',90)
     %     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
     %     title(data(datas).name,'Interpreter','None')
         axis square
+        colormap(cmap)
         % assemble the figure path
-        file_path = strjoin({'corrTime',data(datas).name,'.png'},'_');
+        file_path = strjoin({'corrTime',data(datas).name,stim_labels{stim},'.png'},'_');
 %         saveas(gcf, fullfile(fig_path,file_path), 'png')
         print(fullfile(fig_path,file_path),'-dpng','-r600')
 
@@ -514,21 +524,28 @@ for datas = 1:num_data
 end
 
 % also calculate a subtraction matrix
-figure
+
 for stim =1:stim_num2
-    subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
+    figure
+%     subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
     imagesc(squeeze(correlations(:,:,stim,1)-correlations(:,:,stim,2)))
 %     sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
     title(stim_labels{stim},'color',color_scheme(stim,:))
     set(gca,'XTick',[],'YTick',[],'CLim',[-0.2 0.3])
-    set(gca,'TickLength',[0 0])
+    set(gca,'TickLength',[0 0],'LineWidth',2)
+%     xlabel('Time (s)')
+%     ylabel('Time (s)')
     axis square
+    axis tight
     cbar = colorbar;
-    set(cbar,'TickLength',0)
+    set(cbar,'TickLength',0,'LineWidth',2)
+    set(gcf,'PaperUnits','Centimeters','PaperPosition',[0 0 6 5])
+    colormap(cmap)
+    % assemble the figure path
+    file_path = strjoin({'corrTime','delta',data(1).name,data(2).name,stim_labels{stim},'.png'},'_');
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
 end
-% assemble the figure path
-file_path = strjoin({'corrTime','delta',data(1).name,data(2).name,'.png'},'_');
-print(fullfile(fig_path,file_path),'-dpng','-r600')
+
 autoArrangeFigures
 %% Plot the correlations between the gains
 close all
@@ -771,7 +788,7 @@ if num_data > 1 && contains(data(1).name,'p17b')
     
     % define the colors to compare
     color_sets = [2,3;1,4];
-    % get the number of tests
+    % get the number of sets
     set_number = size(color_sets,1);
     % allocate memory for the correlations
     rho_cell = cell(set_number,1);
@@ -808,9 +825,9 @@ if num_data > 1 && contains(data(1).name,'p17b')
 
 %         [N,edges] = histcounts(rho,20,'Normalization','cdf');
 %         plot(N)
-        histogram(rho,20,'Normalization','pdf');
+        histogram(rho,20,'Normalization','pdf','LineWidth',2,'FaceColor',dataset_colors(datas,:));
         hold on
-        set(gca,'TickLength',[0 0],'Fontsize',20)
+        set(gca,'TickLength',[0 0],'Fontsize',20,'LineWidth',2)
         xlabel('Correlation (a.u.)')
         ylabel('Nr clusters')
     end
@@ -853,4 +870,165 @@ if num_data > 1 && contains(data(1).name,'p17b')
     plot([delta_rho delta_rho],get(gca,'YLim'),'r')
     % get the std of the shuffles
     prctile(shuffle_matrix,95)<delta_rho
+end
+%% Calculate correlation over time as subsets
+
+close all
+
+
+
+%define the sets of time regions to correlate
+time_corr = (1:40)';
+% time_corr = [1:10;11:20;21:30;31:40];
+% time_corr = [1:5;6:10;11:15;16:20;21:25;26:30;31:35;36:40];
+
+%get the time axis
+%get the number of time points
+timep_num = size(time_corr,1);
+%allocate memory for the axis
+timep_axis = zeros(timep_num,1);
+%for all the time points
+for timep = 1:timep_num
+    timep_axis(timep) = mean(time_corr(timep,:));
+end
+%get the number of time regions
+num_times = size(time_corr,1);
+
+%allocate memory to store the correlations
+tcorr_mat = zeros(num_data,num_times,stim_num2,stim_num2);
+tcorr_mat_sem = zeros(num_data,num_times,stim_num2,stim_num2);
+
+% create a common figure
+both = figure;
+% allocate memory for the data to put in the plot
+both_cell = cell(num_data,1);
+%for both data sets
+for datas = 1:num_data
+   
+    %if a normal data set
+    if datas <= num_data
+        %load the clusters
+        conc_trace = data(datas).conc_trace;
+        %get the number of traces
+        trace_num = size(conc_trace,1);
+        %reshape the matrix to calculate correlations between stimuli
+        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num2);
+        %extract only the stim period
+        resh_trace = resh_trace(:,21:60,:);
+    end
+    % get the trace fish of origin
+    fish_ori = data(datas).fish_ori;
+    % get the number of fish
+    num_fish = size(unique(fish_ori(:,1)),1);
+
+    %for all the times
+    for times = 1:num_times
+
+        % allocate memory for the output
+        corr_perfish = zeros(stim_num2,stim_num2,num_fish);
+
+        %now reshape again for calculating the correlation across traces for
+        %each stimulus
+        corr_trace = squeeze(mean(resh_trace(:,time_corr(times,:),:),2));
+        % for all the fish
+        for fish = 1:num_fish
+            % get only the traces from this fish
+            resh_fish = corr_trace(fish_ori(:,1)==fish&index_cell{datas}==1,:,:);
+
+            %calculate and plot an allvall corr matrix
+            corr_perfish(:,:,fish) = corr(resh_fish);
+        end
+        % save the average and sem corr matrix
+        tcorr_mat(datas,times,:,:) = mean(corr_perfish,3);
+        tcorr_mat_sem(datas,times,:,:) = std(corr_perfish,0,3)./sqrt(num_fish);
+    end
+    %define the possible combinations
+    comb_vec = combnk(1:stim_num2,2);
+    
+    %get the number of combinations
+    comb_num = size(comb_vec,1);
+    %generate a color map for the traces
+    c_map = parula(comb_num);
+%     %allocate memory for the legend
+%     legend_cell = cell(comb_num,1);
+    % allocate memory to store the lines
+    handle_cell = cell(comb_num,1);
+    
+    %for all the combs
+    for combs = 1:comb_num
+%         % only plot the green blue correlation
+%         if ~(comb_vec(combs,1)==2 && comb_vec(combs,2)==3)
+%             continue
+%         end
+        
+        
+        dat1 = squeeze(tcorr_mat(datas,:,comb_vec(combs,1),comb_vec(combs,2)));
+        sem1 = squeeze(tcorr_mat_sem(datas,:,comb_vec(combs,1),comb_vec(combs,2)));
+        handle_cell{combs} = shadedErrorBar(timep_axis,dat1,sem1,...
+            {'Color',dataset_colors(datas,:),'LineWidth',2});
+        hold on
+%         legend_cell{combs} = strcat(stim_labels{comb_vec(combs,1)},'_',stim_labels{comb_vec(combs,2)});
+       
+    end
+    % store the handle cell
+    both_cell{datas} = handle_cell;
+end
+
+% select only the lines desired for plotting
+combs_target = [2 3;2 3];
+% allocate memory for the legends
+combs_legend = cell(size(combs_target,1),2);
+% for both data sets
+for datas = 1:num_data
+    % for all the combs
+    for combs = 1:comb_num
+        % only plot the green blue correlation
+        if ~(comb_vec(combs,1)==combs_target(datas,1) && ...
+                comb_vec(combs,2)==combs_target(datas,2))
+            delete(both_cell{datas}{combs}.mainLine)
+            delete(both_cell{datas}{combs}.patch)
+            delete(both_cell{datas}{combs}.edge)
+            continue
+        else
+            % capture the handle to the mainLine
+            combs_legend{datas,1} = both_cell{datas}{combs}.mainLine;
+            combs_legend{datas,2} = strjoin({fig_name{datas},...
+                stim_labels{comb_vec(combs,1)},'-',stim_labels{comb_vec(combs,2)}},' ');
+        end
+    end
+end
+
+set(gca,'FontSize',15)
+xlabel('Time (s)','FontSize',15)
+ylabel('Correlation (a.u.)','FontSize',15)
+box off
+legend(vertcat(combs_legend{:,1}),combs_legend(:,2),'location','northoutside','orientation','horizontal')
+%     legend(legend_cell,'Interpreter','none','Location','bestoutside','FontSize',10)
+%     title(fig_name{datas},'Interpreter','None')
+set(gca,'YLim',[-0.1 0.6])
+set(gca,'TickLength',[0 0],'LineWidth',2)
+%     axis tight
+% assemble the figure path
+file_path = strjoin({'corrOverTimeSub',data(datas).name,'.png'},'_');
+print(fullfile(fig_path,file_path),'-dpng','-r600')
+
+autoArrangeFigures
+%% Correlate the responses across fish
+
+
+%for both data sets
+for datas = 1:num_data
+
+    %load the clusters
+    conc_trace = data(datas).conc_trace;
+    
+    % get the trace fish of origin
+    fish_ori = data(datas).fish_ori;
+    % get the number of fish
+    num_fish = size(unique(fish_ori(:,1)),1);
+    % for all the fish
+    for fish = 1:num_fish
+        
+    end
+
 end

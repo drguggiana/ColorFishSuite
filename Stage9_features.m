@@ -144,7 +144,7 @@ if contains(data(1).name,'p17b')
 %         pbaspect([2,1,1])
         axis tight
         set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',reg_label(plotted_area==1))
-        set(gca,'TickLength',[0 0])
+        set(gca,'TickLength',[0 0],'LineWidth',2)
         xlabel('Time (s)')
         title(data(datas).figure_name,'Interpreter','None')
 %         set(gca,'YLim',[-0.5,])
@@ -207,7 +207,7 @@ for datas = 1:num_data
             set(h(stim),'facecolor',color_scheme(stim,:))
         end
         hold on
-        set(gca,'XTick',[],'TickLength',[0 0])
+        set(gca,'XTick',[],'TickLength',[0 0],'LineWidth',3)
         axis tight
         box off
     %         plotSpread(squeeze(calcium_matrix(:,:,param)))
@@ -365,9 +365,8 @@ if contains(data(1).name,'p17b')
         axis tight
         title(data(datas).figure_name,'Interpreter','None')
         ylabel('Gain (a.u.)')
-        set(gca,'FontSize',fontsize)
+        set(gca,'FontSize',fontsize,'LineWidth',2)
         file_path = strjoin({'Gain',data(datas).name,'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
         print(fullfile(fig_path,file_path),'-dpng','-r600')
     end
     autoArrangeFigures
@@ -538,7 +537,7 @@ if contains(data(1).name,'p17b')
             scatter(X(negative_idx,color),Y(negative_idx,color),...
                 normr_1(abs(cluster_gains(negative_idx,color)),1).*150+10,'w','.')
         end
-        set(gca,'YTick',1:clu_num,'YTickLabel',sort_trace,'TickLength',[0 0])
+        set(gca,'YTick',1:clu_num,'YTickLabel',sort_trace,'TickLength',[0 0],'LineWidth',2)
         set(gca,'XLim',[0.8,4.2],'YLim',[0,clu_num+1],'XTick',[])
         set(gca,'XTick',1:4,'XTickLabels',{'L','M','B','UV'})
 %         pbaspect([1,2,1])
@@ -640,14 +639,16 @@ if contains(data(1).name,'p17b')
         subplot(2,1,2)
         image(permute(pattern_full,[2 1 3]))
         set(gca,'TickLength',[0 0],'FontSize',15)
-        set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels)
+        set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'LineWidth',2)
         ylabel('Cone')
+        xlabel('Response Pattern')
 %         imagesc(pattern')
         subplot(2,1,1)
         bar(pattern_counts)
         set(gca,'YScale','log','XTick',[])
-        set(gca,'TickLength',[0 0],'FontSize',15)
+        set(gca,'TickLength',[0 0],'FontSize',15,'LineWidth',2)
         ylabel('Nr ROIs')
+        box off
         sgtitle(data(datas).figure_name)
 %         set(gca,'XDir','reverse')
         axis tight
@@ -736,50 +737,51 @@ axis tight
 
 autoArrangeFigures
 %% Compare the datasets
-
-close all
-
-% get the combinations
-comb_vector = nchoosek(1:3,2);
-
-% get the number of combinations
-num_comb = size(comb_vector,1);
-
-% for all the combinations
-for combs = 1:num_comb
-    figure
-    % get the correlation components
-    [corr_1,idx1] = sortrows(type_cell{comb_vector(combs,1),1});
-    [corr_2,idx2] = sortrows(type_cell{comb_vector(combs,2),1});
-    % get the correlation
-    corr_matrix = corr(corr_1',corr_2');
-    % filter the matrix
-    sorted_count1 = log(type_cell{comb_vector(combs,1),2}(idx1));
-    sorted_count2 = log(type_cell{comb_vector(combs,2),2}(idx2));
+if contains(data(1).name,'p17b')
+    close all
     
-    % sort the patterns
-    sorted_pattern1 = type_cell{comb_vector(combs,1),3}(idx1,:,:);
-    sorted_pattern2 = type_cell{comb_vector(combs,2),3}(idx2,:,:);
+    % get the combinations
+    comb_vector = nchoosek(1:3,2);
     
-    % multiply the rows and columns based on their quantities
-    corr_matrix = corr_matrix.*sorted_count1;
-    corr_matrix = (corr_matrix'.*sorted_count2)';
-    % then filter
-    corr_matrix(corr_matrix<20) = 0;
+    % get the number of combinations
+    num_comb = size(comb_vector,1);
     
-    
-    % calculate the correlation matrix and plot
-    subplot(20,1,1:18)
-    imagesc(corr_matrix)
-    set(gca,'TickLength',[0 0])
-%     colorbar
-    
-    axis equal
-    axis tight
-    
-    subplot(20,1,19:20)
-    image(permute(sorted_pattern2,[2 1 3]))
-    axis equal
-    axis tight
+    % for all the combinations
+    for combs = 1:num_comb
+        figure
+        % get the correlation components
+        [corr_1,idx1] = sortrows(type_cell{comb_vector(combs,1),1});
+        [corr_2,idx2] = sortrows(type_cell{comb_vector(combs,2),1});
+        % get the correlation
+        corr_matrix = corr(corr_1',corr_2');
+        % filter the matrix
+        sorted_count1 = log(type_cell{comb_vector(combs,1),2}(idx1));
+        sorted_count2 = log(type_cell{comb_vector(combs,2),2}(idx2));
+        
+        % sort the patterns
+        sorted_pattern1 = type_cell{comb_vector(combs,1),3}(idx1,:,:);
+        sorted_pattern2 = type_cell{comb_vector(combs,2),3}(idx2,:,:);
+        
+        % multiply the rows and columns based on their quantities
+        corr_matrix = corr_matrix.*sorted_count1;
+        corr_matrix = (corr_matrix'.*sorted_count2)';
+        % then filter
+        corr_matrix(corr_matrix<20) = 0;
+        
+        
+        % calculate the correlation matrix and plot
+        subplot(20,1,1:18)
+        imagesc(corr_matrix)
+        set(gca,'TickLength',[0 0])
+        %     colorbar
+        
+        axis equal
+        axis tight
+        
+        subplot(20,1,19:20)
+        image(permute(sorted_pattern2,[2 1 3]))
+        axis equal
+        axis tight
+    end
+    autoArrangeFigures
 end
-autoArrangeFigures

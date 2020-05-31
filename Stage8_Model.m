@@ -199,13 +199,13 @@ for datas = 1:size(data,2)
     set(gca,'YTick',1:num_data,'YTickLabel',region_list)
     set(gca,'CLim',[0.65 1])
     axis square
-    set(gca,'TickLength',[0 0])
+    set(gca,'TickLength',[0 0],'LineWidth',2)
     set(gca,'FontSize',18)
     
     h = colorbar;
-    set(h,'TickLength',0)
+    set(h,'TickLength',0,'LineWidth',2)
     ylabel(h,'1 - Average Loss')
-    
+    colormap(magma)
     % assemble the figure path 
     file_path = strjoin({'modelMatrix',data(datas).name,'.png'},'_');
     print(fullfile(fig_path,file_path),'-dpng','-r600')
