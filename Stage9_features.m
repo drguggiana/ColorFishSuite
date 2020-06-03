@@ -75,8 +75,7 @@ saveas(gcf, fullfile(fig_path,file_path), 'png')
 %% Calculate averages per area
 
 close all
-% define the trace offset
-trace_offset = 5;
+
 % define the framerate
 framerate = 1/0.952;
 if contains(data(1).name,'p17b')
@@ -86,22 +85,35 @@ if contains(data(1).name,'p17b')
 
     % for all of the datasets
     for datas = 1:num_data
-        % allocate memory for the 
-        % get the number of areas
-        area_list = unique(data(datas).anatomy_info(:,1));
-        area_list = area_list(~isnan(area_list));
-        area_number = size(area_list,1);
+        % get the anatomy info
+        anatomy_info = data(datas).anatomy_info(:,1);
+
 
         %define the stim labels based on the paradigm
         if contains(data(datas).name,'syn')
             %define the region labels
             reg_label = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
             reg_map = [0 4 5 6 7 8 9 10];
+            % define the trace offset
+            trace_offset = 5;
         else
             %define the region labels
-            reg_label = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
-            reg_map = [0:10];
+%             reg_label = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
+            reg_label = {'TcN','TcP','Cb','Hb','Pt'};
+            anatomy_info(anatomy_info==2) = 1;
+            anatomy_info(anatomy_info==4) = 3;
+            anatomy_info(anatomy_info==6) = 5;
+            anatomy_info(anatomy_info==8) = 7;
+            anatomy_info(anatomy_info==10) = 9;
+            % define the trace offset
+            trace_offset = 3;
+%             reg_map = [0:10];
         end
+        
+        % get the number of areas
+        area_list = unique(anatomy_info);
+        area_list = area_list(~isnan(area_list));
+        area_number = size(area_list,1);
 
         figure
         % initialize an area counter
@@ -111,7 +123,7 @@ if contains(data(1).name,'p17b')
         % for all the areas
         for area = 1:area_number
             % if it's AF7, skip
-            if contains(reg_label{area},'AF7')
+            if contains(reg_label{area},{'AF7','AF6'})
                 continue
             end
             % get the average trace
@@ -145,8 +157,14 @@ if contains(data(1).name,'p17b')
         axis tight
         set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',reg_label(plotted_area==1))
         set(gca,'TickLength',[0 0],'LineWidth',2)
-        xlabel('Time (s)')
-        title(data(datas).figure_name,'Interpreter','None')
+        if datas == 2
+            set(gca,'XTick',[])
+        else
+            xlabel('Time (s)')
+        end
+%         title(data(datas).figure_name,'Interpreter','None')
+        ylabel(data(datas).figure_name)
+
 %         set(gca,'YLim',[-0.5,])
         box off
         axis tight
@@ -169,10 +187,20 @@ param_label = {'LogMax response','Delay to peak','Abs Logmean response'};
 % define the interval to look at
 target_interval = 5:35;
 
+% define the panel label
+if contains(data(datas).name,'p17b')
+    fig_name = {data.figure_name};
+else
+    fig_name = {'Tectum','AF10'};
+end
+
 % allocate memory to store the numbers per trace
 calcium_cell = cell(num_data,1);
+% also allocate memory for the kw test
+kw_cell = cell(num_data,param_num);
 % for all of the datasets
 for datas = 1:num_data
+    
     % get the traces
     conc_trace = data(datas).conc_trace;
     % get the number of stimuli
@@ -211,12 +239,17 @@ for datas = 1:num_data
         axis tight
         box off
     %         plotSpread(squeeze(calcium_matrix(:,:,param)))
-        title(data(datas).figure_name)
+        title(fig_name{datas})
         ylabel(param_label{param},'Interpreter','None')
         set(gca,'FontSize',20)
         file_path = strjoin({param_label{param},data(datas).name,'.png'},'_');
 %         saveas(gcf, fullfile(fig_path,file_path), 'png')
         print(fullfile(fig_path,file_path),'-dpng','-r600')
+        
+%         [kw_cell{datas,param},tbl,stats] = kruskalwallis(squeeze(calcium_matrix(:,:,param)),[],'off');
+        [kw_cell{datas,param},tbl,stats] = friedman(squeeze(calcium_matrix(:,:,param)),1,'off');
+        s = multcompare(stats,'CType','bonferroni','Display','on');
+
 
     end
     
@@ -368,6 +401,11 @@ if contains(data(1).name,'p17b')
         set(gca,'FontSize',fontsize,'LineWidth',2)
         file_path = strjoin({'Gain',data(datas).name,'.png'},'_');
         print(fullfile(fig_path,file_path),'-dpng','-r600')
+        
+        
+%         [~,tbl,stats] = friedman(squeeze(plot_matrix),1,'off');
+        [~,tbl,stats] = anova2(squeeze(plot_matrix),1,'off');
+        s = multcompare(stats,'CType','bonferroni','Display','off');
     end
     autoArrangeFigures
 end

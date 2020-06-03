@@ -25,6 +25,7 @@ if contains(data(1).name,'p17b')
     %define the plot colors
     plot_col = [1 0 0;0 1 0;0 0 1;1 0 1];
     plot_marker = {'o', 'o','o', 'o',};
+    var_threshold = 0.6;
 else %if it's p6p8 instead
     %define the stim labels (for p6p8 data)
     stim_labels = {'Red CK','UV CK','Red GR','UV GR','Red FL','UV FL'};
@@ -32,6 +33,7 @@ else %if it's p6p8 instead
 %     plot_col = [1 0 0;0 0 1;0.8 0 0;0 0 0.8;0.4 0 0;0 0 0.4];
     plot_col = [1 0 0;1 0 1;1 0 0;1 0 1;1 0 0;1 0 1];
     plot_marker = {'o', 'o', 's', 's', 'd', 'd'};
+    var_threshold = 0.9;
 end
 
 % define the region set to use
@@ -85,7 +87,7 @@ for datas = 1:num_data
     else
         region_list = tectum_regions;
         if region_set == 1
-            fig_name = 'OT';
+            fig_name = 'Tectum';
         else
             fig_name = data(datas).figure_name;
         end
@@ -201,9 +203,10 @@ close all
 %define the minimal dimension threshold for CCA
 min_dim = 3;% 3; for UV Red stuff
 % define the variance threshold
-var_threshold = 0.6;%0.9; for UV red stuff
 % allocate memory to store the aligned PCs
 cca_cell = cell(num_data,stim_num);
+% define the fontsize
+fontsize = 15;
 %for all the fish
 for datas = 1:num_data
     
@@ -221,7 +224,7 @@ for datas = 1:num_data
     else
         region_list = tectum_regions;
         if region_set == 1
-            fig_name = 'OT';
+            fig_name = 'Tectum';
         else
             fig_name = data(datas).figure_name;
         end
@@ -253,6 +256,8 @@ for datas = 1:num_data
         region_idx = region_data{region,3};
         
         pca_mat = zeros(size(resh_trace,2),3,stim_num);
+        % allocate memory for all animals
+        all_animals_mat = zeros(40,3,length(stim_vector));
         % initialize the skipped fish counter
         skip_count = 1;
         figure
@@ -276,8 +281,8 @@ for datas = 1:num_data
                 [pca_struct(animals).coeff,pca_struct(animals).score,pca_struct(animals).latent] = ...
                 pca(temp_mat);
             
-                % JUST FOR TESTING, FIX LATER
-                pca_struct(animals).score = temp_mat*pca_struct(animals).coeff;
+%                 % JUST FOR TESTING, FIX LATER
+%                 pca_struct(animals).score = temp_mat*pca_struct(animals).coeff;
             end
 
             % run the CCA and align the spaces
@@ -332,34 +337,236 @@ for datas = 1:num_data
                 % transform the space
                 pca_struct(animals).new_space = pca_struct(animals).score(:,1:dim_thres)*pca_struct(animals).B/...
                     pca_struct(1).A;
+                
+                
 %                 plot_trajectory(pca_struct(animals).new_space(:,1:3),plot_col(stim,:),options)
             end
 
             % calculate the average trajectory in the common space
             all_animals = mean(cat(3,pca_struct.new_space),3);
+            % store for later plotting
+            all_animals_mat(:,:,stim) = all_animals(:,1:3);
+            
             plot_trajectory(all_animals(:,1:3),plot_col(stim,:),options)
+
             view(2)
-            set(gca,'TickLength',[0 0],'LineWidth',2)
+%             view([90 0])
+            set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',fontsize)
             % store the cca data (only for 1 region
             cca_cell{datas,stim} = pca_struct;
 
         end
-        %get the file name
-    %     temp_name = strsplit(name_cell{datas},'\');
-    %     temp_name = strsplit(temp_name{end},'_');
-        sgtitle(fig_name,'FontSize',20,'Interpreter','None')
-%         xlabel('PC 1','FontSize',20)
-%         ylabel('PC 2','FontSize',20)
-%         zlabel('PC 3','FontSize',20)
+        
+        
+%         figure
+%         % plot an animation
+%         for i = 1:size(all_animals,1)
+%             for stim = 1:4
+%                 plot_trajectory(all_animals_mat(1:i,:,stim),plot_col(stim,:),options)
+%                 view(2)
+%                 hold on
+%             end
+%             pause(0.3)
+%         end
+        
+
+        set(gcf,'Color','w')
+        axis equal
+        sgtitle(fig_name,'FontSize',fontsize,'Interpreter','None')
+        xlabel('PC 1','FontSize',fontsize)
+        ylabel('PC 2','FontSize',fontsize)
+        zlabel('PC 3','FontSize',fontsize)
         % assemble the figure path 
-        file_path = strjoin({'trajectoryCCA',data(datas).name,...
-            'region',region_data{region,2},'set',num2str(stim_set),'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
-        print(fullfile(fig_path,file_path), '-dpng','-r600')
+        file_path = fullfile(fig_path,strjoin({'trajectoryCCA',data(datas).name,...
+            'region',region_data{region,2},'set',num2str(stim_set),'.png'},'_'));
+        export_fig(file_path,'-r600')
     end 
   
 end
 autoArrangeFigures
+%% Plot the single animal, aligned projections
+
+close all
+% set the colors and markers
+cmap = [1 0 0;0 1 0;0 0 1;1 0 1;1 0 0;0 1 0;0 0 1;1 0 1];
+% define the plotting options
+options = struct([]);
+options(1).line=1;
+options(1).threeD=1;
+options(1).marker=plot_marker{stim};
+% define the labels
+labels = {'Tectum','AF10'};
+% for all the datasets
+for datas = 1:num_data
+%     figure
+
+    % get the trajectories and average
+    % allocate memory for the trajectories
+    stim_dimension = cell(stim_num,1);
+    % for all the stimuli
+    for stim = 1:stim_num
+        % get the data
+        pca_struct = cca_cell{datas,stim};
+        current_stim = cat(3,pca_struct.score);
+        stim_dimension{stim} = current_stim(:,1:3,:);
+
+    end
+    % concatenate across stimuli
+    all_trajectories = cat(4,stim_dimension{:});
+    
+    % get the number of fish
+    fish_num = size(all_trajectories,3);
+    % for all the fish
+    for fish = 1:fish_num
+        figure
+        % for all the stimuli
+        for stim = 1:stim_num
+
+            % plot it
+            plot_trajectory(squeeze(all_trajectories(:,:,fish,stim)),cmap(stim,:),options)
+        end
+        view(2)
+        %             view([90 0])
+        set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',fontsize)
+        set(gcf,'Color','w')
+        axis equal
+        title(strjoin({labels{datas},'Fish',num2str(fish)},' '),'FontSize',fontsize,'Interpreter','None')
+        xlabel('PC 1','FontSize',fontsize)
+        ylabel('PC 2','FontSize',fontsize)
+        zlabel('PC 3','FontSize',fontsize)
+        % assemble the figure path
+        file_path = fullfile(fig_path,'Single_fish',strjoin({'singleFishPCA',data(datas).name,...
+            'region',region_data{region,2},'set',num2str(stim_set),'Fish',num2str(fish),'.png'},'_'));
+        export_fig(file_path,'-r600')
+    end
+   
+end
+
+%% Calculate the distance between components over time
+close all
+
+cmap = [0 0 0;0.9 0 0.5];
+
+% for all the datasets
+for datas = 1:num_data
+%     figure
+    
+    % get the trajectories and average
+    % allocate memory for the trajectories
+    stim_cell = cell(stim_num,1);
+    % for all the stimuli
+    for stim = 1:stim_num
+        pca_struct = cca_cell{datas,stim};
+        stim_cell{stim} = cat(3,pca_struct.new_space);
+        stim_cell{stim} = stim_cell{stim}(:,1:3,:);
+    end
+    % collapse into a single matrix
+    stim_matrix = cat(4,stim_cell{:});
+    % get the number of fish
+    fish_num = size(stim_matrix,3);
+    % get the combination of stimuli
+    stim_combo = nchoosek(1:stim_num,2);
+    % get the number of combinations
+    number_combos = length(stim_combo);
+%     % get colors for the plots
+%     cmap = distinguishable_colors(number_combos);
+    % allocate memory for the resulting distances
+    distances = zeros(number_combos,size(stim_matrix,1),2);
+    % for all the combos
+    for combos = 1:number_combos
+        % get the corresponding stimuli
+        stim1 = stim_matrix(:,:,:,stim_combo(combos,1));
+        stim2 = stim_matrix(:,:,:,stim_combo(combos,2));
+        % allocate memory for the fish data
+        fish_mat = zeros(fish_num,size(stim_matrix,1));
+        % for all the fish
+        for fish = 1:fish_num
+            fish_mat(fish,:) = vecnorm(stim1(:,:,fish)-stim2(:,:,fish),2,2);
+        end
+        % load the results matrix
+        distances(combos,:,1) = mean(fish_mat,1);
+        distances(combos,:,2) = std(fish_mat,0,1)./sqrt(fish_num);
+        % plot it
+        shadedErrorBar(1:size(stim_matrix,1),distances(combos,:,1),distances(combos,:,2),{'Color',cmap(datas,:)})
+        hold on
+    end
+    axis tight
+    
+end
+legend({data.figure_name})
+%% Calculate the variance per stimulus per dimension
+close all
+% set the colors and markers
+cmap = [1 0 0;0 1 0;0 0 1;1 0 1;1 0 0;0 1 0;0 0 1;1 0 1];
+markers = {'o','d'};
+% allocate memory for the legend handles
+legend_handles = zeros(num_data,1);
+% define the labels
+labels = {'Tectum','AF10'};
+% allocate memory to save the variances for stats
+variance_cell = cell(num_data,stim_num);
+% for all the datasets
+for datas = 1:num_data
+%     figure
+
+    % get the trajectories and average
+    % allocate memory for the trajectories
+    stim_dimension = zeros(stim_num,3);
+    % for all the stimuli
+    for stim = 1:stim_num
+        % get the data
+        pca_struct = cca_cell{datas,stim};
+        current_stim = cat(3,pca_struct.score);
+        current_stim = current_stim(:,1:3,:);
+        % calculate the variance across each dimension and normalize
+        variance_mat = squeeze(var(current_stim,0,1));
+        % store the normalized, 2nd and 3rd PC for stats
+        temp = variance_mat./max(variance_mat,[],1);
+        variance_cell{datas,stim} = temp(2:3,:);
+        % get the mean and sem
+        stim_dimension(stim,:,1) = mean(variance_mat,2)./max(mean(variance_mat,2));
+        stim_dimension(stim,:,2) = std(variance_mat,0,2)./(sqrt(size(variance_mat,2))*max(mean(variance_mat,2)));
+    end
+    
+    % reshape the matrix for plotting
+    stim_mean = reshape(stim_dimension(:,:,1),[],1);
+    stim_sem = reshape(stim_dimension(:,:,2),[],1);
+    x_vector = 1:size(stim_mean,1)-stim_num;
+    % plot it
+    
+    
+    legend_handles(datas) = errorbar(x_vector,stim_mean(stim_num+1:end),stim_sem(stim_num+1:end),strcat(markers{datas},'k'));
+    hold on
+    scatter(x_vector,stim_mean(stim_num+1:end),100,cmap,markers{datas},'filled')
+   
+end
+set(gca,'LineWidth',2,'TickLength',[0 0],'FontSize',15)
+% set(gca,'XLim',[0 x_vector(end)+1],'XTick',x_vector,'XTickLabels',...
+%     {'PC2-Red','PC2-Green','PC2-Blue','PC2-UV','PC3-Red','PC3-Green','PC3-Blue','PC3-UV'})
+set(gca,'XLim',[0.5 x_vector(end)+0.5],'XTick',[2.5 6.5],'XTickLabels',{'PC2','PC3'})
+plot([4.5 4.5],get(gca,'YLim'),'--k')
+% set(gca,'XTickLabelRotation',45)
+ylabel('Normalized variance')
+set(gcf,'Color','w')
+box off
+legend(legend_handles,labels)
+
+file_path = fullfile(fig_path,strjoin({'dimensionalityCCA',data(1).name,data(2).name,...
+    'set',num2str(stim_set),'.png'},'_'));
+export_fig(file_path,'-r600')
+
+autoArrangeFigures
+%% Run a wilcoxon signrank on the pairs
+
+% concatenate the values
+tectum_pc = cat(1,variance_cell{1,:});
+af_pc = cat(1,variance_cell{2,:});
+% allocate memory for the tests
+test_results = zeros(size(tectum_pc,1),1);
+% for all the PCs
+for pc = 1:size(tectum_pc,1)
+    test_results(pc) = signrank(tectum_pc(pc,:),af_pc(pc,:),'tail','right');
+end
 %% Plot the PCA components
 
 % only if 2 datasets and 1 region
@@ -368,6 +575,8 @@ if num_data == 2 && region_set == 1
 
     % allocate memory for the PC matrices
     pc_matrix = cell(num_data,2);
+    % allocate memory for the legend handles
+    legend_handles = zeros(num_data,1);
     % for all the datasets
     for datas = 1:num_data
         % allocate memory to store the first 3 components
@@ -406,17 +615,21 @@ if num_data == 2 && region_set == 1
         shadedErrorBar(x_range,11-(pc_matrix{1,1}(:,2+i)+offset*i),pc_matrix{2,2}(:,2+i),...
             {'color',colors(i,:)},1)
         hold on
-        plot(x_range,11-(pc_matrix{1,1}(:,2+i)+offset*i),'k')
+        legend_handles(1) = plot(x_range,11-(pc_matrix{1,1}(:,2+i)+offset*i),'k','LineWidth',2);
         shadedErrorBar(x_range,11-(pc_matrix{2,1}(:,2+i)+offset*i),pc_matrix{2,2}(:,2+i),...
             {'color',colors(i,:),'linestyle','--'},1)
-        plot(x_range,11-(pc_matrix{2,1}(:,2+i)+offset*i),'k--')
+        legend_handles(2) = plot(x_range,11-(pc_matrix{2,1}(:,2+i)+offset*i),'k--','LineWidth',2);
     %     plot([x_range(1) x_range(end)],[i*offset i*offset],'k--')
     end
     axis tight
     box off
-    set(gca,'TickLength',[0 0],'YTick',[],'FontSize',15,'LineWidth',2)
+    set(gca,'TickLength',[0 0],'YTick',6.5:9.5,'YTickLabels',{'PC2-Blue','PC1-Blue','PC2-Green','PC1-Green'}...
+        ,'FontSize',15,'LineWidth',2,'YTickLabelRotation',45)
+    set(gcf,'Color','w')
     xlabel('Time (s)')
-    file_path = strjoin({'averageComponentCCA',data(1).name,data(2).name,...
-        'set',num2str(stim_set),'.png'},'_');
-    print(fullfile(fig_path,file_path), '-dpng','-r600')
+    legend(legend_handles,{'Tectum','AF10'})
+    file_path = fullfile(fig_path,strjoin({'averageComponentCCA',data(1).name,data(2).name,...
+        'set',num2str(stim_set),'.png'},'_'));
+%     print(fullfile(fig_path,file_path), '-dpng','-r600')
+    export_fig(file_path,'-r600')
 end

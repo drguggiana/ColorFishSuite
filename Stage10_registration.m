@@ -279,7 +279,9 @@ end
 
 % turn the anatomy into a vector
 registered_anatomy = cat(1,registered_anatomy{:});
-registered_anatomy = ones(size(registered_anatomy));
+% registered_anatomy = ones(size(registered_anatomy));
+
+
 % % plot stack
 % figure
 % % imagesc(sum(label_copy,3))
@@ -313,40 +315,47 @@ registered_anatomy = registered_anatomy(selection_vector);
 coord = sub2ind(full_ref_dim,coord(:,1),coord(:,2),coord(:,3));
 %% Plot maps of the max response
 close all
-% full_ref_dim = ref_dim;
-% full_ref_stack = ref_stack;
-% only do this if it's p17b
-% if contains(data.name,'p17b')
-%     % get the gains
-%     delta_norm = data.delta_norm;
+
     
 % get the reshaped activity
-delta_norm = reshape(data.conc_trace,[],data.time_num,data.stim_num);
+conc_trace = reshape(data.conc_trace,[],data.time_num,data.stim_num);
 % take only the stimulation time
-delta_norm = delta_norm(:,21:60,:);
+conc_trace = conc_trace(:,21:60,:);
 % take the absolute average
-delta_norm = squeeze(mean(abs(delta_norm),2));
+conc_trace = squeeze(mean(abs(conc_trace),2));
+% allocate memory for the percentile threshold
+perc_threshold = ones(size(conc_trace,1),stim_num)==1;
+
+
 % get the max gain for each seed
-[max_gain,max_idx] = max(delta_norm,[],2);
+[max_gain,max_idx] = max(conc_trace,[],2);
 % get the number of stimuli
 stim_num = data.stim_num;
 % allocate memory to store each map
 gain_maps = cell(stim_num,1);
 for color = 1:stim_num
     gain_maps{color} = zeros(full_ref_dim);
+    % get the percentile threshold
+%     perc_threshold(:,color) = conc_trace(:,color) > prctile(conc_trace(:,color),75);
+    
 end
 % run through all the seeds
-for seeds = 1:size(delta_norm,1)
+for seeds = 1:size(conc_trace,1)
+    
+    % get the indexes for the corresponding seeds and anatomy
     index_vector = coord(indexes==seeds&registered_anatomy>0);
-    %         % accumulate the gain for the pixels of each seed
-    %         gain_maps{max_idx(seeds)}(index_vector) = ...
-    %             gain_maps{max_idx(seeds)}(index_vector) + max_gain(seeds);
+
     % for each color
     for color = 1:stim_num
+        % include the seed only if it passes the threshold for that color
+        if perc_threshold(seeds,color) == 0
+            continue
+        end
+        % assemble the gain map based on the adding the gains for each
+        % voxel across animals
         gain_maps{color}(index_vector) = ...
-            gain_maps{color}(index_vector) + abs(delta_norm(seeds,color));
-        %             prc = prctile(gain_maps{color}(:),90);
-        %             gain_maps{color}(gain_maps{color}>prc) = prc;
+            gain_maps{color}(index_vector) + abs(conc_trace(seeds,color));
+        
     end
     
 end
@@ -354,11 +363,12 @@ end
 color_cell = cell(stim_num,1);
 % generate the maps
 for color = 1:stim_num
-    % allocate memory for the stack
-    %         target_stack = zeros(full_ref_dim(1),full_ref_dim(2),full_ref_dim(3),3);
-    %         target_stack = normr_1(repmat(full_ref_stack,1,1,1,3),1);
+    % normalize the full ref stack as background
     curr_stack = normr_1(full_ref_stack,1);
+    % normalize the gain map for this stimulus and apply to the ref stack
     curr_stack(gain_maps{color}~=0) = normr_1(gain_maps{color}(gain_maps{color}~=0),1).*5;
+    % create the blank stack by copying the current stack and blanking the
+    % positions with a gain in them
     curr_blank = curr_stack;
     curr_blank(gain_maps{color}~=0) = 0;
     
@@ -366,7 +376,6 @@ for color = 1:stim_num
         switch color
             case 1
                 target_stack = cat(4,curr_stack,curr_blank,curr_blank);
-                %             target_stack = cat(4,curr_blank,1-curr_stack,1-curr_stack);
             case 2
                 target_stack = cat(4,curr_blank,curr_stack,curr_blank);
             case 3
@@ -405,24 +414,21 @@ for color = 1:stim_num
     close all
     h = fig('units','centimeters','height',4,'width',4);
     
-    %     subplot(round(sqrt(clu_num)),ceil(sqrt(clu_num)),clu)
-    %     subplot('Position',[(j-1)*1/numRecsAcross (numRecsDown-i)*1/numRecsDown 1/numRecsAcross 1/numRecsDown])
+   
     % create the image
     I = squeeze(color_cell{color});
-    %     I = histeq(I);
     I = imadjust(I,[0 0.3]);
     imagesc(I)
-    %         brighten(1)
     set(gca,'XTick',[],'YTick',[])
     axis equal
     box off
     % assemble the save path
-    %         save_path = fullfile(fig_path,'clusters',strjoin({'Cluster',data.name,'Number',num2str(clu),'.tif'},'_'));
     save_path = fullfile(fig_path,strjoin({'MaxProjGain',data.name,'Color',num2str(color),'.tif'},'_'));
     
     % save it
     saveas(h,save_path,'tif')
 end
+% error('Stop')
 %% OFF Save a stack with all 4 colors
 % % allocate memory for the stack
 % % normalize the full ref stack
@@ -605,6 +611,156 @@ for clu = 1:clu_num
     % save it
     saveas(h,save_path,'tif')
 end
+%% Plot single clusters in all projections
+
+close all
+
+if contains(data.name,'p17b')
+
+    % get the clusters
+    idx_clu = data.idx_clu;
+    color_scheme = [1 0 0;0 1 0;0 0 1;1 0 1];
+
+    % select the target clusters
+    if contains(data.name,{'Syn','syn'})
+        clu_vector = [2 6];
+        front_limit = 300;
+        side_limit = 621;
+    else
+        clu_vector = [4 9];
+        front_limit = 200;
+        side_limit = 621;
+    end
+    % get the number of clusters
+    clu_num = length(clu_vector);
+    % get a color map for the clusters
+    cluster_color = distinguishable_colors(clu_num,[0 0 0;1 1 1]);
+    % normalize the full ref stack
+    norm_stack = cat(4,repmat(normr_1(full_ref_stack,1),1,1,1,3));
+
+    % for all the clusters
+    for clu = 1:clu_num
+        fprintf(strjoin({'Current cluster',num2str(clu),'\r\n'},'_'))
+        % allocate memory for the stack
+        temp_stack = norm_stack;
+
+        % get the seeds for this cluster
+        seed_list = find(idx_clu==clu_vector(clu));
+
+        % get the color of the cluster
+        seed_color = cluster_color(clu,:);
+
+        index_vector = coord(ismember(indexes,seed_list)&(registered_anatomy>0));
+
+        [x,y,z] = ind2sub(full_ref_dim,index_vector);
+        index_vector_r = sub2ind([full_ref_dim,3],x,y,z,ones(size(x)));
+        index_vector_g = sub2ind([full_ref_dim,3],x,y,z,ones(size(x)).*2);
+        index_vector_b = sub2ind([full_ref_dim,3],x,y,z,ones(size(x)).*3);
+
+        temp_stack(index_vector_r) = seed_color(1);
+        temp_stack(index_vector_g) = seed_color(2);
+        temp_stack(index_vector_b) = seed_color(3);
+
+        % for both projection axes
+        for proj = 2:3
+
+            % take the anterior half (protocol dependent)
+            switch proj
+                case 1
+                    permute_vector = [2 1 3];
+                    x_range = 1:138;
+                    y_range = 1:side_limit;
+                    y_dir = 'normal';
+                    aspect_vector = [0.798*side_limit 2*138 1];
+                case 2
+                    permute_vector = [2 1 3];
+                    x_range = 1:138;
+                    y_range = front_limit:700;
+                    y_dir = 'normal';
+                    aspect_vector = [0.798*(700-front_limit) 2*138 1];
+                case 3
+                    permute_vector = [1 2 3];
+                    x_range = front_limit:700;
+                    y_range = 1:side_limit;
+                    y_dir = 'reverse';
+                    aspect_vector = [side_limit 700-front_limit 1];
+            end
+            figure
+            I = permute(squeeze(max(temp_stack,[],proj)),permute_vector);
+
+            I = imadjust(I(x_range,y_range,:),[0 0.7]);
+            imagesc(I)
+            set(gca,'YDir',y_dir,'TickLength',[0 0])
+            set(gca,'XTick',[],'YTick',[],'LineWidth',2)
+            %     axis equal
+            pbaspect(aspect_vector)
+            axis tight
+            % produce a max intensity projection
+
+            set(gca,'YDir',y_dir,'TickLength',[0 0])
+            set(gca,'XTick',[],'YTick',[],'LineWidth',2)
+            pbaspect(aspect_vector)
+            axis tight
+            % assemble the save path
+            save_path = fullfile(fig_path,'clusters',strjoin({'Cluster',data.name,...
+                'Number',num2str(clu),num2str(proj),'.tif'},'_'));
+            % save it
+            export_fig(save_path,'-r600')
+        end
+        % also plot the cluster average
+        figure             
+       
+        % framerate 
+        framerate = data.framerate;
+      
+        % get the average trace
+        ave_trace = nanmean(data.conc_trace(idx_clu==clu,:),1);
+        std_trace = nanstd(data.conc_trace(idx_clu==clu,:),0,1);
+        ave_perstim = reshape(ave_trace,[],stim_num);
+        std_perstim = reshape(std_trace,[],stim_num);
+        time_vector = (0:size(ave_trace,2)-1)./framerate;
+        time_perstim = reshape(time_vector,[],stim_num);
+        % split by stimulus
+        for stim = 1:stim_num
+            % plot it
+            shadedErrorBar(time_perstim(:,stim),...
+                ave_perstim(:,stim),std_perstim(:,stim),...
+                {'color',color_scheme(stim,:),'LineWidth',1})
+            hold on
+        end
+        
+        
+        axis tight
+        % plot the intermediate lines
+        for stim = 1:stim_num-1
+            plot([time_perstim(end,stim),time_perstim(end,stim)],...
+                get(gca,'YLim'),'k','LineWidth',2)
+        end
+        %     pbaspect([1,2,1])
+        axis tight
+%         set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',string(clu_num:-1:1))
+        title(strjoin({'Cluster:',num2str(clu_vector(clu))},' '))
+        set(gca,'YTick',[-1 0 1 2]) 
+        set(gca,'TickLength',[0 0])
+        xlabel('Time (s)')
+        %     sgtitle(strjoin({'Average_Trace_perArea',data(datas).name},'_'),'Interpreter','None')
+        %         set(gca,'XLim',[0,time_perstim(end,end)])
+        box off
+
+
+
+%         title(data(datas).figure_name,'Interpreter','None')
+%         set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
+        % assemble the figure path
+        set(gca,'FontSize',7,'LineWidth',2)
+        pbaspect([15 1 1])
+        set(gcf,'Color','w')
+        file_path = fullfile(fig_path,'clusters',strjoin({'Cluster',data.name,...
+            'Number',num2str(clu),'trace','.tif'},'_'));
+        export_fig(file_path,'-r600')
+    end
+end
+% autoArrangeFigures
 %% OFF Calculate the overlap between stimulus responses
 % % determine the number of stimulus pairs
 % stim_combinations = nchoosek(1:stim_num,2);
@@ -642,86 +798,100 @@ end
 % end
 %% Calculate the overlap between stimuli and compare to reps
 
-% determine the filtering threshold
-all_reps = abs(reshape(data.single_reps,size(data.single_reps,1),data.time_num,stim_num,[]));
-% get the number of reps
-rep_num = size(all_reps,4);
-% allocate memory to store the maps per rep
-rep_maps = cell(rep_num,1);
-% fir all the reps
-for reps = 1:rep_num
-    % get the current rep
-    conc_trace = all_reps(:,:,:,reps);
-    
-    % take only the stimulation time
-    delta_norm = conc_trace(:,21:60,:);
-    % take the absolute average
-    delta_norm = squeeze(mean(abs(delta_norm),2));
-    % calculate the maps
-    maps_cell = property_map(coord,indexes,registered_anatomy,delta_norm,stim_num,full_ref_dim);
+% get the single reps
+all_single_reps = data.single_reps;
 
-    baseline = conc_trace(:,1:20,:);
-    mean_baseline = squeeze(mean(conc_trace,2));
+% allocate memory for the matrices
+single_matrices = cell(num_fish,2);
+% for all the fish
+for fish = 1:num_fish
+    fprintf(strjoin({'Current fish:',num2str(fish),'\r\n'},' '))
+    % get the traces for this fish
+    single_reps = all_single_reps(data.fish_ori(:,1)==fish,:);
+    % get a seed map
+    seed_map = find(data.fish_ori(:,1)==fish)';
+    % determine the filtering threshold
+    all_reps = abs(reshape(single_reps,size(single_reps,1),data.time_num,stim_num,[]));
+    % get the number of reps
+    rep_num = size(all_reps,4);
+    % allocate memory to store the maps per rep
+    rep_maps = cell(rep_num,1);
+    % fir all the reps
+    for reps = 1:rep_num
+        % get the current rep
+        conc_trace = all_reps(:,:,:,reps);
+
+        % take only the stimulation time
+        conc_trace = conc_trace(:,21:60,:);
+        % take the absolute average
+        conc_trace = squeeze(mean(abs(conc_trace),2));
+        % calculate the maps
+        maps_cell = property_map(coord,indexes,registered_anatomy,conc_trace,stim_num,full_ref_dim,seed_map);
+
+        % take the absolute average
+        ROI_threshold = prctile(conc_trace,75,1);
+
+        % threshold them
+
+        % for all the maps
+        for stim = 1:stim_num
+            % apply the threshold and save
+            maps_cell{stim} = abs(maps_cell{stim});
+            maps_cell{stim} = maps_cell{stim}(:)>ROI_threshold(stim);
+        end
+        % save in the rep map concatenated by stimulus
+        rep_maps{reps} = cat(2,maps_cell{:});
+    end
+
+    % concatenate the rep maps into a single matrix
+    rep_maps = cat(3,rep_maps{:});
+    %% Calculate the overlap matrices
+
+    % determine the number of stimulus pairs
+    stim_combinations = nchoosek(1:stim_num,2);
+    number_combinations = size(stim_combinations,1);
+
+    % allocate memory for the overlaps
+    overlap_matrix = zeros(stim_num,stim_num,rep_num);
+    % for all the reps
+    for reps = 1:rep_num
+        % for all the combinations
+        for combs = 1:number_combinations
+            % get the maps
+            map1 = rep_maps(:,stim_combinations(combs,1),reps);
+            map2 = rep_maps(:,stim_combinations(combs,2),reps);
+
+            % quantify the overlap
+            overlap_matrix(stim_combinations(combs,1),stim_combinations(combs,2),reps) = sum(sum([map1,map2],2)>1);
+
+        end
+    end
     
-    cell_ave = mean(mean_baseline,1);
-    cell_std = 2*std(mean_baseline,1);
-    ROI_threshold = (cell_ave+cell_std);
-    
-    % threshold them
-    
-    % for all the maps
+    % save the matrix
+    single_matrices{fish,1} = overlap_matrix;
+    %% Calculate the control matrix with the reps for each stimulus
+
+    % allocate memory to store the overlaps between reps
+    control_overlap = zeros(stim_num,1);
+    % get the combinations for the reps
+    control_combs = nchoosek(1:rep_num,2);
+    control_num = size(control_combs,1);
+    % for all the stimuli
     for stim = 1:stim_num
-        % apply the threshold and save
-        maps_cell{stim} = abs(maps_cell{stim});
-        maps_cell{stim} = maps_cell{stim}(:)>ROI_threshold(stim);
+        % get the maps for this stim
+        stim_maps = squeeze(rep_maps(:,stim,:));
+        % for all the combinations
+        for combs = 1:control_num
+            % select the corresponding maps
+            map1 = stim_maps(:,control_combs(combs,1));
+            map2 = stim_maps(:,control_combs(combs,2));
+            % calculate the overlap
+            control_overlap(stim) = control_overlap(stim) + sum(sum([map1,map2],2)>1)./control_num;
+        end
     end
-    % save in the rep map concatenated by stimulus
-    rep_maps{reps} = cat(2,maps_cell{:});
-end
 
-% concatenate the rep maps into a single matrix
-rep_maps = cat(3,rep_maps{:});
-%% Calculate the overlap matrices
-
-% determine the number of stimulus pairs
-stim_combinations = nchoosek(1:stim_num,2);
-number_combinations = size(stim_combinations,1);
-% concat_baseline = reshape(baseline,[],4);
-% ROI_threshold = prctile(concat_baseline,8,1);
-% allocate memory for the overlaps
-overlap_matrix = zeros(stim_num,stim_num,rep_num);
-% for all the reps
-for reps = 1:rep_num
-    % for all the combinations
-    for combs = 1:number_combinations
-        % get the maps
-        map1 = rep_maps(:,stim_combinations(combs,1),reps);
-        map2 = rep_maps(:,stim_combinations(combs,2),reps);
-
-        % quantify the overlap
-        overlap_matrix(stim_combinations(combs,1),stim_combinations(combs,2),reps) = sum(sum([map1,map2],2)>1);
-
-    end
-end
-%% Calculate the control matrix with the reps for each stimulus
-
-% allocate memory to store the overlaps between reps
-control_overlap = zeros(stim_num,1);
-% get the combinations for the reps
-control_combs = nchoosek(1:rep_num,2);
-control_num = size(control_combs,1);
-% for all the stimuli
-for stim = 1:stim_num
-    % get the maps for this stim
-    stim_maps = squeeze(rep_maps(:,stim,:));
-    % for all the combinations
-    for combs = 1:control_num
-        % select the corresponding maps
-        map1 = stim_maps(:,control_combs(combs,1));
-        map2 = stim_maps(:,control_combs(combs,2));
-        % calculate the overlap
-        control_overlap(stim) = control_overlap(stim) + sum(sum([map1,map2],2)>1)./control_num;
-    end
+    % save the control matrix
+    single_matrices{fish,2} = control_overlap;
 end
 %% Plot the matrix
 close all
@@ -734,7 +904,7 @@ norm_overlap = mean(overlap_matrix,3);
 for combs = 1:number_combinations
     % normalize
     norm_overlap(stim_combinations(combs,1),stim_combinations(combs,2)) = ...
-        1-(norm_overlap(stim_combinations(combs,1),stim_combinations(combs,2))./mean(...
+        (norm_overlap(stim_combinations(combs,1),stim_combinations(combs,2))./mean(...
         control_overlap([stim_combinations(combs,1),stim_combinations(combs,2)])));
 end
 
@@ -742,7 +912,12 @@ figure
 imagesc(norm_overlap)
 axis square
 % set the color scale to the max number of trials per category
-title(data.figure_name)
+if contains(data.name,'p8_S')
+    fig_name = 'AF10';
+else
+    fig_name = data.figure_name;
+end
+title(fig_name)
 set(gca,'CLim',[0, 1])
 set(gca,'TickLength',[0 0])
 set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',fontsize,...
@@ -752,9 +927,65 @@ set(gca,'FontSize',20,'LineWidth',2)
 if ~contains(data.name,{'Syn','syn'})
     cba = colorbar;
     set(cba,'TickLength',0,'LineWidth',2)
-    ylabel(cba,'Dissimilarity Index')
+    ylabel(cba,'Similarity Index')
 end
 colormap(magma)
 % assemble the figure path
 file_path = strjoin({'anatomicalOverlap',stim_name},'_');
-print(fullfile(fig_path,file_path),'-dpng','-r600')
+% print(fullfile(fig_path,file_path),'-dpng','-r600')
+%% Calculate significance of the overlaps
+close all
+
+% define the fontsize
+fontsize = 15;
+% normalize the matrix by the average of the rep distances
+% allocate memory for the full control matrix
+% norm_overlap = mean(overlap_matrix,3);
+full_control = zeros(stim_num,stim_num,fish);
+% for all the combinations
+for combs = 1:number_combinations
+%     % for all the fish
+    for fish = 1:num_fish
+        % average per position
+        full_control(stim_combinations(combs,1),stim_combinations(combs,2),fish) = ...
+            mean(single_matrices{fish,2}([stim_combinations(combs,1),stim_combinations(combs,2)]));
+    end
+end
+
+% concatenate the single rep results
+full_reps = cat(3,single_matrices{:,1});
+
+% allocate memory for the significance
+significance_matrix = zeros(stim_num);
+% get the significance value for each position
+for el = 1:stim_num^2
+    [x,y] = ind2sub([stim_num,stim_num],el);
+    significance_matrix(x,y) = signrank(squeeze(full_reps(x,y,:)-mean(full_control(x,y,:),3)));
+    
+end
+
+figure
+imagesc(significance_matrix)
+axis square
+% set the color scale to the max number of trials per category
+if contains(data.name,'p8_S')
+    fig_name = 'AF10';
+else
+    fig_name = data.figure_name;
+end
+title(fig_name)
+set(gca,'CLim',[0, 1])
+set(gca,'TickLength',[0 0])
+set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',fontsize,...
+    'XTickLabelRotation',45)
+set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',fontsize)
+set(gca,'FontSize',20,'LineWidth',2)
+if ~contains(data.name,{'Syn','syn'})
+    cba = colorbar;
+    set(cba,'TickLength',0,'LineWidth',2)
+    ylabel(cba,'Similarity Index')
+end
+colormap(magma)
+% assemble the figure path
+file_path = strjoin({'anatomicalOverlap',stim_name},'_');
+% print(fullfile(fig_path,file_path),'-dpng','-r600')

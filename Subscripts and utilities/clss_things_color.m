@@ -263,7 +263,7 @@ for redec = 1:redec_num
             stim_label = repmat(cat(2,ones(1,cycle_length/2),2.*ones(1,cycle_length/2)),1,rep_num*2);
             weight_vec = ones(size(stim_label,2),1);
         case 21
-            % label only pre stim and stim FL
+            % label only red and UV in p17b dataset
             % get the length of a single cycle
             cycle_length = size(stim_only,2)/(stim_num2*rep_num);
             

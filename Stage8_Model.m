@@ -201,14 +201,15 @@ for datas = 1:size(data,2)
     axis square
     set(gca,'TickLength',[0 0],'LineWidth',2)
     set(gca,'FontSize',18)
-    
+    set(gcf,'Color','w')
     h = colorbar;
     set(h,'TickLength',0,'LineWidth',2)
     ylabel(h,'1 - Average Loss')
     colormap(magma)
     % assemble the figure path 
-    file_path = strjoin({'modelMatrix',data(datas).name,'.png'},'_');
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    file_path = fullfile(fig_path,strjoin({'modelMatrix',data(datas).name,'.png'},'_'));
+%     print(fullfile(fig_path,file_path),'-dpng','-r600')
 %     saveas(gcf, fullfile(fig_path,file_path), 'png')
+    export_fig(file_path,'-r600')
 end
 autoArrangeFigures

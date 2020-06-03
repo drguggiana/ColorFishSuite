@@ -21,7 +21,7 @@ index_cell = cell(num_data,1);
 region_list = cell(num_data,1);
 % define the region set to use (1 tc vs rgc, 2 all vs all)
 region_set = 1;
-
+hist_colors = zeros(num_data,3);
 % for all the datasets
 for datas = 1:num_data
     region_combination = 1;
@@ -30,12 +30,14 @@ for datas = 1:num_data
     if contains(data(datas).name, {'Syn','syn'})
         if region_set == 1
             region_list{datas} = {'AF10'};
+            hist_colors(datas,:) = paths.afOT_colors(datas,:);
         elseif region_set == 2
             region_list{datas} = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
         end
     else
         if region_set == 1
             region_list{datas} = {'R-TcN','R-TcP'};
+            hist_colors(datas,:) = paths.afOT_colors(datas,:);
         elseif region_set == 2
             region_list{datas} = {'L-TcN','R-TcN','L-TcP','R-TcP','L-Cb','R-Cb','L-Hb','R-Hb','L-Pt','R-Pt'};
         end
@@ -106,6 +108,8 @@ end
 %% Plot the results based on stimulus
 close all
 histo = figure;
+% allocate memory to store the max values for stats
+max_cell = cell(num_data,1);
 for datas = 1:num_data
     
     % load the embedding
@@ -181,16 +185,19 @@ for datas = 1:num_data
         % join it with the max_values
         max_values(opponents~=0) = opponents(opponents~=0);
         max_values = max_values + 1;
+        % store the value for stats
+        max_cell{datas} = max_values;
         figure(histo)
-        histogram(max_values,'Normalization','pdf')
+        histogram(max_values,'Normalization','probability','LineWidth',2,'FaceColor',hist_colors(3-datas,:))
         hold on
 
         if datas == num_data
             box off
             set(gca,'XTick',1:8,'XTickLabels',gain_labels,'XTickLabelRotation',45)
-            set(gca,'FontSize',15)
-            title('Response Gains')  
-            legend({'OT','AF10'})
+            set(gca,'FontSize',15,'LineWidth',2,'TickLength',[0 0])
+            ylabel('Proportion ROIs')
+%             title('Response Gains')  
+            legend({'Tectum','AF10'})
             file_path = strjoin({'histoUMAP',data(1).name,data(2).name,'Combined','set',num2str(region_set),'.png'},'_');
             print(fullfile(fig_path,file_path),'-dpng','-r600')
         end
@@ -205,10 +212,13 @@ for datas = 1:num_data
 %         legend({'NR','Red', 'Green', 'Blue', 'UV','2-C','3-C','4-C'},...
 %             'Location','best','Orientation','horizontal')
         legend('off')
-        set(gca,'TickLength',[0 0],'visible','off')
+        set(gca,'TickLength',[0 0],'visible','off','LineWidth',2)
+        set(gcf,'Color','w')
         title(strjoin({'UMAP',data(datas).name,'Combined'},'_'),'Interpreter','None')
-        file_path = strjoin({'UMAP',data(datas).name,'Combined','set',num2str(region_set),'.png'},'_');
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+        file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
+            'Combined','set',num2str(region_set),'.png'},'_'));
+%         print(fullfile(fig_path,file_path),'-dpng','-r600')
+        export_fig(file_path,'-r600')
     else
 
 %         for i = 1:data(datas).stim_num
@@ -277,6 +287,43 @@ for datas = 1:num_data
     end
     autoArrangeFigures
 end
+%% Run stats on the histogram of types
+
+% allocate memory for the counts for both data sets
+full_counts = cell(num_data,1);
+% for both data sets
+for datas = 1:num_data
+    % get the fish info
+    fish_info = data(datas).fish_ori(index_cell{datas}==1,1);
+    % get the number of fish
+    num_fish = length(unique(fish_info));
+    
+    % get the types of bins and their number
+    bin_types = unique(max_cell{datas});
+    type_number = length(bin_types);
+    
+    % allocate memory for the count
+    count_per_fish = zeros(num_fish,type_number);
+    
+    % for the types of bins
+    for bintype = 1:type_number
+        % for all the fish
+        for fish = 1:num_fish
+            % get the current max values
+            current_values = max_cell{datas}(fish_info==fish);
+            count_per_fish(fish,bintype) = sum(current_values==bin_types(bintype));
+        end
+    end
+    % store the results
+    full_counts{datas} = count_per_fish;
+end
+
+% allocate memory for the test results
+test_result = zeros(type_number,1);
+% run wilcoxon's sign rank for each type
+for bintype = 1:type_number
+    test_result(bintype) = signrank(full_counts{1}(:,bintype),full_counts{2}(:,bintype));
+end
 %% Plot the results based on region
 for datas = 1:num_data
 
@@ -298,12 +345,15 @@ for datas = 1:num_data
         end
         % s = scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:));
         s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',10);
-        legend(region_list{datas})
-        set(gca,'TickLength',[0 0],'visible','off')
+        legend(region_list{datas},'Location','bestoutside')
+        set(gca,'TickLength',[0 0],'visible','off','LineWidth',2)
+        set(gcf,'Color','w')
         % assemble the figure path
-        file_path = strjoin({'UMAP',data(datas).name,'Region','set',num2str(region_set),'.png'},'_');
+        file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
+            'Region','set',num2str(region_set),'.png'},'_'));
+        export_fig(file_path,'-r600')
 %         saveas(gcf, fullfile(fig_path,file_path), 'png')
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+%         print(fullfile(fig_path,file_path),'-dpng','-r600')
     end
     
     autoArrangeFigures
@@ -325,17 +375,22 @@ for datas = 1:num_data
     cluster_cmap = distinguishable_colors(clu_num,[0 0 0;1 1 1]);
     % plot the scatter
     s = gscatter(reduced_data(:,1),reduced_data(:,2),idx_clu,cluster_cmap,'.',10);
-    legend(string(1:clu_num))
-    set(gca,'TickLength',[0 0],'visible','off')
+    legend(string(1:clu_num),'Location','bestoutside')
+    set(gca,'TickLength',[0 0],'visible','off','LineWidth',2)
+    set(gcf,'Color','w')
     % assemble the figure path
-    file_path = strjoin({'UMAP',data(datas).name,'Cluster','set',num2str(region_set),'.png'},'_');
+    file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
+        'Cluster','set',num2str(region_set),'.png'},'_'));
 %     saveas(gcf, fullfile(fig_path,file_path), 'png')
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+%     print(fullfile(fig_path,file_path),'-dpng','-r600')
+    export_fig(file_path,'-r600')
     
 end
 %% Plot the p8 UMAPs separately by stimulus modality
 close all
 if contains(data(datas).name,'p8')
+    
+    fig_name = {'Tectum','AF10'};
     % allocate memory to store the color raw vectors
     color_cell = cell(num_data,stim_num/2);
     % for all datasets
@@ -414,24 +469,35 @@ if contains(data(datas).name,'p8')
 
 %             legend(s(2:3),stim_labels([stim,stim+1]),'Location','northwest','Fontsize',20)
             colormap(cmap)
+            set(gcf,'Color','w')
     %         colorbar('Ticklabels',stim_labels,'TickLabelInterpreter','None','Ticks',linspace(0.08,0.92,6))
             title(strjoin({data(datas).name,'Combined'},'_'),'Interpreter','None')
             set(gca,'TickLength',[0 0],'visible','off')
-            file_path = strjoin({'UMAP',data(datas).name,'Stim',num2str(stim),'set',num2str(region_set),'.png'},'_');
-            print(fullfile(fig_path,file_path),'-dpng','-r600')
+            file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
+                'Stim',num2str(stim),'set',num2str(region_set),'.png'},'_'));
+            export_fig(file_path,'-r600')
         end
         %% Produce a circular graph
         
         figure
         % collapse the vectors for this dataset
         color_all = horzcat(color_cell{datas,:});
+        
+        % get the unique patterns
+        [unique_seq,ia,ic] = unique(color_all,'rows');
+        
+        
+        
         imagesc(sortrows(color_all))
         set(gca,'TickLength',[0 0],'XTick',1:3,'XTickLabels',{'Checker','Grating','Flash'})
         set(gca,'YDir','normal','FontSize',15)
         ylabel('ROIs')
         colormap(cmap)
-        title(data(datas).figure_name)
-        file_path = strjoin({'barsUMAP',data(datas).name,'.png'},'_');
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+        title(fig_name{datas})
+        set(gcf,'Color','w')
+        file_path = fullfile(fig_path,strjoin({'barsUMAP',data(datas).name,'.png'},'_'));
+        
+        export_fig(file_path,'-r600')
+
     end
 end

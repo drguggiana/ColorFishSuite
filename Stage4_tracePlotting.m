@@ -24,12 +24,12 @@ close all
 for datas = 1:length(data)
    
 %     sort_traces = sort_by_average(data(datas), 'conc_trace');
-    [sort_idx,sort_traces] = sort(data(datas).idx_clu);
+    [sort_idx,sorted_traces] = sort(data(datas).idx_clu);
     figure
     
     subplot(1,20,1:19)
     set(gcf,'color','w')
-    imagesc(normr_1(data(datas).conc_trace(sort_traces,:),0))
+    imagesc(normr_1(data(datas).conc_trace(sorted_traces,:),0))
     title(dataset_labels{datas},'Interpreter','None')
     set(gca,'YTick',[1,length(data(datas).idx_clu)],...
         'XTick',0:(100/0.952):size(data(datas).conc_trace,2),...
@@ -189,15 +189,14 @@ axis tight
 set(gca,'FontSize',15)
 % assemble the figure path
 file_path = strjoin({'SingleTrace',data.name,'.png'},'_');
-% saveas(gcf, fullfile(fig_path,file_path), 'png')
 print(fullfile(fig_path,file_path),'-dpng','-r600')
-%% Clusters per area
+%% Clusters proportion per area
 
 % plot a matrix indicating how many instances of a cluster are in each
 % region
 
 % only do this for the p17 dataset
-if contains(data(datas).name,'p17b')
+if contains(data(1).name,'p17b')
     close all
 %     % define the region labels
 %     region_labels = {'Red','Green','Blue','UV'};
@@ -246,21 +245,23 @@ if contains(data(datas).name,'p17b')
         axis square
         title(data(datas).figure_name)
         set(gca,'FontSize',15,'LineWidth',2)
-        
-        
-        cba = colorbar;
-        set(cba,'TickLength',0,'LineWidth',2)
-        ylabel(cba,'Fraction traces/cluster')
-        colormap(plasma)
+        set(gcf,'Color','w')
+        colormap(magma)
+        colorbar
         % assemble the figure path
         file_path = strjoin({'clusterPerArea',data(datas).name,'.png'},'_');
+        file_path = fullfile(fig_path,file_path);
 %         saveas(gcf, fullfile(fig_path,file_path), 'png')
-        print(fullfile(fig_path,file_path),'-dpng','-r600') 
+%         print(file_path,'-dpng','-r600') 
+        export_fig(file_path,'-r600')
+
 
     end
+%     outerbar(file_path,gca,'Fraction traces/cluster');
+
     autoArrangeFigures
 end
-%% Plot the traces per area
+%% Plot the raw traces per area
 
 close all
 

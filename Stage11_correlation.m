@@ -1,3 +1,4 @@
+%% Clean up and load 
 clearvars
 close all
 
@@ -19,8 +20,9 @@ end
 % define the dataset colors (assuming only AF10 vs Tectum)
 % dataset_colors = [255 164 5;255 168 187]./255;
 % dataset_colors = distinguishable_colors(2,{'w','k','r','g','b','m'});
-dataset_colors = magma(3);
-dataset_colors = dataset_colors(1:2,:);
+% dataset_colors = magma(3);
+% dataset_colors = dataset_colors(1:2,:);
+dataset_colors = paths.afOT_colors;
 % define the colormap
 cmap = magma;
 %% Get the region filtering index
@@ -134,7 +136,6 @@ for datas = 1:num_data
     
     % assemble the figure path
     file_path = strjoin({'corrOverall',data(datas).name,'.png'},'_');
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
     print(fullfile(fig_path,file_path),'-dpng','-r600')
     % save the matrix for plotting
     correlations(:,:,datas) = rho;
@@ -573,21 +574,39 @@ if contains(data(1).name,'p17b')
         set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',15,...
             'XTickLabelRotation',45)
         set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',15)
-        colormap(parula)
+        colormap(magma)
         set(gca,'FontSize',20)
         
         cbar = colorbar;
-        set(cbar,'TickLength',0)
+        set(cbar,'TickLength',0,'LineWidth',2)
         ylabel(cbar,'Correlation')
         % assemble the figure path
         file_path = strjoin({'gainCorr',data(datas).name,'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
         print(fullfile(fig_path,file_path),'-dpng','-r600')
-        
-%         plotmatrix(delta_norm,strcat(colors{datas},'.'))
-%         hold on
-        
+
     end
+    
+    
+    % also plot the point by point correlation matrix
+    % assemble the matrix of gains
+    figure
+    gain_matrix = cat(1,data([2 1]).delta_norm);
+    % assemble the group labels
+%     gain_labels = ones(size(gain_matrix,1),1);
+%     gain_labels(1:size(data(1).delta_norm,1)) = 0;
+    gain_labels = cat(1,repmat({'RGCs'},size(data(2).delta_norm,1),1),...
+        repmat({'RAs'},size(data(1).delta_norm,1),1));
+    [h,ax,bigax] = gplotmatrix(gain_matrix,[],gain_labels,dataset_colors,...
+        'o',2,true,'stairs',{'Red','Green','Blue','UV'});
+    % change the font size in the plots
+    for plots = 1:20
+        set(ax(plots),'FontSize',13,'LineWidth',2,'TickLength',[0 0])
+    end
+  
+    % assemble the figure path
+    file_path = strjoin({'gainCorrMatrix',data(datas).name,'.png'},'_');
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    
     % also calculate a subtraction matrix
     figure
     imagesc(correlations(:,:,1)-correlations(:,:,2))
@@ -596,12 +615,12 @@ if contains(data(1).name,'p17b')
     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
     % set(gca,'CLim',[-1,1])
     set(gca,'TickLength',[0 0])
-    title(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',12)
+    title('Delta Correlation','Interpreter','None', 'FontSize',15)
     axis square
     cbar = colorbar;
     set(cbar,'TickLength',0)
     ylabel(cbar,'Correlation')
-    colormap(parula)
+    colormap(magma)
     
     autoArrangeFigures
     % assemble the figure path
@@ -738,7 +757,7 @@ if contains(data(1).name,'p8')
             errorbar(time_axis,dat1,sem1,strcat('k-',markers{datas}))
             %assemble the legend
             legend_cell{combs} = strcat(stim_labels{comb_vec(combs,1)},'_',stim_labels{comb_vec(combs,2)});
-            set(gca,'FontSize',20)
+            set(gca,'FontSize',15)
             set(gca,'XLim',[0 size(time_axis,2)],'YLim',[-0.2 0.7])
             
             switch combs
@@ -765,7 +784,8 @@ if contains(data(1).name,'p8')
         box off
 
     end
-    set(gca,'FontSize',20)
+    set(gca,'FontSize',15)
+    set(gcf,'Color','w')
 %     xlabel('Time (s)','FontSize',20)
 %     ylabel('Correlation (a.u.)','FontSize',20)
     %     legend(legend_cell,'Interpreter','none','Location','bestoutside','FontSize',10)
@@ -774,13 +794,13 @@ if contains(data(1).name,'p8')
 %     set(gca,'TickLength',[0 0])
 %     axis tight
     % assemble the figure path
-    file_path = strjoin({'corrRedUVTime',data(datas).name,'.png'},'_');
+    file_path = fullfile(fig_path,strjoin({'corrRedUVTime',data(datas).name,'.png'},'_'));
 %     saveas(gcf, fullfile(fig_path,file_path), 'png')
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    export_fig(file_path,'-r600')
 
 
 end
-%% Correlation between individual traces
+%% Correlation between clusters
 
 if num_data > 1 && contains(data(1).name,'p17b')
     close all
@@ -796,11 +816,13 @@ if num_data > 1 && contains(data(1).name,'p17b')
     num_shuffles = 500;
     % allocate memory for the clusters
     clu_ave = cell(2,set_number);
-    % for all the combinations
-    for sets = 1:set_number
-
-        % load the clusters and get the cluster averages
-        for datas = 1:2
+    % allocate memory for the legend handles
+    legend_cell = cell(num_data,1);
+    
+    % load the clusters and get the cluster averages
+    for datas = 1:2
+        % for all the combinations
+        for sets = 1:set_number
             % load the data and clusters
             conc_trace = data(datas).conc_trace(index_cell{datas}==1,:);
             conc_trace = reshape(conc_trace,[],data(datas).time_num,data(datas).stim_num);
@@ -814,54 +836,67 @@ if num_data > 1 && contains(data(1).name,'p17b')
             end
             % store the average
             clu_ave{datas,sets} = temp_ave;
+%             clu_ave{datas,sets} = conc_trace;
 
         end
 
         % calculate the correlation
 %         [rho,pval] = corr(sort_traces(clu_ave{1})',sort_traces(clu_ave{2})');
-        [rho,pval] = corr(clu_ave{1,sets}',clu_ave{2,sets}');
-        rho(pval>0.05) = NaN;
-        rho_cell{sets} = rho;
+        [rho1,pval1] = corr(clu_ave{datas,1}(:,1:40)',clu_ave{datas,1}(:,41:end)');
+        [rho2,pval2] = corr(clu_ave{datas,2}(:,1:40)',clu_ave{datas,2}(:,41:end)');
+%         rho = rho1./rho2;
+        
+%         rho(pval1>0.05) = NaN;
+%         rho = tril(rho,1);
+        
+        rho_cell{datas} = rho1;
 
 %         [N,edges] = histcounts(rho,20,'Normalization','cdf');
 %         plot(N)
-        histogram(rho,20,'Normalization','pdf','LineWidth',2,'FaceColor',dataset_colors(datas,:));
+%         histogram(rho(rho~=0&~isnan(rho)),20,'Normalization','probability','LineWidth',2,'FaceColor',dataset_colors(3-datas,:));
+%         scatter(rho1(:),rho2(:),[],dataset_colors(3-datas,:),'o','filled')
+        histogram(rho1(:),20,'FaceColor',dataset_colors(3-datas,:))
         hold on
+%         legend_cell{datas} = scatter(rho1(pval1<0.05),rho2(pval1<0.05),[],dataset_colors(3-datas,:),'o','filled');
         set(gca,'TickLength',[0 0],'Fontsize',20,'LineWidth',2)
-        xlabel('Correlation (a.u.)')
+%         xlabel('Correlation (a.u.)')
         ylabel('Nr clusters')
+%         xlabel('Green-Blue Correlation')
+%         ylabel('Red-UV Correlation')
     end
     box off
-    legend({'Green-Blue','Red-UV'},'location','northwest')
-    title('Cluster set correlation')
+    axis square
+    legend({'Tectum','AF10'},'location','northwest')
+    xlabel('G-B Cluster Correlation')
+    set(gcf,'Color','w')
     % assemble the figure path
-    file_path = strjoin({'corrClusters',data(1).name,data(2).name,'.png'},'_');
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    file_path = fullfile(fig_path,strjoin({'corrClusters',data(1).name,data(2).name,'.png'},'_'));
+    export_fig(file_path,'-r600')
     
     % calculate the delta rho
-    delta_rho = abs(nanmean(rho_cell{1}(:)-rho_cell{2}(:)));
+    delta_rho = nanmean(abs(rho_cell{1}(:)))-nanmean(abs(rho_cell{2}(:)));
     
     % allocate memory for the shuffles
     shuffle_matrix = zeros(num_shuffles,1);
     % get the matrix of clusters
-    clu_matrix = vertcat(clu_ave{:});
+    clu_matrix = vertcat(clu_ave{:,1});
 %     clu_num_ori = vertcat(data.clu_num);
     clu_num = size(clu_matrix,1);
     % calculate a confidence interval for the delta
     for shuff = 1:num_shuffles
         % shuffle the matrix
         shuff_idx = randperm(clu_num);
-        mat1 = clu_matrix(shuff_idx(1:clu_num/2),:);
-        mat2 = clu_matrix(shuff_idx((clu_num/2)+1:end),:);
+        mat1 = clu_matrix(shuff_idx(1:data(1).clu_num),:);
+        mat2 = clu_matrix(shuff_idx(data(1).clu_num+1:end),:);
         
         % get the correlation matrix
-        [rho1,pval1] = corr(mat1(1:data(1).clu_num,:)',mat1(data(1).clu_num+1:end,:)');
+        [rho1,pval1] = corr(mat1(:,1:40)',mat1(:,41:end)');
 %         rho1(pval1>0.05) = NaN;
-        [rho2,pval2] = corr(mat2(1:data(1).clu_num,:)',mat2(data(1).clu_num+1:end,:)');
+        [rho2,pval2] = corr(mat2(:,1:40)',mat2(:,41:end)');
 %         rho2(pval2>0.05) = NaN;
         
         % calculate the delta and store
-        shuffle_matrix(shuff) = abs(nanmean(rho1(:)-rho2(:)));
+        shuffle_matrix(shuff) = nanmean(abs(rho1(:)))-nanmean(abs(rho2(:)));
     end
     
     figure
@@ -1015,10 +1050,12 @@ print(fullfile(fig_path,file_path),'-dpng','-r600')
 autoArrangeFigures
 %% Correlate the responses across fish
 
-
+close all
+% define the font size
+fontsize = 20;
 %for both data sets
 for datas = 1:num_data
-
+    figure
     %load the clusters
     conc_trace = data(datas).conc_trace;
     
@@ -1026,9 +1063,79 @@ for datas = 1:num_data
     fish_ori = data(datas).fish_ori;
     % get the number of fish
     num_fish = size(unique(fish_ori(:,1)),1);
-    % for all the fish
+    % get the number of clusters
+    clu_num = data(datas).clu_num;
+    % allocate memory for the averages
+    fish_average = zeros(clu_num,size(conc_trace,2),num_fish);
+    fish_cluster_traces = zeros(clu_num,num_fish);
+    % calculate the per-fish cluster averages
     for fish = 1:num_fish
+        % get the idx_clu for this fish
+        idx_fish = data(datas).idx_clu(fish_ori(:,1)==fish);
+        % get the traces for this fish
+        fish_trace = conc_trace(fish_ori(:,1)==fish,:);
+        % for all the clusters
+        for clu = 1:clu_num
+            fish_average(clu,:,fish) = nanmean(fish_trace(idx_fish==clu,:),1);
+            fish_cluster_traces(clu,fish) = sum(idx_fish==clu);
+        end
+    end
+    % get all the combinations of fish
+    fish_comb = nchoosek(1:num_fish,2);
+    number_combos = length(fish_comb);
+    % allocate memory for a correlation matrix
+    fish_correlation = zeros(num_fish);
+    % for all the fish combos
+    for combo = 1:number_combos
+%         % load the 2 fish in question
+%         fish1 = conc_trace(fish_ori(:,1)==fish_comb(combo,1),:);
+%         fish2 = conc_trace(fish_ori(:,1)==fish_comb(combo,2),:);
+        % get the cluster averages
+        fish1 = fish_average(:,:,fish_comb(combo,1));
+        fish2 = fish_average(:,:,fish_comb(combo,2));
+        % get the corelation matrix
+        corr_matrix = corr(fish1',fish2');
+        % take the off diagonal entries (since clusters are matched)
+%         corr_matrix = tril(corr_matrix,1);
+%         corr_matrix = corr_matrix(corr_matrix~=0);
+        corr_matrix = diag(corr_matrix);
+        % average
+        fish_correlation(fish_comb(combo,1),fish_comb(combo,2)) = ...
+            nanmean(corr_matrix(:));
         
     end
-
+    % plot the matrix
+    imagesc(fish_correlation)
+    set(gca,'TickLength',[0 0],'LineWidth',2)
+    set(gca,'CLim',[0 1])
+    xlabel('Fish')
+    ylabel('Fish')
+    
+    cba = colorbar;
+    ylabel(cba,'Correlation')
+    set(cba,'TickLength',0,'LineWidth',2)
+    colormap(magma)
+    set(gca,'FontSize',fontsize)
+    axis square
+    axis tight
+    file_path = strjoin({'fishCorrelation',data(datas).name,'.png'},'_');
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    
+    % Plot the number of traces of every cluster in every fish
+    figure
+    imagesc(normr_1(fish_cluster_traces,2))
+    set(gca,'TickLength',[0 0],'LineWidth',2)
+    xlabel('Fish')
+    ylabel('Cluster')
+    
+    cba = colorbar;
+    ylabel(cba,'Proportion per fish')
+    set(cba,'TickLength',0,'LineWidth',2)
+    colormap(magma)
+    set(gca,'FontSize',fontsize)
+    axis square
+    axis tight
+    file_path = strjoin({'fishClusters',data(datas).name,'.png'},'_');
+    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    
 end
