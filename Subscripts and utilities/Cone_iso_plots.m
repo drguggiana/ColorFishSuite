@@ -297,6 +297,7 @@ cone_colors = [1 0 0;0 1 0;0 0 1;1 0 1];
 % define the projector colors
 projector_colors = tint_colormap(cone_colors,tint_factor);
 
+% subplot(2,1,1)
 %for all the cones
 for cone = 1:cone_num
 %     %get rid of the zeros in the trace (for figure purposes only)
@@ -310,8 +311,13 @@ for cone = 1:cone_num
         ,'Linewidth',3)
     hold on
 end
+set(gca,'TickLength',[0 0],'FontSize',fontsize,'LineWidth',2)
+set(gca,'XLim',[250 750])
+box off
+ylabel('Absorption/Emission  ','Fontsize',fontsize)
+% pbaspect([7,1,1])
 
-
+% subplot(2,1,2)
 
 % plot the projector spectra
 for led = 1:led_num
@@ -319,18 +325,22 @@ for led = 1:led_num
     norm_led = spectra_m(:,led)./max(spectra_m(:,led));
     % remove sub threshold values
     norm_led(norm_led<level_threshold) = NaN;
-    plot(wav1,norm_led,'Color',projector_colors(led,:),'LineWidth',3,'LineStyle','--')
-    plot(wav1,norm_led,'Color',projector_colors(led,:),'LineWidth',1,'LineStyle','-')
+    plot(wav1(non_zero),norm_led(non_zero),'Color',projector_colors(led,:),'LineWidth',3,'LineStyle','--')
+    hold on
+    plot(wav1(non_zero),norm_led(non_zero),'Color',projector_colors(led,:),'LineWidth',1,'LineStyle','-')
 end
 % title('Absorption spectra of the Zebrafish cones','Fontsize',30)
 xlabel('Wavelength (nm)','Fontsize',fontsize)
 ylabel('Absorption/Emission  ','Fontsize',fontsize)
 set(gca,'TickLength',[0 0],'FontSize',fontsize,'LineWidth',2)
+set(gca,'XLim',[250 750])
 box off
-set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 10 5])
+set(gcf,'Color','w')
+% set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 10 5])
+pbaspect([2,1,1])
 
-file_path = 'combinedSpectra.png';
-print(fullfile(fig_path,file_path),'-dpng','-r600')
+file_path = fullfile(fig_path,'combinedSpectra.png');
+export_fig(file_path,'-r600')
 %% OFF Get the spectra from the projector (also fits)
 
 % %here I create the Gaussian-based spectra of the projector LEDs based on
@@ -615,7 +625,8 @@ res_final = interp1q(res_fun(:,1),res_fun(:,2),tar_wav);
 close all
 
 %define the LED colors (for when plotting them)
-led_col = [255 190 0;0 0 255;255 0 255;0 0 0]./255;
+% led_col = [255 190 0;0 0 255;255 0 255;0 0 0]./255;
+led_col = [1 0 0;0 1 0;0 0 1;1 0 1];
 
 %allocate memory for the matrix
 cone_exc = zeros(cone_num,led_num,pow_num);
@@ -679,12 +690,21 @@ for led = 1:led_num
     plot(proj_power(:,led).*1e6,'LineStyle','none','MarkerFaceColor',led_col(led,:),...
         'MarkerEdgeColor',[0 0 0],'Marker','o')
     hold('on')
-    plot(power_vals(:,led).*1e6)
+%     plot(power_vals(:,led).*1e6)
 end
+set(gca,'FontSize',15,'TickLength',[0 0])
 
-title('LED I value to Power curves','FontSize',20)
-xlabel('I value (A.U.)','FontSize',20)
+% title('LED I value to Power curves','FontSize',20)
+xlabel('Projector pixel value (A.U.)','FontSize',20)
 ylabel('Power density (uW/cm2)','FontSize',20)
+
+box off
+set(gcf,'Color','w')
+% set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 10 5])
+% pbaspect([2,1,1])
+
+file_path = fullfile(fig_path,'projectorPower.png');
+export_fig(file_path,'-r600')
 %% Stacked bar plot with the excitations for each cone from each LED
 
 close all

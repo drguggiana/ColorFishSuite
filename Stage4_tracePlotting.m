@@ -61,13 +61,18 @@ for datas = 1:length(data)
     figure
     imagesc(normr_1(data(datas).clu_ave(sort_clu,:),0))
     title(strjoin({'Clusters',data(datas).figure_name},' '),'Interpreter','None')
+    set(gca,'FontSize',15,'TickLength',[0 0])
     % assemble the figure path 
-    file_path = strjoin({'clusters',data(datas).name,'.png'},'_');
-    saveas(gcf, fullfile(fig_path,file_path), 'png')
+    file_path = fullfile(fig_path,strjoin({'clusters',data(datas).name,'.png'},'_'));
+%     saveas(gcf, fullfile(fig_path,file_path), 'png')
+%     set(gcf,'PaperUnits','centimeters','Position',)
+    
+    set(gcf,'Color','w')
+    export_fig(file_path,'-r600')
 end
 
 
-autoArrangeFigures
+% autoArrangeFigures
 %% Plot the cluster averages as traces
 
 close all
@@ -237,7 +242,7 @@ if contains(data(1).name,'p17b')
                     idx_clu==clu);
             end
         end
-        imagesc(normr_1(cluster_perregion,2))
+        imagesc(log(normr_1(cluster_perregion,2)))
         set(gca,'TickLength',[0 0])
         set(gca,'XTick',1:region_num,'XTickLabels',region_labels,'FontSize',fontsize,...
             'XTickLabelRotation',45)
@@ -247,7 +252,9 @@ if contains(data(1).name,'p17b')
         set(gca,'FontSize',15,'LineWidth',2)
         set(gcf,'Color','w')
         colormap(magma)
-        colorbar
+        cba = colorbar;
+        set(cba,'TickLength',0,'LineWidth',2)
+        ylabel(cba,'Log Fraction of Traces')
         % assemble the figure path
         file_path = strjoin({'clusterPerArea',data(datas).name,'.png'},'_');
         file_path = fullfile(fig_path,file_path);

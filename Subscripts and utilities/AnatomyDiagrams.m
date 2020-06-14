@@ -11,14 +11,16 @@ fig_path = strcat(paths(1).fig_path,'Setup\');
 registration_path = paths(1).registration_path;
 
 % define which map to target
-target_map = 'syn';
+target_map = 'Tectum';
 %% Load the reference brain
 
 % define the ref brain depending on the file
 switch target_map
     case {'syn','AF10'}
         ref_name = 'refisl2cut2.nrrd.tif';
-        full_ref_name = 'refisl2.nrrd.tif';
+%         full_ref_name = 'refisl2.nrrd.tif';
+        full_ref_name = 'refbrain.nrrd.tif';
+
     %     ref_name = 'refcutblursub.nrrd.tif';
     %     full_ref_name = 'refbrain.nrrd.tif';
     case {'huc','Tectum'}
@@ -66,7 +68,8 @@ switch target_map
         front_limit = 300;
         side_limit = 621;
 %         cmap = lines(length(field_names));
-        cmap = distinguishable_colors(length(field_names),{'w','g','r','b','m'});
+        cmap = distinguishable_colors(length(field_names),{'k','w','g','r','b','m','y'});
+        im_range = 0.7;
 
     case 'huc'
         field_list = {'Tectum Stratum','Tecum Neuropil','Pretectum','Habenula','Cerebellum'};
@@ -74,23 +77,28 @@ switch target_map
         coordinate_conversion = [272,74,49];
         front_limit = 200;
         side_limit = 621;
-        cmap = distinguishable_colors(length(field_names),{'w','g','r','b','m'});
+        cmap = distinguishable_colors(length(field_names),{'k','y','w','g','r','b','m'});
+        im_range = 0.7;
     case 'AF10'
         field_list = {'Tecum Neuropil'};
         field_names = {'AF10'};
         coordinate_conversion = [274,0,0];
         front_limit = 300;
         side_limit = 310;
-        cmap = magma(3);
-        cmap = cmap(1,:);
+        cmap = distinguishable_colors(7,{'k','w','g','r','b','m','y'});
+        cmap = cmap(end,:);
+        im_range = 0.3;
     case 'Tectum'
         field_list = {'Tectum Stratum','Tecum Neuropil'};
         field_names = {'TcN','TcP'};
         coordinate_conversion = [272,74,49];
         front_limit = 200;
         side_limit = 310;
-        cmap = magma(3);
-        cmap = cmap([2 2],:);
+        cmap = distinguishable_colors(length(field_names),{'k','y','w','g','r','b','m'});
+        cmap = cmap(2,:);
+%         cmap = magma(3);
+%         cmap = cmap([2 2],:);
+        im_range = 0.3;
 end
 
 % get the number of fields
@@ -109,6 +117,11 @@ for field = 1:field_number
     label_cell{field,1} = reshape(full(labels_data.MaskDatabase(:,idx_vector)),...
         labels_data.height,labels_data.width,labels_data.Zs);
     label_cell{field,2} = labels_data.MaskDatabaseNames{idx_vector};
+end
+% if it's tectum, combine the two parts of tectum
+if strcmp(target_map,'Tectum')
+    label_cell = {label_cell{1,1}|label_cell{2,1},'Tectum'};
+    field_number = 1;
 end
 %% Plot a max projection with the labels
 
@@ -179,7 +192,7 @@ for proj = 1:3
     end
     figure
     I = permute(mean(max_all,4),permute_vector);
-    I = imadjust(I(x_range,y_range,:),[0.7 1]);
+    I = imadjust(I(x_range,y_range,:),[im_range 1]);
     imagesc(I)
     set(gca,'YDir',y_dir,'TickLength',[0 0])
     set(gca,'XTick',[],'YTick',[],'LineWidth',2)

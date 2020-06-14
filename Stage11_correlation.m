@@ -23,6 +23,7 @@ end
 % dataset_colors = magma(3);
 % dataset_colors = dataset_colors(1:2,:);
 dataset_colors = paths.afOT_colors;
+
 % define the colormap
 cmap = magma;
 %% Get the region filtering index
@@ -55,7 +56,7 @@ for datas = 1:num_data
     
 end
 % get the number fo stimuli
-stim_num2 = data(1).stim_num;
+stim_num = data(1).stim_num;
 % get the number of time bins
 time_num = data(1).time_num;
 %define the stim labels based on the paradigm
@@ -77,7 +78,7 @@ end
 close all
 
 % allocate memory to save the labels
-correlations = zeros(stim_num2,stim_num2, num_data);
+correlations = zeros(stim_num,stim_num, num_data);
 
 %for both data sets
 for datas = 1:num_data
@@ -88,7 +89,7 @@ for datas = 1:num_data
         %get the number of traces
         trace_num = size(conc_trace,1);
         %reshape the matrix to calculate correlations between stimuli
-        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num2);
+        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num);
         %extract only the stim period
         resh_trace = resh_trace(:,21:60,:);
 %     else
@@ -103,7 +104,7 @@ for datas = 1:num_data
     % get the number of fish
     num_fish = size(unique(fish_ori(:,1)),1);
     % allocate memory for the output
-    corr_perfish = zeros(stim_num2,stim_num2,num_fish);
+    corr_perfish = zeros(stim_num,stim_num,num_fish);
     %get the number of time points per stimulus
     t_perstim = size(resh_trace,2);
     % for all the fish
@@ -114,26 +115,40 @@ for datas = 1:num_data
         fish_trace_num = size(resh_fish,1);
         %now reshape again for calculating the correlation across traces for
         %each stimulus
-        corr_trace = reshape(resh_fish,fish_trace_num*t_perstim,stim_num2);
+        corr_trace = reshape(resh_fish,fish_trace_num*t_perstim,stim_num);
 
         %calculate and plot an allvall corr matrix
         corr_perfish(:,:,fish) = corr(corr_trace);
     end
     % calculate the average correlation
     rho = mean(corr_perfish,3);
-    figure
-    imagesc(rho)
-    set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
+
+%     h = schemaball(rho,stim_labels,[1 0 1;1 1 0],[1 1 1]);
+%     for line = 1:size(h.l,1)
+%         if isnan(h.l(line))
+%             continue
+%         end
+%         set(h.l(line),'LineWidth',4)
+%     end
+%     set(gca,'Color','w')
+    
+    % plot the correlation matrix
+    h = bettercorr(rho,cmap);
+    
+    
+    set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',20,...
         'XTickLabelRotation',45)
-    set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
+    set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',20)
     set(gca,'CLim',[-1,1])
     set(gca,'TickLength',[0 0],'LineWidth',2)
     title(fig_name{datas},'Interpreter','None')
     axis square
     cbar = colorbar;
-    colormap(cmap)
+    colormap(magma)
     set(cbar,'TickLength',0,'LineWidth',2)
-    
+    ylabel(cbar,'Correlation')
+    set(gcf,'Color','w')
+
     % assemble the figure path
     file_path = strjoin({'corrOverall',data(datas).name,'.png'},'_');
     print(fullfile(fig_path,file_path),'-dpng','-r600')
@@ -145,9 +160,10 @@ end
 % also calculate a subtraction matrix
 figure
 imagesc(correlations(:,:,1)-correlations(:,:,2))
-set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
+% h = bettercorr(correlations(:,:,1)-correlations(:,:,2),cmap);
+set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',20,...
     'XTickLabelRotation',45)
-set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
+set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',20)
 % set(gca,'CLim',[-1,1])
 set(gca,'TickLength',[0 0],'LineWidth',2)
 title('Delta correlation','Interpreter','None', 'FontSize',20)
@@ -192,8 +208,8 @@ end
 num_times = size(time_corr,1);
 
 %allocate memory to store the correlations
-tcorr_mat = zeros(num_data,num_times,stim_num2,stim_num2);
-tcorr_mat_sem = zeros(num_data,num_times,stim_num2,stim_num2);
+tcorr_mat = zeros(num_data,num_times,stim_num,stim_num);
+tcorr_mat_sem = zeros(num_data,num_times,stim_num,stim_num);
 
 %for both data sets
 for datas = 1:num_data
@@ -205,7 +221,7 @@ for datas = 1:num_data
         %get the number of traces
         trace_num = size(conc_trace,1);
         %reshape the matrix to calculate correlations between stimuli
-        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num2);
+        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num);
         %extract only the stim period
         resh_trace = resh_trace(:,21:60,:);
 %     else
@@ -226,7 +242,7 @@ for datas = 1:num_data
     for times = 1:num_times
 
         % allocate memory for the output
-        corr_perfish = zeros(stim_num2,stim_num2,num_fish);
+        corr_perfish = zeros(stim_num,stim_num,num_fish);
 
         %now reshape again for calculating the correlation across traces for
         %each stimulus
@@ -257,7 +273,7 @@ for datas = 1:num_data
 %     end
     
     %define the possible combinations
-    comb_vec = combnk(1:stim_num2,2);
+    comb_vec = combnk(1:stim_num,2);
     
     %get the number of combinations
     comb_num = size(comb_vec,1);
@@ -337,7 +353,7 @@ end
 num_times = size(time_corr,1);
 
 %allocate memory to store the correlations
-tcorr_mat = zeros(num_data,num_times,stim_num2,stim_num2);
+tcorr_mat = zeros(num_data,num_times,stim_num,stim_num);
 
 %for both data sets
 for datas = 1:num_data
@@ -348,7 +364,7 @@ for datas = 1:num_data
         %get the number of traces
         trace_num = size(conc_trace,1);
         %reshape the matrix to calculate correlations between stimuli
-        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num2);
+        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num);
         %extract only the stim period
         resh_trace = resh_trace(:,21:60,:);
 %     else
@@ -368,7 +384,7 @@ for datas = 1:num_data
     %for all the times
     for times = 1:num_times
          % allocate memory for the output
-        corr_perfish = zeros(stim_num2,stim_num2,num_fish);
+        corr_perfish = zeros(stim_num,stim_num,num_fish);
 
         %now reshape again for calculating the correlation across traces for
         %each stimulus
@@ -401,9 +417,9 @@ for datas = 1:num_data
         set(gca,'TickLength',[0 0])
 %         caxis(gca,c_lims)
         axis('square')
-        set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',8,...
+        set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',8,...
             'XTickLabelRotation',45)
-        set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',8)
+        set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',8)
         title(strcat('Time point:',num2str(times)));
         sgtitle(strjoin({'Correlation over time',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
         colormap(cmap)
@@ -425,9 +441,9 @@ for times =1:num_times
     subplot(round(sqrt(num_times)),ceil(sqrt(num_times)),times)
     imagesc(squeeze(tcorr_mat(1,times,:,:)-tcorr_mat(2,times,:,:)))
     title(strcat('Time point:',num2str(times)));
-    set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',8,...
+    set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',8,...
     'XTickLabelRotation',45)
-    set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',8)
+    set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',8)
     set(gca,'CLim',[-0.5,0.5])
     set(gca,'TickLength',[0 0])
     sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
@@ -450,7 +466,7 @@ corr_period = 10:70;
 % get the number of points
 t_perstim = length(corr_period);
 % allocate memory to save the matrices
-correlations = zeros(t_perstim,t_perstim,stim_num2,num_data);
+correlations = zeros(t_perstim,t_perstim,stim_num,num_data);
 %for both data sets
 for datas = 1:num_data
     %if a normal data set
@@ -460,7 +476,7 @@ for datas = 1:num_data
         %get the number of traces
         trace_num = size(conc_trace,1);
         %reshape the matrix to calculate correlations between stimuli
-        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num2);
+        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num);
         %extract only the stim period
         resh_trace = resh_trace(:,corr_period,:);
 %     else
@@ -485,7 +501,7 @@ for datas = 1:num_data
 %     corr_trace = reshape(resh_trace,trace_num*t_perstim,stim_num2);
     
     % for all the stimuli
-    for stim = 1:stim_num2
+    for stim = 1:stim_num
         figure
         % get the traces for this stim
         stim_trace = resh_trace(:,:,stim);
@@ -504,6 +520,8 @@ for datas = 1:num_data
         correlations(:,:,stim,datas) = rho;
 %         subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
         imagesc(rho)
+%         plot(diag(rho(1:end-2,1:end-2)))
+%         plot(std(rho,0,1))
         title(stim_labels{stim},'color',color_scheme(stim,:))
 %         sgtitle(strjoin({'Time Correlation',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
         set(gca,'XTick',[],'YTick',[])
@@ -524,28 +542,89 @@ for datas = 1:num_data
         
 end
 
-% also calculate a subtraction matrix
+%% Also calculate a subtraction matrix
+close all
+traces = figure;
+delta = figure;
 
-for stim =1:stim_num2
-    figure
-%     subplot(round(sqrt(stim_num2)),ceil(sqrt(stim_num2)),stim)
-    imagesc(squeeze(correlations(:,:,stim,1)-correlations(:,:,stim,2)))
-%     sgtitle(strjoin({'Delta correlation',data(1).name,data(2).name},'_'),'Interpreter','None', 'FontSize',8)
-    title(stim_labels{stim},'color',color_scheme(stim,:))
-    set(gca,'XTick',[],'YTick',[],'CLim',[-0.2 0.3])
-    set(gca,'TickLength',[0 0],'LineWidth',2)
-%     xlabel('Time (s)')
-%     ylabel('Time (s)')
-    axis square
-    axis tight
-    cbar = colorbar;
-    set(cbar,'TickLength',0,'LineWidth',2)
-    set(gcf,'PaperUnits','Centimeters','PaperPosition',[0 0 6 5])
-    colormap(cmap)
-    % assemble the figure path
-    file_path = strjoin({'corrTime','delta',data(1).name,data(2).name,stim_labels{stim},'.png'},'_');
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+% allocate memory to store the cumulative deltas
+delta_matrix = zeros(stim_num,1);
+% define the offset
+offset = 0.5;
+for stim =1:stim_num
+
+    % get the data
+    matrix1 = squeeze(correlations(:,:,stim,1));
+    matrix2 = squeeze(correlations(:,:,stim,2));
+    
+    % blank the diagonal
+    matrix1(eye(size(matrix1))==1) = NaN;
+    matrix2(eye(size(matrix1))==1) = NaN;
+    
+    mean1 = nanmean(matrix1,1);
+    mean2 = nanmean(matrix2,1);
+    
+    std1 = nanstd(matrix1,0,1)./sqrt(size(matrix1,1)-1);
+    std2 = nanstd(matrix2,0,1)./sqrt(size(matrix1,1)-1);
+    
+    % get the x_range
+    x_range = ((1:size(matrix1,1))-10)./data(datas).framerate;
+    
+    % select the target figure
+    figure(traces)
+    tectum_handles = shadedErrorBar(x_range,mean1+(stim_num-(stim)*offset),std1,{'-','Color',color_scheme(stim,:)});
+    hold on
+    af10_handles = shadedErrorBar(x_range,mean2+(stim_num-(stim)*offset),std2,{'--','Color',color_scheme(stim,:)});
+    % color the line black
+    set(tectum_handles.mainLine,'Color',[0 0 0],'LineWidth',1);
+    set(af10_handles.mainLine,'Color',[0 0 0],'LineWidth',1);
+    
+    % also plot the cumulative delta
+    figure(delta)
+    
+    % also get the cumulative differences
+    delta_values = cumsum(abs(mean1-mean2));
+    plot(x_range,delta_values+(stim_num-(stim)*offset),...
+        'Color',color_scheme(stim,:),'LineWidth',1)
+    hold on
+
+
 end
+
+figure(traces)
+
+set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',15)
+set(gca,'YTick',2:0.5:stim_num,'YTickLabels',fliplr(stim_labels))
+xlabel('Time (s)')
+ylabel('Relative Correlation (a.u.)')
+box off
+axis tight
+plot([0 0],get(gca,'YLim'),'k--','LineWidth',1)
+% insert the legend
+legend([tectum_handles.mainLine,af10_handles.mainLine],fig_name,...
+    'Location','northoutside','Orientation','horizontal')
+
+set(gcf,'Color','w')
+% assemble the figure path
+file_path = fullfile(fig_path,strjoin({'corrTime','delta',...
+    data(1).name,data(2).name,'.png'},'_'));
+export_fig(file_path,'-r600')
+
+% also plot the cumulative delta
+figure(delta)
+set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',15)
+xlabel('Time (s)')
+ylabel('Cumulative Delta Correlation (a.u.)')
+box off
+axis tight
+plot([0 0],get(gca,'YLim'),'k--','LineWidth',1)
+
+legend(stim_labels,'Location','northwest')
+set(gcf,'Color','w')
+% assemble the figure path
+file_path = fullfile(fig_path,strjoin({'cumDeltaCorrTime','delta',...
+    data(1).name,data(2).name,'.png'},'_'));
+export_fig(file_path,'-r600')
 
 autoArrangeFigures
 %% Plot the correlations between the gains
@@ -554,7 +633,7 @@ if contains(data(1).name,'p17b')
 
     close all
     % allocate memory to save the correlations for later
-    correlations = zeros(data(1).stim_num,data(1).stim_num,num_data);
+    gain_correlations = zeros(data(1).stim_num,data(1).stim_num,num_data);
 
     % for all of the datasets
     for datas = 1:num_data
@@ -564,16 +643,16 @@ if contains(data(1).name,'p17b')
         % correlate the gains
         gain_corr = corr(delta_norm);
         % save the correlation for the delta
-        correlations(:,:,datas) = gain_corr;
+        gain_correlations(:,:,datas) = gain_corr;
         % plot it
         imagesc(gain_corr)
         title(data(datas).figure_name,'Interpreter','None')
         
         set(gca,'TickLength',[0 0])
         axis('square')
-        set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',15,...
+        set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',15,...
             'XTickLabelRotation',45)
-        set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',15)
+        set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',15)
         colormap(magma)
         set(gca,'FontSize',20)
         
@@ -609,10 +688,10 @@ if contains(data(1).name,'p17b')
     
     % also calculate a subtraction matrix
     figure
-    imagesc(correlations(:,:,1)-correlations(:,:,2))
-    set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
+    imagesc(gain_correlations(:,:,1)-gain_correlations(:,:,2))
+    set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',20,...
         'XTickLabelRotation',45)
-    set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
+    set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',20)
     % set(gca,'CLim',[-1,1])
     set(gca,'TickLength',[0 0])
     title('Delta Correlation','Interpreter','None', 'FontSize',15)
@@ -660,8 +739,8 @@ if contains(data(1).name,'p8')
     num_times = size(time_corr,1);
 
     %allocate memory to store the correlations
-    tcorr_mat = zeros(num_data,num_times,stim_num2,stim_num2);
-    tcorr_mat_sem = zeros(num_data,num_times,stim_num2,stim_num2);
+    tcorr_mat = zeros(num_data,num_times,stim_num,stim_num);
+    tcorr_mat_sem = zeros(num_data,num_times,stim_num,stim_num);
     % generate a single figure for the subplots
     figure
 
@@ -675,7 +754,7 @@ if contains(data(1).name,'p8')
             %get the number of traces
             trace_num = size(conc_trace,1);
             %reshape the matrix to calculate correlations between stimuli
-            resh_trace = reshape(conc_trace,trace_num,time_num,stim_num2);
+            resh_trace = reshape(conc_trace,trace_num,time_num,stim_num);
             %extract only the stim period
             resh_trace = resh_trace(:,11:60,:);
     %     else
@@ -696,7 +775,7 @@ if contains(data(1).name,'p8')
         for times = 1:num_times
 
             % allocate memory for the output
-            corr_perfish = zeros(stim_num2,stim_num2,num_fish);
+            corr_perfish = zeros(stim_num,stim_num,num_fish);
 
             %now reshape again for calculating the correlation across traces for
             %each stimulus
@@ -904,13 +983,77 @@ if num_data > 1 && contains(data(1).name,'p17b')
     hold on
     plot([delta_rho delta_rho],get(gca,'YLim'),'r')
     % get the std of the shuffles
-    prctile(shuffle_matrix,95)<delta_rho
+%     prctile(shuffle_matrix,95)<delta_rho
 end
-%% Calculate correlation over time as subsets
+%% Calculate matrix of histograms
 
 close all
 
+% get the stim_number
+stim_num = data(1).stim_num;
 
+% create the figure and get the handle
+[rho_cell,combo_list,combo_number] = matrix_subplot(data,index_cell);
+
+% plot the results
+h = figure;
+% for all the combinations
+for combo = 1:combo_number
+    % get the linear index for plotting
+%     ind = sub2ind([stim_num,stim_num],combo_list(combo,1),combo_list(combo,2));
+%     subplot(stim_num,stim_num,ind)
+    figure
+%     subplot(3,2,combo)
+    
+    histogram(rho_cell{combo_list(combo,1),combo_list(combo,2),1},20,...
+        'Normalization','Probability','FaceColor',dataset_colors(2,:),'LineWidth',1)
+    hold on
+    histogram(rho_cell{combo_list(combo,1),combo_list(combo,2),2},20,...
+        'Normalization','Probability','FaceColor',dataset_colors(1,:),'LineWidth',1)
+    
+%     xlabel(stim_labels{combo_list(combo,1)})
+%     ylabel(stim_labels{combo_list(combo,2)})
+    %         set(gca,'XLim',[0 1],'YLim',[0 0.6])
+    
+    % format the axes
+%     if combo_list(combo,2) < stim_num
+%         set(gca,'XTick',[])
+%         xlabel('')
+%     end
+%     if combo_list(combo,1) > 1
+%         set(gca,'YTick',[])
+%         ylabel('')
+%     end
+
+    if mod(combo,2) == 0
+        ylabel('')
+        set(gca,'YTick',[])
+    end
+    if combo < 5
+        xlabel('')
+        set(gca,'XTick',[])
+    end
+    if combo == 2
+        legend({'Tectum','AF10'},'Location','northeast')
+    end
+    box off
+    set(gca,'LineWidth',2)
+    set(gca,'XLim',[-1 1],'YLim',[0 0.2])
+    set(gca,'FontSize',18,'TickLength',[0 0])
+    pbaspect([1,1.2,1])
+    set(gcf,'Color','w')
+    % assemble the figure path
+    file_path = fullfile(fig_path,strjoin({'corrMatrix',data(1).name,data(2).name,num2str(combo),'.png'},'_'));
+    export_fig(file_path,'-r600')
+
+end
+% set(gcf,'Color','w')
+% % assemble the figure path
+% file_path = fullfile(fig_path,strjoin({'corrMatrix',data(1).name,data(2).name,'.png'},'_'));
+% export_fig(file_path,'-r600')
+%% Calculate correlation over time as subsets
+
+close all
 
 %define the sets of time regions to correlate
 time_corr = (1:40)';
@@ -930,8 +1073,8 @@ end
 num_times = size(time_corr,1);
 
 %allocate memory to store the correlations
-tcorr_mat = zeros(num_data,num_times,stim_num2,stim_num2);
-tcorr_mat_sem = zeros(num_data,num_times,stim_num2,stim_num2);
+tcorr_mat = zeros(num_data,num_times,stim_num,stim_num);
+tcorr_mat_sem = zeros(num_data,num_times,stim_num,stim_num);
 
 % create a common figure
 both = figure;
@@ -947,7 +1090,7 @@ for datas = 1:num_data
         %get the number of traces
         trace_num = size(conc_trace,1);
         %reshape the matrix to calculate correlations between stimuli
-        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num2);
+        resh_trace = reshape(conc_trace,trace_num,time_num,stim_num);
         %extract only the stim period
         resh_trace = resh_trace(:,21:60,:);
     end
@@ -960,7 +1103,7 @@ for datas = 1:num_data
     for times = 1:num_times
 
         % allocate memory for the output
-        corr_perfish = zeros(stim_num2,stim_num2,num_fish);
+        corr_perfish = zeros(stim_num,stim_num,num_fish);
 
         %now reshape again for calculating the correlation across traces for
         %each stimulus
@@ -978,7 +1121,7 @@ for datas = 1:num_data
         tcorr_mat_sem(datas,times,:,:) = std(corr_perfish,0,3)./sqrt(num_fish);
     end
     %define the possible combinations
-    comb_vec = combnk(1:stim_num2,2);
+    comb_vec = combnk(1:stim_num,2);
     
     %get the number of combinations
     comb_num = size(comb_vec,1);

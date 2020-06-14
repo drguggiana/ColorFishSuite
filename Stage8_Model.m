@@ -198,13 +198,16 @@ for datas = 1:size(data,2)
     set(gca,'XTick',1:num_data,'XTickLabel',region_list,'XTickLabelRotation',45)
     set(gca,'YTick',1:num_data,'YTickLabel',region_list)
     set(gca,'CLim',[0.65 1])
+    ylabel('Reference')
+    xlabel('Predicted')
+    
     axis square
     set(gca,'TickLength',[0 0],'LineWidth',2)
     set(gca,'FontSize',18)
     set(gcf,'Color','w')
     h = colorbar;
     set(h,'TickLength',0,'LineWidth',2)
-    ylabel(h,'1 - Average Loss')
+    ylabel(h,'Goodness of Fit')
     colormap(magma)
     % assemble the figure path 
     file_path = fullfile(fig_path,strjoin({'modelMatrix',data(datas).name,'.png'},'_'));

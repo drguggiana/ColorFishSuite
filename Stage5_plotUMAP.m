@@ -108,6 +108,9 @@ end
 %% Plot the results based on stimulus
 close all
 histo = figure;
+
+% define whether to use gains or average levels
+metric = 'average';
 % allocate memory to store the max values for stats
 max_cell = cell(num_data,1);
 for datas = 1:num_data
@@ -123,15 +126,18 @@ for datas = 1:num_data
     time_num = data(datas).time_num;
     stim_num = data(datas).stim_num;
     
-    
-    % get the reshaped activity
-    average_levels = reshape(conc_trace,trace_num,time_num,stim_num);
-    % take only the stimulation time
-    average_levels = average_levels(:,stim_time,:);
-    % take the absolute average
-    average_levels = squeeze(mean(abs(average_levels),2));
-%     % use the actual gains
-%     average_levels = abs(data(datas).delta_norm(index_cell{datas}==1,:));
+    switch metric
+        case 'average'
+            % get the reshaped activity
+            average_levels = reshape(conc_trace,trace_num,time_num,stim_num);
+            % take only the stimulation time
+            average_levels = average_levels(:,stim_time,:);
+            % take the absolute average
+            average_levels = squeeze(mean(abs(average_levels),2));
+        case 'gains'
+            % use the actual gains
+            average_levels = abs(data(datas).delta_norm(index_cell{datas}==1,:));
+    end
 
     if gains
         for i = 1:4
@@ -198,8 +204,10 @@ for datas = 1:num_data
             ylabel('Proportion ROIs')
 %             title('Response Gains')  
             legend({'Tectum','AF10'})
-            file_path = strjoin({'histoUMAP',data(1).name,data(2).name,'Combined','set',num2str(region_set),'.png'},'_');
-            print(fullfile(fig_path,file_path),'-dpng','-r600')
+            set(gcf,'Color','w')
+            file_path = fullfile(fig_path,strjoin({'histoUMAP',metric,data(1).name,data(2).name,...
+                'Combined','set',num2str(region_set),'.png'},'_'));
+            export_fig(file_path,'-r600')
         end
         
         figure
@@ -215,9 +223,8 @@ for datas = 1:num_data
         set(gca,'TickLength',[0 0],'visible','off','LineWidth',2)
         set(gcf,'Color','w')
         title(strjoin({'UMAP',data(datas).name,'Combined'},'_'),'Interpreter','None')
-        file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
+        file_path = fullfile(fig_path,strjoin({'UMAP',metric,data(datas).name,...
             'Combined','set',num2str(region_set),'.png'},'_'));
-%         print(fullfile(fig_path,file_path),'-dpng','-r600')
         export_fig(file_path,'-r600')
     else
 
@@ -281,9 +288,9 @@ for datas = 1:num_data
         colorbar('Ticklabels',stim_labels,'TickLabelInterpreter','None','Ticks',linspace(0.08,0.92,6))
         title(strjoin({data(datas).name,'Combined'},'_'),'Interpreter','None')
         set(gca,'TickLength',[0 0],'visible','off')
-        file_path = strjoin({'UMAP',data(datas).name,'Combined','set',num2str(region_set),'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+        file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
+            'Combined','set',num2str(region_set),'.png'},'_'));
+        export_fig(file_path,'-r600')
     end
     autoArrangeFigures
 end
@@ -389,7 +396,9 @@ end
 %% Plot the p8 UMAPs separately by stimulus modality
 close all
 if contains(data(datas).name,'p8')
-    
+    % define the labels of the patterns
+    pattern_label = {'Checker','Gratings','Flash'};
+    % define the dataset names
     fig_name = {'Tectum','AF10'};
     % allocate memory to store the color raw vectors
     color_cell = cell(num_data,stim_num/2);
@@ -411,19 +420,12 @@ if contains(data(datas).name,'p8')
         % take only the stimulation time
         average_levels2 = average_levels2(:,stim_time,:);
         % take the absolute average
-        average_levels2 = squeeze(mean(abs(average_levels2),2));
-% 
-%         [~,max_values] = max(average_levels,[],2);
-        
-                % use the top percentile of the gain
-        
-        
+        average_levels2 = squeeze(max(abs(average_levels2),[],2));
 
         % define the colormap
         cmap = [0.8 0.8 0.8;1 0 0;1 0 1;0 0 0];
         % for all stimulus types
         for stim = 1:2:5
-    %         fig('units','centimeters','width',10,'height',8,'fontsize',5)
             figure
             
             % copy the corresponding average_levels
@@ -448,56 +450,223 @@ if contains(data(datas).name,'p8')
             max_values(opponents~=0) = opponents(opponents~=0);
             color_raw = max_values + 1;
 
-            % create a temporary color scheme to plot the other stim gray
-%             color_raw = zeros(size(reduced_data,1),1);
-%             color_raw(max_values==stim) = 2;
-%             color_raw(max_values==stim+1) = 3;
-%             
-%             color_raw(max_values>6) = 4;
-%             
-%             color_raw(color_raw==0) = 1;
             % save the color_raw vector for quantification
             color_cell{datas,(stim+1)/2} = color_raw;
             % plot the scatter
             s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',...
                 20,'off');
-    %         scatter(reduced_data(max_values==stim,1),reduced_data(max_values==stim,2),...
-    %             [],'o','MarkerFaceColor',cmap(1,:))
-    %         hold on
-    %         scatter(reduced_data(max_values==stim+1,1),reduced_data(max_values==stim+1,2),...
-    %             [],'o','MarkerFaceColor',cmap(2,:))
 
-%             legend(s(2:3),stim_labels([stim,stim+1]),'Location','northwest','Fontsize',20)
             colormap(cmap)
             set(gcf,'Color','w')
-    %         colorbar('Ticklabels',stim_labels,'TickLabelInterpreter','None','Ticks',linspace(0.08,0.92,6))
             title(strjoin({data(datas).name,'Combined'},'_'),'Interpreter','None')
             set(gca,'TickLength',[0 0],'visible','off')
             file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
                 'Stim',num2str(stim),'set',num2str(region_set),'.png'},'_'));
             export_fig(file_path,'-r600')
         end
-        %% Produce a circular graph
-        
+        %% Produce a ternary plot
+        close all
         figure
         % collapse the vectors for this dataset
-        color_all = horzcat(color_cell{datas,:});
+        color_all = horzcat(color_cell{datas,:}); 
         
-        % get the unique patterns
-        [unique_seq,ia,ic] = unique(color_all,'rows');
+        % calculate a red-UV index
+        % allocate memory for it
+        red_uv_index = zeros(size(average_levels2,1),3);
+        for pair = 1:2:6
+            stim1 = average_levels2(:,pair);
+            stim2 = average_levels2(:,pair+1);
+%             red_uv_index(:,(pair+1)/2) = (stim1-stim2)./(stim1+stim2);
+            red_uv_index(:,(pair+1)/2) = stim1+stim2;
+        end
         
+        % get the sizes
+        total_size = sum(average_levels2,2);
+        total_size = total_size.*50;
         
+        % normalize the index across rows
+%         red_uv_index = log(normr_1(red_uv_index,1));
+        red_uv_index = normr_1(red_uv_index,1);
+%         % get the unique patterns
+%         [unique_seq,ia,ic] = unique(color_all,'rows');
+%         % allocate memory for the amounts of ROIs
+%         roi_counts = zeros(size(unique_seq,1),1);
+%         % get the counts per pattern
+%         for pattern = 1:size(unique_seq)
+%             roi_counts(pattern) = sum(ic==pattern);
+%         end
+%         
+%         
+%         roi_counts = log(roi_counts);
+%         roi_counts(roi_counts==0) = 1;
+%         roi_counts = roi_counts*20;
         
-        imagesc(sortrows(color_all))
-        set(gca,'TickLength',[0 0],'XTick',1:3,'XTickLabels',{'Checker','Grating','Flash'})
-        set(gca,'YDir','normal','FontSize',15)
-        ylabel('ROIs')
-        colormap(cmap)
+%         imagesc(sortrows(color_all))
+%         ternplot(unique_seq(:,1),unique_seq(:,2),unique_seq(:,3),roi_counts,'o','filled','majors',4)
+        h = ternplot(red_uv_index(:,1),red_uv_index(:,2),red_uv_index(:,3),200,...
+            cmap(color_raw,:),'.','majors',4);
+        children = get(gca,'Children');
+        % for all but the first (i.e. all the text objects)
+        for i = 2:length(children)
+            set(children(i),'FontSize',15)
+            if i > 5 && i < 10
+                % get the current position
+                current_position = get(children(i),'Position');
+                % displace the text
+                current_position(1) = current_position(1) - 0.09;
+                set(children(i),'Position',current_position)
+            elseif i > 9
+                % get the current position
+                current_position = get(children(i),'Position');
+                % displace the text
+                current_position(2) = current_position(2) - 0.03;
+                set(children(i),'Position',current_position)
+            end
+        end
+        
+%         h = ternlabel(pattern_label{:});
+%         set(gca,'TickLength',[0 0],'XTick',1:3,'XTickLabels',{'Checker','Grating','Flash'})
+%         set(gca,'YDir','normal','FontSize',15)
+%         ylabel('ROIs')
+%         colormap(cmap)
         title(fig_name{datas})
+        set(gca,'FontSize',20)
         set(gcf,'Color','w')
         file_path = fullfile(fig_path,strjoin({'barsUMAP',data(datas).name,'.png'},'_'));
         
         export_fig(file_path,'-r600')
+        %% Produce a venn diagram
+        close all
+        figure
+        
+        fontsize = 15;
+        % turn the color matrix into binary, excluding mixed selectivity
+        % cells
+        binary_matrix = color_all(~any(color_all>3,2),:);
+        binary_matrix = binary_matrix>1;
+        % get the number of multicolor cells
+        multi_number = size(color_all,1)-size(binary_matrix,1);
+        
+        % get the unique patterns
+        [unique_seq,ia,ic] = unique(binary_matrix,'rows');
+        % allocate memory for the amounts of ROIs
+        roi_counts = zeros(size(unique_seq,1),1);
+        % get the counts per pattern
+        for pattern = 1:size(unique_seq)
+            roi_counts(pattern) = sum(ic==pattern);
+        end
+        % reorder the pattern
+        roi_counts = roi_counts([1 2 3 5 4 6 7 8]);
+        unique_seq = unique_seq([1 2 3 5 4 6 7 8],:);
+        % draw the venn diagram
+%         [H,S] = venn(roi_counts(2:end));
+%         schemaball
 
+
+        plot([-1 1],[-1 -1],'-k','LineWidth',1)
+        hold on
+        plot([1 0],[-1 1],'-k','LineWidth',1)
+        plot([-1 0],[-1 1],'-k','LineWidth',1)
+        
+        plot([-1 0],[-1 0],'-k','LineWidth',1)
+        plot([1 0],[-1 0],'-k','LineWidth',1)
+        plot([0 0],[1 0],'-k','LineWidth',1)
+
+        % define the vectors of coordinates and the colors
+        x_points = [-1 1 0 0 -0.5 0.5 0];
+        y_points = [-1 -1 1 -1 0 0 0];
+        colors = [2 3 4 5 6 7 8];
+        scatter(x_points,y_points,roi_counts(colors).*10,...
+            (roi_counts(colors)),'o','filled','MarkerEdgeColor',[0 0 0])
+        scatter(-0.8,0.8,roi_counts(1).*10,[0.8 0.8 0.8],'filled')
+        scatter(0.8,0.8,roi_counts(1).*10,[0 0 0],'filled')
+        text(-0.8,0.8,{num2str(roi_counts(1))},'Color',[0 0 0],...
+            'FontWeight','bold','HorizontalAlignment','center','FontSize',fontsize)
+        text(0.8,0.8,{num2str(multi_number)},'Color',[1 1 1],...
+            'FontWeight','bold','HorizontalAlignment','center','FontSize',fontsize)
+        cba = colorbar;
+        set(cba,'TickLength',0,'LineWidth',2,'FontSize',fontsize)
+        ylabel(cba,'Nr ROIs','FontSize',fontsize)
+        
+        set(gca,'TickLength',[0 0],'XTick',[],'YTick',[],'visible','off')
+        axis equal
+        colormap(magma)
+        set(gcf,'Color','w')
+        file_path = fullfile(fig_path,strjoin({'vennUMAP',data(datas).name,'.png'},'_'));
+        print(file_path,'-dpng','-r600','-painters')
+%         export_fig(file_path,'-r600','-nocrop')
+%         roi_counts = log(roi_counts);
+%         roi_counts(roi_counts==0) = 1;
+    end
+end
+%% Calculate distance distributions in PCA space
+
+if contains(data(1).name,'p17b')
+    close all
+    figure
+    
+    % get the number and list of types
+    type_list = unique(max_cell{1});
+    type_number = length(type_list);
+    % allocate memory for the medians and mads
+    median_mad = zeros(types,num_data,2);
+    % for both data sets
+    for datas = 1:num_data
+       % get the individual fish information
+       fish_ori = data(datas).fish_ori(:,1);
+       % get the number of fish
+       num_fish = length(unique(fish_ori));
+       
+       % get the traces and get only the stimulation period
+       conc_trace = reshape(data(datas).conc_trace,[],time_num,stim_num);
+       conc_trace  = reshape(conc_trace(:,21:60,:),[],40*stim_num);
+
+       % allocate memory for the distances
+       distance_cell = cell(fish_num,type_number);
+       % for all the fish
+       for fish = 1:num_fish
+           % get the traces from that animal
+           fish_traces = conc_trace(fish_ori==fish&index_cell{datas},:);
+           % get the percentile assignment for that animal
+           fish_partial = fish_ori(index_cell{datas});
+           perc_values = max_cell{datas}(fish_partial==fish);
+
+           % for all the types
+           for types = 1:type_number
+               % perform PCA on the traces
+               [~,score] = pca(fish_traces(perc_values==type_list(types),:));
+               % if there's not enough dimensionality, skip
+               if size(score,2) < 5
+                   continue
+               end
+               % calculate the distance between points in 3d PCA space
+               distance_cell{fish,types} = pdist(score(:,1:5));
+           end
+
+       end
+       % concatenate the results across fish and plot
+
+       % for all the types
+       for types = 1:type_number
+            distribution = horzcat(distance_cell{:,types});
+            subplot(round(sqrt(type_number)),ceil(sqrt(type_number)),types)
+            histogram(distribution,50,'Normalization','pdf');
+%             N = histcounts(distribution,50,'Normalization','cdf');
+%             plot(N)
+            hold on
+            
+            median_mad(types,datas,1) = median(distribution);
+            median_mad(types,datas,2) = mad(distribution);
+            
+       end
+    end
+    
+    % plot the median and mad
+    figure
+    bar(median_mad(:,:,1))
+    for datas = 1:num_data
+%         bar(median_mad(:,datas,1),'FaceAlpha',0.5)
+        hold on
+        errorbar(1:type_number,median_mad(:,datas,1),median_mad(:,datas,2),'.k')
     end
 end

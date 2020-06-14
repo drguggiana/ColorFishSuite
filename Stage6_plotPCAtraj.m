@@ -25,7 +25,9 @@ if contains(data(1).name,'p17b')
     %define the plot colors
     plot_col = [1 0 0;0 1 0;0 0 1;1 0 1];
     plot_marker = {'o', 'o','o', 'o',};
+    % define the CCA parameters
     var_threshold = 0.6;
+    min_dim = 3;
 else %if it's p6p8 instead
     %define the stim labels (for p6p8 data)
     stim_labels = {'Red CK','UV CK','Red GR','UV GR','Red FL','UV FL'};
@@ -33,7 +35,9 @@ else %if it's p6p8 instead
 %     plot_col = [1 0 0;0 0 1;0.8 0 0;0 0 0.8;0.4 0 0;0 0 0.4];
     plot_col = [1 0 0;1 0 1;1 0 0;1 0 1;1 0 0;1 0 1];
     plot_marker = {'o', 'o', 's', 's', 'd', 'd'};
+    % define the CCA parameters
     var_threshold = 0.9;
+    min_dim = 3;
 end
 
 % define the region set to use
@@ -51,22 +55,22 @@ switch region_set
 end
 
 
-%define the sets of time regions to correlate
-% time_corr = (1:40)';
-time_corr = [1:10;11:20;21:30;31:40];
-% time_corr = [1:5;6:10;11:15;16:20;21:25;26:30;31:35;36:40];
-
-%get the time axis
-%get the number of time points
-timep_num = size(time_corr,1);
-%allocate memory for the axis
-timep_axis = zeros(timep_num,1);
-%for all the time points
-for timep = 1:timep_num
-    timep_axis(timep) = mean(time_corr(timep,:));
-end
-%get the number of time regions
-num_times = size(time_corr,1);
+% %define the sets of time regions to correlate
+% % time_corr = (1:40)';
+% time_corr = [1:10;11:20;21:30;31:40];
+% % time_corr = [1:5;6:10;11:15;16:20;21:25;26:30;31:35;36:40];
+% 
+% %get the time axis
+% %get the number of time points
+% timep_num = size(time_corr,1);
+% %allocate memory for the axis
+% timep_axis = zeros(timep_num,1);
+% %for all the time points
+% for timep = 1:timep_num
+%     timep_axis(timep) = mean(time_corr(timep,:));
+% end
+% %get the number of time regions
+% num_times = size(time_corr,1);
 
 % %allocate memory to store the correlations
 % tcorr_mat = zeros(num_data+1,num_times,stim_num2,stim_num2);
@@ -143,22 +147,13 @@ for datas = 1:num_data
         figure
         %for all the times
         for stim = stim_vector
-
-
-            %         %get the number of time points per stimulus
-            %         t_perstim = size(time_corr,2);
-            %         %now reshape again for calculating the correlation across traces for
-            %         %each stimulus
-            %         corr_trace = reshape(resh_trace(:,time_corr(times,:),:),trace_num*t_perstim,stim_num2);
-            %         temp_mat = squeeze(mean(resh_trace(:,time_corr(times,:),:),2));
+            % get the particular stimulus traces
             temp_mat = resh_trace(:,:,stim)';
-            %calculate and plot an allvall corr matrix
-            %         temp_mat = corr(corr_trace);
-            %         c_lims = [min(temp_corr(:)), max(temp_corr(:))];
-            pca_res = pca(temp_mat);
-%             pca_mat(:,:,stim) = pca_res(:,1:3);
-
-            pca_mat(:,:,stim) = temp_mat*pca_res(:,1:3);
+            % run the pca
+            [pca_res,score] = pca(temp_mat);
+            % store the results
+            pca_mat(:,:,stim) = score(:,1:3);
+%             pca_mat(:,:,stim) = temp_mat*pca_res(:,1:3);
 
             % plot the results
             options = struct([]);
@@ -166,47 +161,26 @@ for datas = 1:num_data
             options(1).threeD=0;
             options(1).marker=plot_marker{stim};
             plot_trajectory(pca_mat(:,:,stim), plot_col(stim,:),options)
-%             %for all the points
-%             for points = 1:size(pca_mat,1)
-% %                 plot3(pca_mat(points,1,stim),pca_mat(points,2,stim),pca_mat(points,3,stim),...
-% %                     'Marker','o','MarkerSize',points/5,'MarkerFaceColor',plot_col(stim,:),...
-% %                     'MarkerEdgeColor',plot_col(stim,:))
-%                 plot(pca_mat(points,1,stim),pca_mat(points,2,stim),...
-%                     'Marker','o','MarkerSize',points/5,'MarkerFaceColor',plot_col(stim,:),...
-%                     'MarkerEdgeColor',plot_col(stim,:))
-%                 hold('on')
-%             end
-%             %also plot the lines
-% %             plot3(pca_mat(:,1,stim),pca_mat(:,2,stim),pca_mat(:,3,stim),...
-% %                 'Color',plot_col(stim,:))
-%             plot(pca_mat(:,1,stim),pca_mat(:,2,stim),...
-%                             'Color',plot_col(stim,:))
+
         end
         %get the file name
-    %     temp_name = strsplit(data{datas},'\');
-    %     temp_name = strsplit(temp_name{end},'_');
+
         sgtitle(strcat(data(datas).name,'_',region_data{region,2}),'FontSize',20,'Interpreter','None')
-%         xlabel('PC 1','FontSize',20)
-%         ylabel('PC 2','FontSize',20)
-%         zlabel('PC 3','FontSize',20)
-        
-        % assemble the figure path 
-%         file_path = strjoin({'trajectory',data(datas).name,...
-%           'region',region_data{region,2},'set',num2str(stim_set),'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
-    
     end
 end
 autoArrangeFigures
 %% Align pca trajectories from different fish with CCA and then plot
 close all
-%define the minimal dimension threshold for CCA
-min_dim = 3;% 3; for UV Red stuff
-% define the variance threshold
+
+% min_dim = 3; 
+% var_threshold = 0.6;
+
 % allocate memory to store the aligned PCs
 cca_cell = cell(num_data,stim_num);
 % define the fontsize
 fontsize = 15;
+% define the time vector to take
+time_vector = 21:60;
 %for all the fish
 for datas = 1:num_data
     
@@ -237,7 +211,7 @@ for datas = 1:num_data
     
     resh_trace = reshape(raw_trace,size(raw_trace,1),time_num,stim_num);
     %clip the edges away
-    resh_trace = resh_trace(:,21:60,:);
+    resh_trace = resh_trace(:,time_vector,:);
     
     % get the number of animals and the animal info
     fish_ori_all = data(datas).fish_ori;
@@ -257,7 +231,7 @@ for datas = 1:num_data
         
         pca_mat = zeros(size(resh_trace,2),3,stim_num);
         % allocate memory for all animals
-        all_animals_mat = zeros(40,3,length(stim_vector));
+        all_animals_mat = zeros(length(time_vector),3,length(stim_vector));
         % initialize the skipped fish counter
         skip_count = 1;
         figure
@@ -268,23 +242,16 @@ for datas = 1:num_data
                     % split between animals
             % for all the animals
             for animals = 1:num_animals
-        %         %get the number of time points per stimulus
-        %         t_perstim = size(time_corr,2);
-        %         %now reshape again for calculating the correlation across traces for
-        %         %each stimulus
-        %         corr_trace = reshape(resh_trace(:,time_corr(times,:),:),trace_num*t_perstim,stim_num2);
-        %         temp_mat = squeeze(mean(resh_trace(:,time_corr(times,:),:),2));
+                % get the traces for this animal
+%                 temp_mat = resh_trace(fish_ori_all(:,1)==animals&region_idx==1,:,stim)';
+                
                 temp_mat = resh_trace(fish_ori_all(:,1)==animals&region_idx==1,:,stim)';
-                %calculate and plot an allvall corr matrix
-        %         temp_mat = corr(corr_trace);
-        %         c_lims = [min(temp_corr(:)), max(temp_corr(:))];
+                % run the pca
                 [pca_struct(animals).coeff,pca_struct(animals).score,pca_struct(animals).latent] = ...
                 pca(temp_mat);
             
-%                 % JUST FOR TESTING, FIX LATER
-%                 pca_struct(animals).score = temp_mat*pca_struct(animals).coeff;
             end
-
+            
             % run the CCA and align the spaces
             % get the first animal's pca results
             var_1 = pca_struct(1).latent;
@@ -292,7 +259,7 @@ for datas = 1:num_data
             
             %determine the 60% variance threshold
             dim_thres = find(cumsum(var_1./sum(var_1))>var_threshold,1,'first');
-%             dim_thres = 14;
+%             dim_thres = 5;
             %if there are too few dimensions left, skip
             if isempty(dim_thres) || dim_thres < min_dim
                 fprintf(strcat('Skipped dataset',num2str(skip_count),'\r\n'))
@@ -337,8 +304,7 @@ for datas = 1:num_data
                 % transform the space
                 pca_struct(animals).new_space = pca_struct(animals).score(:,1:dim_thres)*pca_struct(animals).B/...
                     pca_struct(1).A;
-                
-                
+         
 %                 plot_trajectory(pca_struct(animals).new_space(:,1:3),plot_col(stim,:),options)
             end
 
@@ -349,14 +315,17 @@ for datas = 1:num_data
             
             plot_trajectory(all_animals(:,1:3),plot_col(stim,:),options)
 
-            view(2)
-%             view([90 0])
-            set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',fontsize)
+
             % store the cca data (only for 1 region
             cca_cell{datas,stim} = pca_struct;
 
         end
-        
+        % get the handle of the current axis
+        current_axis = gca;
+        % set the line width of the plots
+        view(2)
+        %             view([0 0])
+        set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',fontsize)
         
 %         figure
 %         % plot an animation
@@ -441,11 +410,12 @@ for datas = 1:num_data
     end
    
 end
-
 %% Calculate the distance between components over time
 close all
 
-cmap = [0 0 0;0.9 0 0.5];
+cmap = [0.9 0 0.5;0 0 0];
+% allocate memory for the distances from the 2 datasets
+distance_cell = cell(num_data,1);
 
 % for all the datasets
 for datas = 1:num_data
@@ -471,7 +441,7 @@ for datas = 1:num_data
 %     % get colors for the plots
 %     cmap = distinguishable_colors(number_combos);
     % allocate memory for the resulting distances
-    distances = zeros(number_combos,size(stim_matrix,1),2);
+    distances = zeros(number_combos,size(stim_matrix,1),fish_num);
     % for all the combos
     for combos = 1:number_combos
         % get the corresponding stimuli
@@ -481,24 +451,59 @@ for datas = 1:num_data
         fish_mat = zeros(fish_num,size(stim_matrix,1));
         % for all the fish
         for fish = 1:fish_num
-            fish_mat(fish,:) = vecnorm(stim1(:,:,fish)-stim2(:,:,fish),2,2);
+%             fish_mat(fish,:) = cumsum(vecnorm(stim1(:,:,fish)-stim2(:,:,fish),2,2));
+            fish_mat(fish,:) = cumsum(abs(stim1(:,2,fish)-stim2(:,2,fish)));
         end
         % load the results matrix
-        distances(combos,:,1) = mean(fish_mat,1);
-        distances(combos,:,2) = std(fish_mat,0,1)./sqrt(fish_num);
+        distances(combos,:,:) = fish_mat';
+%         distances(combos,:,1) = mean(fish_mat,1);
+%         distances(combos,:,2) = std(fish_mat,0,1)./sqrt(fish_num);
         % plot it
-        shadedErrorBar(1:size(stim_matrix,1),distances(combos,:,1),distances(combos,:,2),{'Color',cmap(datas,:)})
-        hold on
+%         shadedErrorBar(1:size(stim_matrix,1),distances(combos,:,1),distances(combos,:,2),{'Color',cmap(datas,:)})
+
     end
-    axis tight
-    
+    % save the distance matrix
+    distance_cell{datas} = distances;
 end
-legend({data.figure_name})
+
+% plot the results
+for datas = 1:num_data
+    % load and normalize the distance matrix
+    distances = distance_cell{datas};
+%     distances = normr_1(distances,1);
+        % for all the combos
+    for combos = 1:number_combos
+        ind = sub2ind([stim_num,stim_num],stim_combo(combos,1),stim_combo(combos,2));
+        subplot(stim_num,stim_num,ind)
+        
+        histogram(distances(combos,:,:),10,'Normalization','probability','FaceColor',cmap(datas,:))
+%         [N,edges] = histcounts(normr_1(distances(combos,:,:),1),20,'Normalization','cdf');
+%         plot(N,'Color',cmap(datas,:))
+
+        hold on
+        xlabel(stim_labels{stim_combo(combos,1)})
+        ylabel(stim_labels{stim_combo(combos,2)})
+%         set(gca,'XLim',[0 1],'YLim',[0 0.6])
+        
+        % format the axes
+        if stim_combo(combos,2) < stim_num
+            set(gca,'XTick',[])
+            xlabel('')
+        end
+        if stim_combo(combos,1) > 1
+            set(gca,'YTick',[])
+            ylabel('')
+        end
+%         axis tight
+
+    end
+end
+% legend({data.figure_name})
 %% Calculate the variance per stimulus per dimension
 close all
 % set the colors and markers
 cmap = [1 0 0;0 1 0;0 0 1;1 0 1;1 0 0;0 1 0;0 0 1;1 0 1];
-markers = {'o','d'};
+markers = {'o','^'};
 % allocate memory for the legend handles
 legend_handles = zeros(num_data,1);
 % define the labels
@@ -535,9 +540,11 @@ for datas = 1:num_data
     % plot it
     
     
-    legend_handles(datas) = errorbar(x_vector,stim_mean(stim_num+1:end),stim_sem(stim_num+1:end),strcat(markers{datas},'k'));
+    legend_handles(datas) = errorbar(x_vector,stim_mean(stim_num+1:end),...
+        stim_sem(stim_num+1:end),strcat(markers{datas},'k'),'LineWidth',2);
     hold on
-    scatter(x_vector,stim_mean(stim_num+1:end),100,cmap,markers{datas},'filled')
+    h = scatter(x_vector,stim_mean(stim_num+1:end),100,cmap,markers{datas},'filled');
+    set(h,'MarkerEdgeColor','k','LineWidth',2)
    
 end
 set(gca,'LineWidth',2,'TickLength',[0 0],'FontSize',15)
@@ -615,10 +622,10 @@ if num_data == 2 && region_set == 1
         shadedErrorBar(x_range,11-(pc_matrix{1,1}(:,2+i)+offset*i),pc_matrix{2,2}(:,2+i),...
             {'color',colors(i,:)},1)
         hold on
-        legend_handles(1) = plot(x_range,11-(pc_matrix{1,1}(:,2+i)+offset*i),'k','LineWidth',2);
+        legend_handles(1) = plot(x_range,11-(pc_matrix{1,1}(:,2+i)+offset*i),'k','LineWidth',1);
         shadedErrorBar(x_range,11-(pc_matrix{2,1}(:,2+i)+offset*i),pc_matrix{2,2}(:,2+i),...
             {'color',colors(i,:),'linestyle','--'},1)
-        legend_handles(2) = plot(x_range,11-(pc_matrix{2,1}(:,2+i)+offset*i),'k--','LineWidth',2);
+        legend_handles(2) = plot(x_range,11-(pc_matrix{2,1}(:,2+i)+offset*i),'k--','LineWidth',1);
     %     plot([x_range(1) x_range(end)],[i*offset i*offset],'k--')
     end
     axis tight

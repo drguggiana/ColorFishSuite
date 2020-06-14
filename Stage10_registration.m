@@ -115,7 +115,9 @@ end
 % define the ref brain depending on the file
 if contains(data(1).name,{'Syn','syn'})
     ref_name = 'refisl2cut2.nrrd.tif';
-    full_ref_name = 'refisl2.nrrd.tif';
+%     full_ref_name = 'refisl2.nrrd.tif';
+    full_ref_name = 'refbrain.nrrd.tif';
+
 %     ref_name = 'refcutblursub.nrrd.tif';
 %     full_ref_name = 'refbrain.nrrd.tif';
 else
@@ -634,7 +636,7 @@ if contains(data.name,'p17b')
     % get the number of clusters
     clu_num = length(clu_vector);
     % get a color map for the clusters
-    cluster_color = distinguishable_colors(clu_num,[0 0 0;1 1 1]);
+    cluster_color = distinguishable_colors(data.clu_num,[0 0 0;1 1 1]);
     % normalize the full ref stack
     norm_stack = cat(4,repmat(normr_1(full_ref_stack,1),1,1,1,3));
 
@@ -648,7 +650,7 @@ if contains(data.name,'p17b')
         seed_list = find(idx_clu==clu_vector(clu));
 
         % get the color of the cluster
-        seed_color = cluster_color(clu,:);
+        seed_color = cluster_color(clu_vector(clu),:);
 
         index_vector = coord(ismember(indexes,seed_list)&(registered_anatomy>0));
 
@@ -897,19 +899,26 @@ end
 close all
 % define the fontsize
 fontsize = 15;
+% average the matrices across animals
+norm_overlap = mean(cat(3,single_matrices{:,1}),3);
+control_overlap = mean(cat(2,single_matrices{:,2}),2);
 % normalize the matrix by the average of the rep distances
 % allocate memory for the normalized matrix
-norm_overlap = mean(overlap_matrix,3);
+% norm_overlap = mean(overlap_matrix,3);
 % for all the combinations
 for combs = 1:number_combinations
     % normalize
     norm_overlap(stim_combinations(combs,1),stim_combinations(combs,2)) = ...
         (norm_overlap(stim_combinations(combs,1),stim_combinations(combs,2))./mean(...
         control_overlap([stim_combinations(combs,1),stim_combinations(combs,2)])));
+    % make it symmetric
+    norm_overlap(stim_combinations(combs,2),stim_combinations(combs,1)) = ...
+        norm_overlap(stim_combinations(combs,1),stim_combinations(combs,2));
 end
 
-figure
-imagesc(norm_overlap)
+% figure
+% imagesc(norm_overlap)
+h = bettercorr(norm_overlap,magma,[],[0 1]);
 axis square
 % set the color scale to the max number of trials per category
 if contains(data.name,'p8_S')
@@ -924,15 +933,17 @@ set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',fontsize,...
     'XTickLabelRotation',45)
 set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',fontsize)
 set(gca,'FontSize',20,'LineWidth',2)
-if ~contains(data.name,{'Syn','syn'})
+set(gcf,'Color','w')
+% if ~contains(data.name,{'Syn','syn'})
     cba = colorbar;
     set(cba,'TickLength',0,'LineWidth',2)
     ylabel(cba,'Similarity Index')
-end
+% end
 colormap(magma)
 % assemble the figure path
-file_path = strjoin({'anatomicalOverlap',stim_name},'_');
+file_path = fullfile(fig_path,strjoin({'anatomicalOverlap',stim_name},'_'));
 % print(fullfile(fig_path,file_path),'-dpng','-r600')
+export_fig(file_path,'-r600')
 %% Calculate significance of the overlaps
 close all
 

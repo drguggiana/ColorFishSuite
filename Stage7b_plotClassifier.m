@@ -29,6 +29,9 @@ else
     end
     
 end
+% define the flag to prevent re-editting the structure
+flag = 1;
+
 
 fig_path = strcat(paths(1).fig_path,'Classify\');
 % get the dataset name
@@ -66,7 +69,7 @@ stim_num = size(data_struct(1).class{1}{1},1);
 %% Plot the classifier results
 
 % define the fontsize
-fontsize = 15;
+fontsize = 18;
 % allocate memory to store the matrices to plot later
 conf_cell = cell(length(data_struct),1);
 % for all the data sets
@@ -214,6 +217,8 @@ autoArrangeFigures
 % if there is only internal subsampling (i.e. there's regions), skip
 if subsample == 2 && num_data == 4
     close all
+    fontsize = 18;
+    
     % allocate memory to store the values for stats
     mean_cell = cell(2,1);
     % set a counter for the x coordinate
@@ -258,18 +263,22 @@ if subsample == 2 && num_data == 4
     ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
 %     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
     set(gca,'YLim',[0 1],'LineWidth',2)
-%     pbaspect([1 2 1])
+    % plot the shuffle line
+    plot(get(gca,'XLim'),[1/stim_num 1/stim_num],'r--','LineWidth',1)
+    
+    pbaspect([1 2 1])
 %     a = get(gca);
 %     h.Position(4) = 2*h.Position(3);
-    set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
+%     set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
 
     box off
 %     axis tight
+    set(gcf,'Color','w')
     % assemble the figure path
     % get the experiment name
     name = strsplit(data_struct(1).name,'_');
-    file_path = strjoin({'classCompare',name{1},suffix},'_');
-    print(fullfile(fig_path,file_path), '-dpng','-r600')
+    file_path = fullfile(fig_path,strjoin({'classCompare',name{1},suffix},'_'));
+    export_fig(file_path,'-r600')
     
     % run a sign rank test on the results
     p = signrank(mean_cell{1},mean_cell{2});
@@ -351,7 +360,10 @@ if num_data > 11
     x_labels = {'AF10','Tectum','AF10','Tectum','AF10','Tectum','AF10','Tectum'};
     fontsize = 15;
     % reorder the input data
-    data_struct = data_struct([3 4 1 2 11 12 5 6 13 14 7 8 15 16 9 10]);
+    if flag == 1
+        data_struct = data_struct([3 4 1 2 11 12 5 6 13 14 7 8 15 16 9 10]);
+        flag = 0;
+    end
     % set a counter for the x coordinate
     x_counter = 1;
     h = figure;
@@ -393,17 +405,22 @@ if num_data > 11
     ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
 %     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
     set(gca,'YLim',[0 1],'LineWidth',2)
+    
+    % plot the shuffle line
+    plot(get(gca,'XLim'),[0.5 0.5],'r--','LineWidth',1)
 %     pbaspect([1 2 1])
-    a = get(gca);
+%     a = get(gca);
 %     a.Position(4) = 2*h.Position(3);0
-    h.Position(4) = 2*h.Position(3);
+%     h.Position(4) = 2*h.Position(3);
+    pbaspect([3,1,1])
     box off
 %     axis tight
+    set(gcf,'Color','w')
     % assemble the figure path
     % get the experiment name
     name = strsplit(data_struct(1).name,'_');
-    file_path = strjoin({'classRedUVCompare',num2str(classpcolor)},'_');
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    file_path = fullfile(fig_path,strjoin({'classRedUVCompare',num2str(classpcolor)},'_'));
+    export_fig(file_path,'-r600')
 end
 %% Plot individual stimulus performances as a matrix
 
@@ -626,7 +643,7 @@ if subsample == 2 && num_data == 4
     file_path = strjoin({'classPerStim',data_struct(1).name,suffix},'_');
     print(fullfile(fig_path,file_path),'-dpng','-r600')
 end
-%% Plot the p8 14-15-16 and 18-19-20 performances as a matrix
+%% Plot the p8 13(p17b)-14-15-16 and 18-19-20-21(p17b) performances as a matrix
 % if there is only internal subsampling (i.e. there's regions), skip
 if subsample == 1 && num_data == 12
     close all

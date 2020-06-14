@@ -43,9 +43,13 @@ region_combination = 1;
 shuff_label = 1;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
-classpcolor = 18;
+% 14,15,16 is the comparison between the p8 red vs UV , including the p17b only
+% red and UV (13)
+% 18, 19, 20 is the stim vs no stim, also comparing p8 and the p17b red and
+% UV (21)
+classpcolor = 21;
 %define the binning factor
-bin_width = 10;
+bin_width = 3;
 % define which portion of the trial to take (0 pre, 1 stim, 2 post,
 % 3 pre and post,4 first half stim, 5 second half stim, 6 first 10 frames
 % stim, 7 last 10 frames stim, 8 last 10 pre stim, middle 10 stim)

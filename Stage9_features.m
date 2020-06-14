@@ -184,8 +184,12 @@ close all
 % define the number of parameters
 param_num = 3;
 param_label = {'LogMax response','Delay to peak','Abs Logmean response'};
+param_plot_label = {'LogMax response (delta F/F)','Delay to max (s)','Abs Logmean response (delta F/F)'};
+% define the plot axis limits
+y_lim = [-4 4;-1.7 13.5;0 5];
 % define the interval to look at
-target_interval = 5:35;
+% target_interval = 5:35;
+target_interval = 20:30;
 
 % define the panel label
 if contains(data(datas).name,'p17b')
@@ -217,7 +221,10 @@ for datas = 1:num_data
         % for all the stimuli
         for stim = 1:stim_num
             % get the max response and the delay to peak
-            [calcium_matrix(trace,stim,1),calcium_matrix(trace,stim,2)] = nanmax(conc_trace(trace,target_interval,stim));
+            [calcium_matrix(trace,stim,1),calcium_matrix(trace,stim,2)] = ...
+                nanmax(abs(conc_trace(trace,target_interval,stim)));
+            % get the time units
+            calcium_matrix(trace,stim,2) = calcium_matrix(trace,stim,2)./data(datas).framerate;
             % log the max response
             calcium_matrix(trace,stim,1) = log(calcium_matrix(trace,stim,1));
             calcium_matrix(trace,stim,3) = nanmean(abs(log(conc_trace(trace,target_interval,stim))),2);
@@ -236,19 +243,21 @@ for datas = 1:num_data
         end
         hold on
         set(gca,'XTick',[],'TickLength',[0 0],'LineWidth',3)
+        
         axis tight
         box off
     %         plotSpread(squeeze(calcium_matrix(:,:,param)))
         title(fig_name{datas})
-        ylabel(param_label{param},'Interpreter','None')
+        ylabel(param_plot_label{param},'Interpreter','None')
         set(gca,'FontSize',20)
-        file_path = strjoin({param_label{param},data(datas).name,'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+        set(gca,'YLim',y_lim(param,:))
+        set(gcf,'Color','w')
+        file_path = fullfile(fig_path,strjoin({param_label{param},data(datas).name,'.png'},'_'));
+        export_fig(file_path,'-r600')
         
 %         [kw_cell{datas,param},tbl,stats] = kruskalwallis(squeeze(calcium_matrix(:,:,param)),[],'off');
-        [kw_cell{datas,param},tbl,stats] = friedman(squeeze(calcium_matrix(:,:,param)),1,'off');
-        s = multcompare(stats,'CType','bonferroni','Display','on');
+%         [kw_cell{datas,param},tbl,stats] = friedman(squeeze(calcium_matrix(:,:,param)),1,'off');
+%         s = multcompare(stats,'CType','bonferroni','Display','on');
 
 
     end
@@ -399,8 +408,10 @@ if contains(data(1).name,'p17b')
         title(data(datas).figure_name,'Interpreter','None')
         ylabel('Gain (a.u.)')
         set(gca,'FontSize',fontsize,'LineWidth',2)
-        file_path = strjoin({'Gain',data(datas).name,'.png'},'_');
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+        file_path = fullfile(fig_path,strjoin({'Gain',data(datas).name,'.png'},'_'));
+%         print(fullfile(fig_path,file_path),'-dpng','-r600')
+        set(gcf,'Color','w')
+        export_fig(file_path,'-r600')
         
         
 %         [~,tbl,stats] = friedman(squeeze(plot_matrix),1,'off');
