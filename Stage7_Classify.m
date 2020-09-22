@@ -15,7 +15,7 @@ data = load_clusters(cluster_path);
 rng(1)
 % define whether to run in parallel (need to also convert region for loop
 % to parfor)
-run_parallel = 0;
+run_parallel = 1;
 % define whether to classify on clusters or regions
 cluster_flag = 0;
 % define the region set to use
@@ -40,20 +40,20 @@ subsample = 2;
 % combine regions
 region_combination = 1;
 %define whether to shuffle labels (for neutral classification)
-shuff_label = 1;
+shuff_label = 0;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
 % 14,15,16 is the comparison between the p8 red vs UV , including the p17b only
 % red and UV (13)
 % 18, 19, 20 is the stim vs no stim, also comparing p8 and the p17b red and
 % UV (21)
-classpcolor = 21;
-%define the binning factor
-bin_width = 3;
+classpcolor = 1;
+%define the binning factor (3 for 13-21)
+bin_width = 10;
 % define which portion of the trial to take (0 pre, 1 stim, 2 post,
 % 3 pre and post,4 first half stim, 5 second half stim, 6 first 10 frames
 % stim, 7 last 10 frames stim, 8 last 10 pre stim, middle 10 stim)
-portion = 8;
+portion = 9;
 
 % define the subsampling constant for the data
 sub_constant = 0.95;
@@ -249,7 +249,7 @@ for datas = 1:num_data
     save(fullfile(paths.classifier_path,file_name),'main_str')
     %% Plot the results
 
-    Stage7b_plotClassifier
+%     Stage7b_plotClassifier
 end
 
 % delete the pool of workers if it exists

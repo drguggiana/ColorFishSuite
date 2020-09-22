@@ -308,7 +308,7 @@ for cone = 1:cone_num
     % remove values below the threshold
     norm_spectrum(norm_spectrum<level_threshold) = NaN;
     plot(wav1(non_zero),norm_spectrum,'Color',cone_colors(cone,:)...
-        ,'Linewidth',3)
+        ,'Linewidth',0.5)
     hold on
 end
 set(gca,'TickLength',[0 0],'FontSize',fontsize,'LineWidth',2)
@@ -325,22 +325,22 @@ for led = 1:led_num
     norm_led = spectra_m(:,led)./max(spectra_m(:,led));
     % remove sub threshold values
     norm_led(norm_led<level_threshold) = NaN;
-    plot(wav1(non_zero),norm_led(non_zero),'Color',projector_colors(led,:),'LineWidth',3,'LineStyle','--')
+    plot(wav1(non_zero),norm_led(non_zero),'Color',projector_colors(led,:),'LineWidth',0.8,'LineStyle','--')
     hold on
-    plot(wav1(non_zero),norm_led(non_zero),'Color',projector_colors(led,:),'LineWidth',1,'LineStyle','-')
+%     plot(wav1(non_zero),norm_led(non_zero),'Color',projector_colors(led,:),'LineWidth',0.8,'LineStyle','-')
 end
-% title('Absorption spectra of the Zebrafish cones','Fontsize',30)
-xlabel('Wavelength (nm)','Fontsize',fontsize)
-ylabel('Absorption/Emission  ','Fontsize',fontsize)
-set(gca,'TickLength',[0 0],'FontSize',fontsize,'LineWidth',2)
-set(gca,'XLim',[250 750])
-box off
-set(gcf,'Color','w')
-% set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 10 5])
-pbaspect([2,1,1])
 
-file_path = fullfile(fig_path,'combinedSpectra.png');
-export_fig(file_path,'-r600')
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = 'combinedSpectra.eps';
+fig_set(1).XLabel = 'Wavelength (nm)';
+fig_set(1).YLabel = 'Abs/Em  ';
+fig_set(1).LineWidth = 1;
+fig_set(1).fig_size = [3 2];
+
+h = style_figure(gcf,fig_set);
 %% OFF Get the spectra from the projector (also fits)
 
 % %here I create the Gaussian-based spectra of the projector LEDs based on
@@ -695,7 +695,7 @@ end
 set(gca,'FontSize',15,'TickLength',[0 0])
 
 % title('LED I value to Power curves','FontSize',20)
-xlabel('Projector pixel value (A.U.)','FontSize',20)
+xlabel('Projector pixel value (a.u.)','FontSize',20)
 ylabel('Power density (uW/cm2)','FontSize',20)
 
 box off
@@ -703,8 +703,17 @@ set(gcf,'Color','w')
 % set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 10 5])
 % pbaspect([2,1,1])
 
-file_path = fullfile(fig_path,'projectorPower.png');
-export_fig(file_path,'-r600')
+% file_path = fullfile(fig_path,'projectorPower.png');
+% export_fig(file_path,'-r600')
+
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = 'projectorPower.png';
+fig_set(1).fig_size = 4.85;
+
+h = style_figure(gcf,fig_set);
 %% Stacked bar plot with the excitations for each cone from each LED
 
 close all

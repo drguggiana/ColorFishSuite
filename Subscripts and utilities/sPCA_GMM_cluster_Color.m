@@ -2,6 +2,14 @@ function [idx_clu,GMModel,clu_num,varargout] = sPCA_GMM_cluster_Color(data_in,va
 
 %varargin: bounds vector,K vector, number of time bins, pca vs spca vector,
 %1 is spca
+
+% define the control constant
+if length(varargin) >= 9
+    selector = varargin{9};
+else
+    selector = 0;
+end
+
 %if the user inputs arguments to run the sPCA also
 if nargin > 2 && ~isempty(varargin{1})
     %extract the varargin contents
@@ -102,7 +110,7 @@ if nargin > 2 && ~isempty(varargin{1})
     
     % if data was supplied for direct clustering combined with the spca
     % data
-    if length(varargin) > 7
+    if length(varargin) > 7 && ~isempty(varargin{8})
         % concatenate the matrices
         f_data = horzcat(f_data,varargin{8});
     end
@@ -119,6 +127,16 @@ if nargin > 2 && ~isempty(varargin{1})
     title('Pre-clustering sparse PCs of the traces')
     xlabel('Time bins')
     ylabel('Individual traces')
+    
+    
+    % if the selector is 2, exit
+    if selector == 2
+        idx_clu = [];
+        GMModel = [];
+        clu_num = [];
+        varargout{3} = f_data;
+        return
+    end
 else %if not with spca
     %just reassign the input data
     f_data = data_in;
@@ -147,7 +165,7 @@ clu_count = 1;
 for clu = clu_vec
     fprintf(strjoin({'Current clu num:',num2str(clu_count),'of',num2str(length(clu_vec)),'\r\n'},'_'))
     % if the target cluster number is higher than the dimensionality, skip
-    if clu >= size(f_data,1) || size(f_data,1) < size(f_data,2)
+    if clu >= size(f_data,1) || size(f_data,1) <= size(f_data,2)
         bic_vec(clu_count) = NaN;
         model_vec{clu_count} = [];
         clu_count = clu_count + 1;

@@ -11,7 +11,7 @@ fig_path = strcat(paths(1).fig_path,'Setup\');
 registration_path = paths(1).registration_path;
 
 % define which map to target
-target_map = 'Tectum';
+target_map = 'syn';
 %% Load the reference brain
 
 % define the ref brain depending on the file
@@ -64,6 +64,8 @@ switch target_map
     case 'syn'
         field_list = {'AF4','AF5','AF6','AF7','AF8','AF9','Tecum Neuropil'};
         field_names = {'AF4','AF5','AF6','AF7','AF8','AF9','AF10'};
+        bar_ratio = 3;
+        bar_length = 4.3;
         coordinate_conversion = [274,0,0];
         front_limit = 300;
         side_limit = 621;
@@ -74,6 +76,8 @@ switch target_map
     case 'huc'
         field_list = {'Tectum Stratum','Tecum Neuropil','Pretectum','Habenula','Cerebellum'};
         field_names = {'TcN','TcP','Pt','Hb','Cb'};
+        bar_ratio = 5;
+        bar_length = 5.4;
         coordinate_conversion = [272,74,49];
         front_limit = 200;
         side_limit = 621;
@@ -203,18 +207,31 @@ for proj = 1:3
     file_path = strjoin({'Anatomy',target_map,num2str(proj),'.png'},'_');
     export_fig(fullfile(fig_path,file_path),'-r600')
     if proj == 3
+        %%
         figure
         imagesc((1:field_number)')
-        colormap(gca,cmap)
+%         colormap(gca,cmap)
         set(gca,'YAxisLocation','right','TickLength',[0 0],'FontSize',15,'LineWidth',2)
-        set(gca,'XTick',[],'YTick',1:field_number,'YTickLabels',field_names)
-        set(gcf,'Color','w')
+%         set(gca,'XTick',[],'YTick',1:field_number,'YTickLabels',field_names)
+        set(gca,'XTick',[],'YTick',[])
+%         set(gcf,'Color','w')
 %         axis equal
-        daspect([5 1 1])
+        daspect([bar_ratio 1 1])
         axis tight
-        % save the figure
-        file_path = strjoin({'Anatomy',target_map,'legend','.png'},'_');
-        export_fig(fullfile(fig_path,file_path),'-r600')
+%         % save the figure
+%         file_path = strjoin({'Anatomy',target_map,'legend','.png'},'_');
+%         export_fig(fullfile(fig_path,file_path),'-r600')
+                % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'Anatomy',target_map,'legend','.png'},'_');
+        fig_set(1).fig_size = [1 bar_length];
+        fig_set(1).box = 'on';
+        fig_set(1).font_size = 'medium';
+        fig_set(1).cmap = cmap;
+        
+        h = style_figure(gcf,fig_set);
     end
 end
 autoArrangeFigures

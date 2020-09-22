@@ -16,6 +16,13 @@ else
     range = [-1 1];
 end
 
+% if significance is provided, add asterisks on the significant squares
+if length(varargin) >= 3 && ~isempty(varargin{3})
+    significance_matrix = varargin{3};
+else
+    significance_matrix = [];
+end
+
 % take the upper half of the matrix
 upper = triu(rho,1);
 % make the other values NaN
@@ -42,11 +49,22 @@ for points = 1:length(rho_plot)
     % interpolate the color
     color = interp1(linspace(range(1),range(2),256),cmap,rho_plot(points));
     % get the value to plot
-    rho_val = num2str(rho_plot(points));
-    % trim the decimals (this needs to be cleaner)
-    rho_val = rho_val(1:4);
+    rho_val = num2str(round(rho_plot(points),2));
+%     % trim the decimals (this needs to be cleaner)
+%     rho_val = rho_val(1:4);
     % "plot" the correlation or whatever values
     text(x_plot(points),y_plot(points),rho_val,...
         'HorizontalAlignment','center','Color',color,...
-        'FontSize',12,'FontWeight','bold')
+        'FontSize',5,'FontWeight','bold')
+    
+    % if significance_matrix is not empty
+    if ~isempty(significance_matrix)
+        % if it's a significant point
+        if significance_matrix(x_plot(points),y_plot(points)) < 0.05
+%             text(y_plot(points),x_plot(points),'*',...
+%                 'HorizontalAlignment','center','Color','k',...
+%                 'FontSize',7,'FontWeight','bold','VerticalAlignment','cap')
+            scatter(y_plot(points),x_plot(points),5,'k*')
+        end
+    end
 end

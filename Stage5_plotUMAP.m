@@ -110,7 +110,7 @@ close all
 histo = figure;
 
 % define whether to use gains or average levels
-metric = 'average';
+metric = 'gains';
 % allocate memory to store the max values for stats
 max_cell = cell(num_data,1);
 for datas = 1:num_data
@@ -193,21 +193,46 @@ for datas = 1:num_data
         max_values = max_values + 1;
         % store the value for stats
         max_cell{datas} = max_values;
-        figure(histo)
-        histogram(max_values,'Normalization','probability','LineWidth',2,'FaceColor',hist_colors(3-datas,:))
-        hold on
+%         histogram(max_values,'Normalization','probability','LineWidth',1,'FaceColor',hist_colors(3-datas,:))
+%         hold on
 
         if datas == num_data
+            figure(histo)
+            
+            % allocate memory for the bin counts
+            bin_counts = cell(2,1);
+            % get the histcounts
+            for i = 1:2
+                bin_counts{i} = histcounts(max_cell{i},'Normalization','probability');
+            end
+%             histogram(max_values,'Normalization','probability','LineWidth',1,'FaceColor',hist_colors(3-datas,:))
+            bars = bar(vertcat(bin_counts{:})');
+            tint_colors = tint_colormap(hist_colors,0.4);
+            set(bars(1),'FaceColor',tint_colors(2,:))
+            set(bars(2),'FaceColor',tint_colors(1,:))
+            
             box off
             set(gca,'XTick',1:8,'XTickLabels',gain_labels,'XTickLabelRotation',45)
-            set(gca,'FontSize',15,'LineWidth',2,'TickLength',[0 0])
-            ylabel('Proportion ROIs')
+            set(gca,'FontSize',7,'LineWidth',1,'TickLength',[0 0])
+%             ylabel('Proportion ROIs')
 %             title('Response Gains')  
             legend({'Tectum','AF10'})
-            set(gcf,'Color','w')
-            file_path = fullfile(fig_path,strjoin({'histoUMAP',metric,data(1).name,data(2).name,...
-                'Combined','set',num2str(region_set),'.png'},'_'));
-            export_fig(file_path,'-r600')
+%             set(gcf,'Color','w')
+%             file_path = fullfile(fig_path,strjoin({'histoUMAP',metric,data(1).name,data(2).name,...
+%                 'Combined','set',num2str(region_set),'.png'},'_'));
+%             export_fig(file_path,'-r600')
+            
+            % create the settings
+            fig_set = struct([]);
+            
+            fig_set(1).fig_path = fig_path;
+            fig_set(1).fig_name = strjoin({'histoUMAP',metric,data(1).name,data(2).name,...
+                'Combined','set',num2str(region_set),'.eps'},'_');
+            fig_set(1).fig_size = [3.8 3];
+            fig_set(1).painters = 1;
+%             fig_set(1).linewidth = 1;
+            
+            h = style_figure(gcf,fig_set);
         end
         
         figure
@@ -292,7 +317,7 @@ for datas = 1:num_data
             'Combined','set',num2str(region_set),'.png'},'_'));
         export_fig(file_path,'-r600')
     end
-    autoArrangeFigures
+%     autoArrangeFigures
 end
 %% Run stats on the histogram of types
 
@@ -352,20 +377,40 @@ for datas = 1:num_data
         end
         % s = scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:));
         s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',10);
-        legend(region_list{datas},'Location','bestoutside')
+        [leg,obj_list] = legendflex(region_list{datas},'ncol',1,...
+            'box','off','anchor',[4 8],'padding',[0 0 0],'buffer',[0 0]);
+        
+        % run through the markers to make them bigger
+        temp_obj = findobj(obj_list,'type','Line');
+        temp_text = findobj(obj_list,'type','Text');
+        % for all the markers
+        for marks = 2:2:length(temp_obj)
+            set(temp_obj(marks),'MarkerSize',20)
+            set(temp_text(marks/2),'FontSize',12)
+        end
         set(gca,'TickLength',[0 0],'visible','off','LineWidth',2)
-        set(gcf,'Color','w')
-        % assemble the figure path
-        file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
-            'Region','set',num2str(region_set),'.png'},'_'));
-        export_fig(file_path,'-r600')
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
-%         print(fullfile(fig_path,file_path),'-dpng','-r600')
+        % adapt the figure size to encompass the legend
+        set(gca,'Position',get(gca,'Position')-[0 0 0.15 0.15])
+        
+        set(gca,'TickLength',[0 0],'visible','off','LineWidth',2)
+
+
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'UMAP',data(datas).name,...
+            'Region','set',num2str(region_set),'.png'},'_');
+        fig_set(1).fig_size = 3.6;
+        fig_set(2).skip = 1;
+        
+        h = style_figure(gcf,fig_set);
     end
     
-    autoArrangeFigures
+%     autoArrangeFigures
 end
 %% Plot the clusters in the embedding
+close all
 for datas = 1:num_data
     
     % load the embedding
@@ -382,15 +427,36 @@ for datas = 1:num_data
     cluster_cmap = distinguishable_colors(clu_num,[0 0 0;1 1 1]);
     % plot the scatter
     s = gscatter(reduced_data(:,1),reduced_data(:,2),idx_clu,cluster_cmap,'.',10);
-    legend(string(1:clu_num),'Location','bestoutside')
+    [leg,obj_list] = legendflex(cellstr(string(1:clu_num)),'ncol',2,...
+        'box','off','anchor',[4 8],'padding',[0 0 0],'buffer',[0 0]);
+
+    % run through the markers to make them bigger
+    temp_obj = findobj(obj_list,'type','Line');
+    temp_text = findobj(obj_list,'type','Text');
+    % for all the markers
+    for marks = 2:2:length(temp_obj)
+        set(temp_obj(marks),'MarkerSize',20)
+        set(temp_text(marks/2),'FontSize',12)
+    end
     set(gca,'TickLength',[0 0],'visible','off','LineWidth',2)
-    set(gcf,'Color','w')
-    % assemble the figure path
-    file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
-        'Cluster','set',num2str(region_set),'.png'},'_'));
-%     saveas(gcf, fullfile(fig_path,file_path), 'png')
-%     print(fullfile(fig_path,file_path),'-dpng','-r600')
-    export_fig(file_path,'-r600')
+    % adapt the figure size to encompass the legend
+    set(gca,'Position',get(gca,'Position')-[0 0 0.15 0.15])
+
+    
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'UMAP',data(datas).name,...
+        'Cluster','set',num2str(region_set),'.png'},'_');
+    fig_set(1).fig_size = 3.6;
+%     % invert the figure list to put the legend last
+%     fig_list = get(gcf,'Children');
+%     set(gcf,'Children',flipud(fig_list));
+    % skip editing the flex legend
+    fig_set(2).skip = 1;
+    
+    h = style_figure(gcf,fig_set);
     
 end
 %% Plot the p8 UMAPs separately by stimulus modality
@@ -460,9 +526,19 @@ if contains(data(datas).name,'p8')
             set(gcf,'Color','w')
             title(strjoin({data(datas).name,'Combined'},'_'),'Interpreter','None')
             set(gca,'TickLength',[0 0],'visible','off')
-            file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
-                'Stim',num2str(stim),'set',num2str(region_set),'.png'},'_'));
-            export_fig(file_path,'-r600')
+%             file_path = fullfile(fig_path,strjoin({'UMAP',data(datas).name,...
+%                 'Stim',num2str(stim),'set',num2str(region_set),'.png'},'_'));
+%             export_fig(file_path,'-r600')
+            
+            % create the settings
+            fig_set = struct([]);
+            
+            fig_set(1).fig_path = fig_path;
+            fig_set(1).fig_name = strjoin({'UMAP',data(datas).name,...
+                'Stim',num2str(stim),'set',num2str(region_set),'.png'},'_');
+            fig_set(1).fig_size = 2.46;
+            
+            h = style_figure(gcf,fig_set);
         end
         %% Produce a ternary plot
         close all
@@ -535,7 +611,7 @@ if contains(data(datas).name,'p8')
         file_path = fullfile(fig_path,strjoin({'barsUMAP',data(datas).name,'.png'},'_'));
         
         export_fig(file_path,'-r600')
-        %% Produce a venn diagram
+        %% Produce a graph diagram
         close all
         figure
         
@@ -579,7 +655,7 @@ if contains(data(datas).name,'p8')
         scatter(x_points,y_points,roi_counts(colors).*10,...
             (roi_counts(colors)),'o','filled','MarkerEdgeColor',[0 0 0])
         scatter(-0.8,0.8,roi_counts(1).*10,[0.8 0.8 0.8],'filled')
-        scatter(0.8,0.8,roi_counts(1).*10,[0 0 0],'filled')
+        scatter(0.8,0.8,multi_number.*10,[0 0 0],'filled')
         text(-0.8,0.8,{num2str(roi_counts(1))},'Color',[0 0 0],...
             'FontWeight','bold','HorizontalAlignment','center','FontSize',fontsize)
         text(0.8,0.8,{num2str(multi_number)},'Color',[1 1 1],...
@@ -591,13 +667,81 @@ if contains(data(datas).name,'p8')
         set(gca,'TickLength',[0 0],'XTick',[],'YTick',[],'visible','off')
         axis equal
         colormap(magma)
-        set(gcf,'Color','w')
-        file_path = fullfile(fig_path,strjoin({'vennUMAP',data(datas).name,'.png'},'_'));
-        print(file_path,'-dpng','-r600','-painters')
+%         set(gcf,'Color','w')
+%         file_path = fullfile(fig_path,strjoin({'vennUMAP',data(datas).name,'.png'},'_'));
+%         print(file_path,'-dpng','-r600','-painters')
+        
+        
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'graphUMAP',data(datas).name,'.png'},'_');
+        fig_set(1).fig_size = 2.91;
+        fig_set(1).painters = 1;
+        
+        h = style_figure(gcf,fig_set);
+        
 %         export_fig(file_path,'-r600','-nocrop')
 %         roi_counts = log(roi_counts);
 %         roi_counts(roi_counts==0) = 1;
+%     end
+    %% Produce a venn diagram
+            close all
+%     for datas = 1:num_data
+        figure
+        
+        fontsize = 15;
+        % turn the color matrix into binary, excluding mixed selectivity
+        % cells
+        binary_matrix = color_all(~any(color_all>3,2),:);
+        binary_matrix = binary_matrix>1;
+        % get the number of multicolor cells
+        multi_number = size(color_all,1)-size(binary_matrix,1);
+        
+        % get the unique patterns
+        [unique_seq,ia,ic] = unique(binary_matrix,'rows');
+        % allocate memory for the amounts of ROIs
+        roi_counts = zeros(size(unique_seq,1),1);
+        % get the counts per pattern
+        for pattern = 1:size(unique_seq)
+            roi_counts(pattern) = sum(ic==pattern);
+        end
+        % reorder the pattern
+        roi_counts = roi_counts([1 2 3 5 4 6 7 8]);
+        unique_seq = unique_seq([1 2 3 5 4 6 7 8],:);
+        % draw the venn diagram
+        
+        colors = magma(3);
+        [H,S] = venn(roi_counts(2:end),'FaceColor',{colors(1,:), colors(2,:), colors(3,:)});
+        hold on
+        
+        
+        % get the normalized numbers as percentages
+        roi_percentages = round(roi_counts*100./sum(roi_counts));
+        
+        % place text on the circles
+        % for all the areas
+        for areas = 1:7
+            text(S.ZoneCentroid(areas,1),S.ZoneCentroid(areas,2),...
+                strcat(num2str(roi_percentages(areas+1)),'%'),...
+                'FontSize',7,'HorizontalAlignment','center')
+        end
+        
+        set(gca,'Visible','off')
+        axis equal
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'vennUMAP',data(datas).name,'.png'},'_');
+        fig_set(1).fig_size = 3.8;
+        fig_set(1).painters = 1;
+%         fig_set(1).visible = 'off';
+        
+        h = style_figure(gcf,fig_set);
     end
+
+    
 end
 %% Calculate distance distributions in PCA space
 
@@ -609,7 +753,7 @@ if contains(data(1).name,'p17b')
     type_list = unique(max_cell{1});
     type_number = length(type_list);
     % allocate memory for the medians and mads
-    median_mad = zeros(types,num_data,2);
+    median_mad = zeros(type_number,num_data,2);
     % for both data sets
     for datas = 1:num_data
        % get the individual fish information
@@ -622,7 +766,7 @@ if contains(data(1).name,'p17b')
        conc_trace  = reshape(conc_trace(:,21:60,:),[],40*stim_num);
 
        % allocate memory for the distances
-       distance_cell = cell(fish_num,type_number);
+       distance_cell = cell(num_fish,type_number);
        % for all the fish
        for fish = 1:num_fish
            % get the traces from that animal

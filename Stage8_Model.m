@@ -194,25 +194,42 @@ for datas = 1:size(data,2)
     % plot the matrix
 %     fig('height',15,'width',18)
     imagesc(1-combination_matrix)
-    title(data(datas).figure_name,'Fontsize',15)
-    set(gca,'XTick',1:num_data,'XTickLabel',region_list,'XTickLabelRotation',45)
+%     title(data(datas).figure_name,'Fontsize',15)
+    if contains(data(datas).name,{'syn','Syn'})
+        set(gca,'XTick',1:num_data,'XTickLabel',region_list,'XTickLabelRotation',45)
+    else
+        set(gca,'XTick',1:2:num_data,'XTickLabel',{'TcN','TcP','Pt','Hb','Cb'},'XTickLabelRotation',45)
+    end
     set(gca,'YTick',1:num_data,'YTickLabel',region_list)
     set(gca,'CLim',[0.65 1])
-    ylabel('Reference')
-    xlabel('Predicted')
+%     ylabel('Reference')
+%     xlabel('Predicted')
     
     axis square
-    set(gca,'TickLength',[0 0],'LineWidth',2)
-    set(gca,'FontSize',18)
-    set(gcf,'Color','w')
-    h = colorbar;
-    set(h,'TickLength',0,'LineWidth',2)
-    ylabel(h,'Goodness of Fit')
-    colormap(magma)
+%     set(gca,'TickLength',[0 0],'LineWidth',2)
+%     set(gca,'FontSize',18)
+%     set(gcf,'Color','w')
+%     h = colorbar;
+%     set(h,'TickLength',0,'LineWidth',2)
+%     ylabel(h,'Goodness of Fit')
+%     colormap(magma)
     % assemble the figure path 
-    file_path = fullfile(fig_path,strjoin({'modelMatrix',data(datas).name,'.png'},'_'));
+%     file_path = fullfile(fig_path,strjoin({'modelMatrix',data(datas).name,'.png'},'_'));
 %     print(fullfile(fig_path,file_path),'-dpng','-r600')
 %     saveas(gcf, fullfile(fig_path,file_path), 'png')
-    export_fig(file_path,'-r600')
+%     export_fig(file_path,'-r600')
+    
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'modelMatrix',data(datas).name,'.eps'},'_');
+    fig_set(1).fig_size = 5;
+    fig_set(1).colorbar = 1;
+    fig_set(1).colorbar_label = 'Goodness of Fit';
+    fig_set(1).box = 'on';
+    
+    h = style_figure(gcf,fig_set);
+    
 end
 autoArrangeFigures

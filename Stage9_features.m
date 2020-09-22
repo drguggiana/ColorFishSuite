@@ -166,14 +166,22 @@ if contains(data(1).name,'p17b')
         ylabel(data(datas).figure_name)
 
 %         set(gca,'YLim',[-0.5,])
-        box off
+%         box off
         axis tight
         
-        set(gca,'FontSize',20)
-        % save the figure
-        file_path = strjoin({'Average_Trace_perArea',data(datas).name,'.png'},'_');
-%         saveas(gcf, fullfile(fig_path,file_path), 'png')
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+%         set(gca,'FontSize',20)
+%         % save the figure
+%         file_path = strjoin({'Average_Trace_perArea',data(datas).name,'.png'},'_');
+% %         saveas(gcf, fullfile(fig_path,file_path), 'png')
+%         print(fullfile(fig_path,file_path),'-dpng','-r600')
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'Average_Trace_perArea',data(datas).name,'.png'},'_');
+        fig_set(1).fig_size = 3.6;
+        
+        h = style_figure(gcf,fig_set);
     end
     autoArrangeFigures
 end
@@ -192,7 +200,7 @@ y_lim = [-4 4;-1.7 13.5;0 5];
 target_interval = 20:30;
 
 % define the panel label
-if contains(data(datas).name,'p17b')
+if contains(data(1).name,'p17b')
     fig_name = {data.figure_name};
 else
     fig_name = {'Tectum','AF10'};
@@ -247,13 +255,25 @@ for datas = 1:num_data
         axis tight
         box off
     %         plotSpread(squeeze(calcium_matrix(:,:,param)))
-        title(fig_name{datas})
-        ylabel(param_plot_label{param},'Interpreter','None')
-        set(gca,'FontSize',20)
+%         title(fig_name{datas})
+%         ylabel(param_plot_label{param},'Interpreter','None')
+%         set(gca,'FontSize',20)
         set(gca,'YLim',y_lim(param,:))
-        set(gcf,'Color','w')
-        file_path = fullfile(fig_path,strjoin({param_label{param},data(datas).name,'.png'},'_'));
-        export_fig(file_path,'-r600')
+        
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({param_label{param},data(datas).name,'.png'},'_');
+        if contains(data(datas).name,'p17b')
+            fig_set(1).fig_size = 1.5;
+        else
+            fig_set(1).fig_size = 1.8;
+        end
+        h = style_figure(gcf,fig_set);
+%         set(gcf,'Color','w')
+%         file_path = fullfile(fig_path,strjoin({param_label{param},data(datas).name,'.png'},'_'));
+%         export_fig(file_path,'-r600')
         
 %         [kw_cell{datas,param},tbl,stats] = kruskalwallis(squeeze(calcium_matrix(:,:,param)),[],'off');
 %         [kw_cell{datas,param},tbl,stats] = friedman(squeeze(calcium_matrix(:,:,param)),1,'off');
@@ -405,20 +425,30 @@ if contains(data(1).name,'p17b')
 %         boxplot(plot_matrix)
         set(gca,'XTick',[],'TickLength',[0 0])
         axis tight
-        title(data(datas).figure_name,'Interpreter','None')
-        ylabel('Gain (a.u.)')
-        set(gca,'FontSize',fontsize,'LineWidth',2)
-        file_path = fullfile(fig_path,strjoin({'Gain',data(datas).name,'.png'},'_'));
-%         print(fullfile(fig_path,file_path),'-dpng','-r600')
-        set(gcf,'Color','w')
-        export_fig(file_path,'-r600')
+%         title(data(datas).figure_name,'FontName','Arial')
+        ylabel('Gain (a.u.)','FontName','Arial')
+%         set(gca,'FontSize',fontsize,'LineWidth',2)
+%         file_path = fullfile(fig_path,strjoin({'Gain',data(datas).name,'.png'},'_'));
+% %         print(fullfile(fig_path,file_path),'-dpng','-r600')
+%         set(gcf,'Color','w')
+%         export_fig(file_path,'-r600')
+        
+        
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'Gain',data(datas).name,'.eps'},'_');
+        fig_set(1).fig_size = 4;
+        
+        h = style_figure(gcf,fig_set);
         
         
 %         [~,tbl,stats] = friedman(squeeze(plot_matrix),1,'off');
         [~,tbl,stats] = anova2(squeeze(plot_matrix),1,'off');
         s = multcompare(stats,'CType','bonferroni','Display','off');
     end
-    autoArrangeFigures
+%     autoArrangeFigures
 end
 %% Gain plots per region
 
@@ -615,9 +645,10 @@ if contains(data(1).name,'p17b')
         % use the gains
         delta_norm = data(datas).delta_norm;
         % get the 10th percentile
-        zero_threshold = prctile(abs(delta_norm),5,1);
+        zero_threshold = prctile(abs(delta_norm),10,1);
+%         zero_threshold = prctile(abs(delta_norm),5,1);
         % zero the values below a threshold
-        delta_norm(delta_norm<zero_threshold&delta_norm>0) = 0;
+        delta_norm(abs(delta_norm)<zero_threshold&abs(delta_norm)>0) = 0;
         % turn negatives into -1 and positives into 1
         delta_norm(delta_norm>0) = 1;
         delta_norm(delta_norm<0) = -1;
@@ -684,25 +715,44 @@ if contains(data(1).name,'p17b')
         type_cell{datas,2} = pattern_counts./sum(pattern_counts);
         type_cell{datas,3} = pattern_full;
         
+        % eliminate the patterns with only 1 instance
+        elim_vector = pattern_counts<2;
+        pattern_counts = pattern_counts(~elim_vector);
+        pattern_full = pattern_full(~elim_vector,:,:);
+        
         figure
+        set(gcf,'Color','w')
         subplot(2,1,2)
         image(permute(pattern_full,[2 1 3]))
-        set(gca,'TickLength',[0 0],'FontSize',15)
-        set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'LineWidth',2)
-        ylabel('Cone')
-        xlabel('Response Pattern')
-%         imagesc(pattern')
+%         hold on
+%         line([1 1],[0 0],'Color','w')
+        set(gca,'XLim',[-0.2 size(pattern_full,1)])
+        set(gca,'YScale','linear','XTick',[],'Visible','off')
+
         subplot(2,1,1)
-        bar(pattern_counts)
-        set(gca,'YScale','log','XTick',[])
-        set(gca,'TickLength',[0 0],'FontSize',15,'LineWidth',2)
-        ylabel('Nr ROIs')
-        box off
-        sgtitle(data(datas).figure_name)
-%         set(gca,'XDir','reverse')
+%         bar((pattern_counts))
+        BarPlotBreak(pattern_counts,pattern_counts(2)*1.8,pattern_counts(1)*0.9,'Line',0.6,2)
+%         breakplot(1:length(pattern_counts),pattern_counts,400,1900,'Line')
+        set(gca,'YScale','linear','XTick',[],'Visible','off')
+%         break_axis = breakyaxis([400 1900],0.05, 0.1);
+        
+
         axis tight
-        file_path = strjoin({'responseTypes',data(datas).name,'.png'},'_');
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+   
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'responseTypes',data(datas).name,'.eps'},'_');
+        fig_set(1).fig_size = 3.6;
+        fig_set(2).fig_size = 3.6;
+        fig_set(1).painters = 1;
+        fig_set(3).fig_size = 3.6;
+        fig_set(4).fig_size = 3.6;
+        fig_set(5).fig_size = 3.6;
+        fig_set(6).fig_size = 3.6;
+        
+        h = style_figure(gcf,fig_set);
         
     end
 end
@@ -711,16 +761,19 @@ end
 % load the Zhou data
 ref_data = load(paths.reference_path);
 %% Plot the ref results
+% close all
 % isolate the kernels for the color channels
 kernel_matrix = cat(3,ref_data.AK_R_Mat,ref_data.AK_G_Mat,ref_data.AK_B_Mat,ref_data.AK_UV_Mat);
 
 % get only the dorsal retina ones (ventral FOV)
-dorsal_bool = ref_data.Pos_Mat(:,1)>=1.5&ref_data.Pos_Mat(:,1)<=2.5;
+% dorsal_bool = ref_data.Pos_Mat(:,1)>=1.5&ref_data.Pos_Mat(:,1)<=2.5;
+dorsal_bool = ref_data.Pos_Mat(:,1)>=1&ref_data.Pos_Mat(:,1)<=3;
+% dorsal_bool = ones(size(ref_data.Pos_Mat(:,1),1),1)==1;
 kernel_matrix = kernel_matrix(dorsal_bool,:,:);
 
 % calculate the 0 kernels based on the 10SD criterion used in the ref
 % calculate the SD
-sd_matrix = squeeze(std(kernel_matrix(:,1:100,:),0,2));
+sd_matrix = squeeze(std(kernel_matrix(:,1:150,:),0,2));
 
 % classify in on and off
 
@@ -729,7 +782,7 @@ sd_matrix = squeeze(std(kernel_matrix(:,1:100,:),0,2));
 [min_val,min_idx] = min(kernel_matrix,[],2);
 
 % calculate the null kernels
-null_kernels = squeeze(max_val-min_val)<(10.*sd_matrix);
+null_kernels = squeeze(max_val-min_val)<(5.*sd_matrix);
 % null_kernels = sd_matrix<10;
 
 % allocate memory for the allocation
@@ -783,6 +836,17 @@ set(gca,'YScale','linear')
 set(gca,'TickLength',[0 0])
 %         set(gca,'XDir','reverse')
 axis tight
+
+   
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = 'responseTypesZhou.png';
+fig_set(1).fig_size = 4.4;
+fig_set(2).fig_size = 4.4
+
+h = style_figure(gcf,fig_set);
 
 autoArrangeFigures
 %% Compare the datasets

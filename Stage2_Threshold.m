@@ -12,6 +12,9 @@ save_var = 1;
 % fish_comb = [1 2;1 1];
 %% Load the files and define paths
 
+% set the rng
+rng(1)
+
 %get the folder where the image files are
 tar_path_all = uipickfiles('FilterSpec',strcat(paths(1).stage1_path,'*.mat'));
 

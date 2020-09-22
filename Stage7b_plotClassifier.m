@@ -39,10 +39,10 @@ stim_name = data_struct(1).name;
 %scan for the p17b
 if contains(stim_name, 'p17b')
     %if it's p17b
-    stim_labels = {'Red','Green','Blue','UV'};
+    stim_labels = {'R','G','B','UV'};
 else %if it's p6p8 instead
     %define the stim labels (for p6p8 data)
-    stim_labels = {'Red CK','UV CK','Red GR','UV GR','Red FL','UV FL'};
+    stim_labels = {'R CK','UV CK','R GR','UV GR','R FL','UV FL'};
 end
 % define the color scheme depending on the stimulus type
 if contains(data_struct(1).name,'p17')
@@ -107,7 +107,7 @@ for datas = 1:num_data
     suffix = strjoin({'classp',num2str(classpcolor),...
         'subsample',num2str(subsample),'loo',num2str(loo),'shuff',num2str(shuff_label),...
         'reps',num2str(repeat_number),'bin',num2str(bin_width),'portion',num2str(portion),...
-        'cluster',num2str(cluster_flag),'.png'},'_');
+        'cluster',num2str(cluster_flag),'.eps'},'_');
     %get the number of non-empty classifiers
     reg_full = size(class_cell,1);
     
@@ -147,12 +147,24 @@ for datas = 1:num_data
         %update the counter
         p_count = p_count + 1;
     end
-    set(gcf,'Color','w')
+%     set(gcf,'Color','w')
     % assemble the figure path 
-    file_path = fullfile(fig_path,strjoin({'confMatrix',name,suffix},'_'));
-%     print(fullfile(fig_path,file_path), '-dpng','-r600')
-    export_fig(file_path,'-r600')
+%     file_path = fullfile(fig_path,strjoin({'confMatrix',name,suffix},'_'));
+% %     print(fullfile(fig_path,file_path), '-dpng','-r600')
+%     export_fig(file_path,'-r600')
 
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'confMatrix',name,suffix},'_');
+    fig_set(1).fig_size = 2.03;
+    fig_set(1).colorbar = 1;
+    fig_set(1).colorbar_label = 'Accuracy';
+    fig_set(1).box = 'on';
+    
+    h = style_figure(gcf,fig_set);
+    
     
     %plot the diagonal values
     figure
@@ -206,11 +218,23 @@ if num_data == 2
     cba = colorbar;
     set(cba,'TickLength',0,'LineWidth',2)
     ylabel(cba,'Delta Performance')
-    colormap(magma)
-    set(gcf,'Color','w')
+%     colormap(magma)
+%     set(gcf,'Color','w')
     % assemble the figure path
-    file_path = fullfile(fig_path,strjoin({'classDelta',data_struct(1).name,data_struct(2).name,suffix},'_'));
-    export_fig(file_path,'-r600')
+%     file_path = fullfile(fig_path,strjoin({'classDelta',data_struct(1).name,data_struct(2).name,suffix},'_'));
+%     export_fig(file_path,'-r600')
+    
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'classDelta',data_struct(1).name,data_struct(2).name,suffix},'_');
+    fig_set(1).fig_size = 2.03;
+    fig_set(1).colorbar = 1;
+%     fig_set(1).colorbar_label = 'Delta Performance';
+    fig_set(1).box = 'on';
+    
+    h = style_figure(gcf,fig_set);
 end
 autoArrangeFigures
 %% Plot the performances side by side
@@ -260,25 +284,35 @@ if subsample == 2 && num_data == 4
     set(gca,'TickLength',[0 0])
     set(gca,'XTick',1:num_data/2,'XTickLabels',dataset_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45,'XLim',[0 (num_data/2)+1],'TickLabelInterpreter','none')
-    ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
+    ylabel('Classifier Accuracy','FontSize',fontsize)
 %     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
     set(gca,'YLim',[0 1],'LineWidth',2)
     % plot the shuffle line
     plot(get(gca,'XLim'),[1/stim_num 1/stim_num],'r--','LineWidth',1)
     
-    pbaspect([1 2 1])
+%     pbaspect([1 2 1])
 %     a = get(gca);
 %     h.Position(4) = 2*h.Position(3);
 %     set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
 
     box off
 %     axis tight
-    set(gcf,'Color','w')
+%     set(gcf,'Color','w')
     % assemble the figure path
     % get the experiment name
     name = strsplit(data_struct(1).name,'_');
-    file_path = fullfile(fig_path,strjoin({'classCompare',name{1},suffix},'_'));
-    export_fig(file_path,'-r600')
+%     file_path = fullfile(fig_path,strjoin({'classCompare',name{1},suffix},'_'));
+%     export_fig(file_path,'-r600')
+    
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'classCompare',name{1},suffix},'_');
+    fig_set(1).fig_size = [1.34 2.36];
+    
+    h = style_figure(gcf,fig_set);
+    
     
     % run a sign rank test on the results
     p = signrank(mean_cell{1},mean_cell{2});
@@ -338,24 +372,43 @@ if subsample == 1 && num_data == 4
         set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 8 8])
         set(gca,'XTick',1:reg_number,'XTickLabels',data_struct(datas).region(:,2),'FontSize',fontsize,...
             'XTickLabelRotation',45,'TickLabelInterpreter','none')
-        ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
+        ylabel('Accuracy','FontSize',fontsize)
         set(gca,'YLim',y_lim,'XLim',[0 reg_number + 1])
+        
+        % plot the shuffle line    
+        % get the number of categories
+        num_category = size(class_cell_real{1}{1},1);
+        plot(get(gca,'XLim'),[1/num_category,1/num_category],'r--','LineWidth',1)
 %         pbaspect([1 2 1])
 %         h.Position(4) = 2*h.Position(3);
         box off
 
         % assemble the figure path
         % get the experiment name
-        file_path = strjoin({'classRegCompare',data_struct(datas).name,suffix},'_');
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+%         file_path = strjoin({'classRegCompare',data_struct(datas).name,suffix},'_');
+%         print(fullfile(fig_path,file_path),'-dpng','-r600')
 %         saveas(gcf, fullfile(fig_path,file_path), 'png')
+
+
+        % create the settings
+        fig_set = struct([]);
+
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'classRegCompare',data_struct(datas).name,suffix},'_');
+        fig_set(1).fig_size = 3;
+
+        h = style_figure(gcf,fig_set);
     end
 end
 %% Plot the performances for the red UV combo
+% p8 13(p17b)-14-15-16 and 18-19-20-21(p17b) performances
+% select the p17b files first
 
 if num_data > 11
     close all
     
+    % define the marker size
+    marker_size = 10;
     % patch defining manually the x_labels
     x_labels = {'AF10','Tectum','AF10','Tectum','AF10','Tectum','AF10','Tectum'};
     fontsize = 15;
@@ -374,24 +427,26 @@ if num_data > 11
         class_cell_real = data_struct(datas).class;
         class_cell_shuff = data_struct(datas+1).class;
         
-        plot(x_counter,class_cell_real{1}{2},'o','MarkerEdgeColor',[0 0 0]);
-        hold on
+%         plot(x_counter,class_cell_real{1}{2},'.','MarkerEdgeColor',[0 0 0],...
+%             'MarkerSize',marker_size);
+%         hold on
         % calculate the exact accuracy
         mean_acc = mean(class_cell_real{1}{2});
-        plot(x_counter,mean_acc,'o','MarkerFaceColor',[0 0 0],...
-            'MarkerEdgeColor',[0 0 0])
-%         std_acc = std(class_cell_real{1}{2});
+%         plot(x_counter,mean_acc,'.','MarkerFaceColor',[0 0 0],...
+%             'MarkerEdgeColor',[0 0 0],'MarkerSize',marker_size)
+        std_acc = std(class_cell_real{1}{2});
 %         hold on
-%         errorbar(x_counter,mean_acc,std_acc,'o','MarkerFaceColor',[0 0 0],...
-%             'MarkerEdgeColor',[0 0 0],'Color',[0 0 0])
-        plot(x_counter,class_cell_shuff{1}{2},'o','MarkerEdgeColor',[0.5 0.5 0.5]);
+        errorbar(x_counter,mean_acc,std_acc,'.','MarkerFaceColor',[0 0 0],...
+            'MarkerEdgeColor',[0 0 0],'Color',[0 0 0])
+        hold on
+%         plot(x_counter,class_cell_shuff{1}{2},'o','MarkerEdgeColor',[0.5 0.5 0.5]);
         mean_shuf = mean(class_cell_shuff{1}{2});
-        plot(x_counter,mean_shuf,'o','MarkerFaceColor',[0.5 0.5 0.5],...
-            'MarkerEdgeColor',[0.5 0.5 0.5])
-%         std_shuf = std(class_cell_shuff{1}{2});
-%         errorbar(x_counter,mean_shuf,std_shuf,'o',...
-%             'MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor',[0.5 0.5 0.5],...
-%             'Color',[0.5 0.5 0.5])
+%         plot(x_counter,mean_shuf,'o','MarkerFaceColor',[0.5 0.5 0.5],...
+%             'MarkerEdgeColor',[0.5 0.5 0.5])
+        std_shuf = std(class_cell_shuff{1}{2});
+        errorbar(x_counter,mean_shuf,std_shuf,'.',...
+            'MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor',[0.5 0.5 0.5],...
+            'Color',[0.5 0.5 0.5])
         
         % update the counter
         x_counter = x_counter + 1;
@@ -402,7 +457,7 @@ if num_data > 11
 %     set(gca,'XTick',1:num_data/2,'XTickLabels',{data_struct(1:2:num_data).figure_name},'FontSize',fontsize,...
     set(gca,'XTick',1:num_data/2,'XTickLabels',x_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45,'XLim',[0 (num_data/2)+1],'TickLabelInterpreter','none')
-    ylabel('Classifier Accuracy (a.u.)','FontSize',fontsize)
+    ylabel('Accuracy','FontSize',fontsize)
 %     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
     set(gca,'YLim',[0 1],'LineWidth',2)
     
@@ -412,15 +467,24 @@ if num_data > 11
 %     a = get(gca);
 %     a.Position(4) = 2*h.Position(3);0
 %     h.Position(4) = 2*h.Position(3);
-    pbaspect([3,1,1])
+%     pbaspect([3,1,1])
     box off
 %     axis tight
-    set(gcf,'Color','w')
+%     set(gcf,'Color','w')
     % assemble the figure path
     % get the experiment name
     name = strsplit(data_struct(1).name,'_');
-    file_path = fullfile(fig_path,strjoin({'classRedUVCompare',num2str(classpcolor)},'_'));
-    export_fig(file_path,'-r600')
+%     file_path = fullfile(fig_path,strjoin({'classRedUVCompare',num2str(classpcolor)},'_'));
+%     export_fig(file_path,'-r600')
+    
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strcat(strjoin({'classRedUVCompare',num2str(classpcolor),num2str(portion)},'_'),'.eps');
+    fig_set(1).fig_size = [4.4 2.4];
+    
+    h = style_figure(gcf,fig_set);
 end
 %% Plot individual stimulus performances as a matrix
 
@@ -525,18 +589,35 @@ if subsample == 1 && num_data == 4
         'XTickLabelRotation',45,'TickLabelInterpreter','none')
 %     set(gca,'Position',[0.1300    0.5838    0.6750    0.3412])
     
-    set(gca,'FontSize',fontsize)
+%     set(gca,'FontSize',fontsize)
     
-    cba = colorbar;
-    set(cba,'TickLength',0,'LineWidth',2)
-    ylabel(cba,'Accuracy')
-    colormap(magma)
-    set(gcf,'Color','w')
+%     cba = colorbar;
+%     set(cba,'TickLength',0,'LineWidth',2)
+%     ylabel(cba,'Accuracy')
+%     colormap(magma)
+%     set(gcf,'Color','w')
     % assemble the figure path
     % get the experiment name
 %     set(gcf,'PaperUnits','Centimeters','PaperPosition',[0 0 20 13])
-    file_path = fullfile(fig_path,strjoin({'classRegPerStim',data_struct(datas).name,suffix},'_'));
-    export_fig(file_path,'-r600')
+%     file_path = fullfile(fig_path,strjoin({'classRegPerStim',data_struct(datas).name,suffix},'_'));
+%     export_fig(file_path,'-r600')
+    
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'classRegPerStim',data_struct(datas).name,suffix},'_');
+    fig_set(1).fig_size = [9 4];
+    fig_set(1).colorbar = 1;
+    fig_set(1).colorbar_label = 'Accuracy';
+    fig_set(2).colorbar = 1;
+    fig_set(2).colorbar_label = 'Accuracy';
+    fig_set(1).box = 'on';
+    fig_set(2).box = 'on';
+
+    
+    h = style_figure(gcf,fig_set);
+    
     
 end
 %% Plot the performances per stimulus as a matrix across data sets
@@ -640,10 +721,20 @@ if subsample == 2 && num_data == 4
     axis square
     % assemble the figure path
     % get the experiment name
-    file_path = strjoin({'classPerStim',data_struct(1).name,suffix},'_');
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    file_path = strjoin({'classPerStim',data_struct(1).name,suffix,'.eps'},'_');
+%     print(fullfile(fig_path,file_path),'-dpng','-r600')
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    %         fig_set(1).fig_name = strjoin({'modelMatrix',data(datas).name,'.eps'},'_');
+    fig_set(1).fig_name = file_path;
+    fig_set(1).fig_size = 3.72;
+    
+    h = style_figure(gcf,fig_set);
+    
 end
-%% Plot the p8 13(p17b)-14-15-16 and 18-19-20-21(p17b) performances as a matrix
+%% Plot the p8 14-15-16 and 18-19-20 performances as a matrix
 % if there is only internal subsampling (i.e. there's regions), skip
 if subsample == 1 && num_data == 12
     close all
@@ -704,8 +795,20 @@ if subsample == 1 && num_data == 12
         % assemble the figure path
         % get the experiment name
         new_suffix = strrep(suffix,'classp_16',strcat('classp_',num2str(data_struct(datas).classpcolor)));
-        file_path = strjoin({'classp8PerStim',data_struct(datas).name,new_suffix},'_');
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+        file_path = strjoin({'classp8PerStim',data_struct(datas).name,new_suffix,'.eps'},'_');
+%         print(fullfile(fig_path,file_path),'-dpng','-r600')
+        
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+%         fig_set(1).fig_name = strjoin({'modelMatrix',data(datas).name,'.eps'},'_');
+        fig_set(1).fig_name = file_path;
+        fig_set(1).fig_size = 3.72;
+        
+        h = style_figure(gcf,fig_set);
+        
+        
         % update the counter
         if plot_count < 5
             plot_count = plot_count + 2;
@@ -714,6 +817,6 @@ if subsample == 1 && num_data == 12
         end
         
     end
-    autoArrangeFigures
+%     autoArrangeFigures
     
 end

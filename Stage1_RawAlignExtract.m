@@ -6,6 +6,12 @@ load('paths.mat')
 addpath(genpath(paths(1).main_path))
 %% Define miscellaneous constants
 
+% set the rng
+rng(1)
+
+% define whether to run parallel
+parallel = 1;
+
 %maximum allowed area for a seed
 thres_area = 150;
 %minimum seed area
@@ -155,7 +161,7 @@ for exp_ind = 1:num_exp
     seed_cutoff = ones(z_num,1);
 
     %if it's the first iteration
-    if exp_ind == 1
+    if exp_ind == 1 && parallel==1
         %activate the parallel pool
         gcp = parpool;
     end
@@ -285,7 +291,7 @@ for exp_ind = 1:num_exp
     ave_stack(end-4:end,:,:) = NaN;
     ave_stack(:,end-4:end,:) = NaN;
     %if it's the last iteration
-    if exp_ind == num_exp
+    if exp_ind == num_exp && parallel==1
         %delete the parallel pool (closing it)
         delete(gcp)
     end
@@ -373,6 +379,32 @@ for exp_ind = 1:num_exp
             %allocate memory for the seed locations
             C = uint16(ave_stack(:,:,z));
             save_fig = strcat(ori_name,'_anato','.tif');
+            fig_full = fullfile(save_path,save_fig);
+            if z ==1
+                imwrite(C,fig_full,'tif','WriteMode','overwrite')
+            else
+                imwrite(C,fig_full,'tif','WriteMode','append')
+            end
+        end
+        
+        % also save a composite with the ROIs
+        %for all the zs
+        for z = 1:z_num
+            %             subplot(round(sqrt(z_num)),ceil(sqrt(z_num)),z)
+            %allocate memory for the seed locations
+%             C = uint16(ave_stack(:,:,z).*im_cell{z});
+
+            % get the anatomical frame
+            anato_stack = ave_stack(:,:,z);
+            % turn the NaNs into 100
+            anato_stack(isnan(anato_stack)) = 100;
+            % normalize it
+            anato_stack = imadjust(repmat(normr_1(anato_stack,1),1,1,3),[0 0.5]);
+            C = mean(cat(4,anato_stack,im_cell{z}),4);
+            C = imadjust(C,[0 0.8]);
+%             imagesc(C)
+%             axis equal
+            save_fig = strcat(ori_name,'_rois','.tif');
             fig_full = fullfile(save_path,save_fig);
             if z ==1
                 imwrite(C,fig_full,'tif','WriteMode','overwrite')

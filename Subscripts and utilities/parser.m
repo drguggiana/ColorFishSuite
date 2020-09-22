@@ -1,10 +1,10 @@
 function [file_info,stim_num,rep_num,z_num,tar_files] = parser(tar_path)
 
 %load the files in the path
-tar_files = dir(tar_path);
+tar_files = dir(fullfile(tar_path,'*.tif'));
 
 %get rid of the dots and notes/elog files
-tar_files = tar_files(3:end-2);
+% tar_files = tar_files(3:end-2);
 tar_files = {tar_files.name}';
 
 %get the number of files

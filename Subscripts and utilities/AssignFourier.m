@@ -10,7 +10,9 @@ function [four_out,qual_out] = AssignFourier(tar_trace,startFrame,endFrame,des_f
 %anti-aliasing
 filtered = gauss1d(tar_trace',frame_rate/4);%,frame_rate/2)
 filtered = filtered(startFrame:endFrame);
-
+%%
+% for debugging
+% filtered = sin(2*pi*0.125*(6:43))';
 % figure
 % plot(filtered)
 % filtered = tar_trace';
@@ -26,7 +28,7 @@ if aggregate == 1
         filtered = mean(reshape(filtered,2,floor(length(filtered)/2)),1);
     end
 end
-fft_trace = real(fft(filtered));
+fft_trace = real(fft(filtered).^2);
 freqs = linspace(0,frame_rate,size(fft_trace,1));
 mag = abs(fft_trace);
 [~,ix] = min(abs(des_freq-freqs));%index of bin which contains our desired frequency
@@ -42,7 +44,7 @@ qual_out = four_out./sum(mag);
 % assignin('base','freqs',freqs)
 % assignin('base','filtered',filtered)
 
-
+%%
 if plot_flag == 1
     if intval == 1
         figure

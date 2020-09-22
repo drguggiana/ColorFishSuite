@@ -30,26 +30,37 @@ for datas = 1:length(data)
     subplot(1,20,1:19)
     set(gcf,'color','w')
     imagesc(normr_1(data(datas).conc_trace(sorted_traces,:),0))
-    title(dataset_labels{datas},'Interpreter','None')
+%     title(dataset_labels{datas},'Interpreter','None')
     set(gca,'YTick',[1,length(data(datas).idx_clu)],...
         'XTick',0:(100/0.952):size(data(datas).conc_trace,2),...
         'XTickLabel',0:100:size(data(datas).conc_trace,2)/0.952)
-    xlabel('Time (s)')
-    ylabel('ROI')
+%     xlabel('Time (s)')
+%     ylabel('ROI')
     set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',12)
     
-%     subplot(1,20,20)
-%     imagesc(sort_idx)
-%     colormap(gca,'colorcube')
-%     set(gca,'XTick',[],'YTick',[])
-%     set(gca,'FontSize',30)
-    colormap(magma)
-    file_path = strjoin({'traces',data(datas).name,'.png'},'_');
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'traces',data(datas).name,'.eps'},'_');
+    fig_set(1).box = 'on';
+    fig_set(1).colorbar = 1;
+    fig_set(1).colorbar_label = 'Normalized Delta F/F';
+%     fig_set(1).xlabel = 'Wavelength (nm)';
+%     fig_set(1).ylabel = 'Abs/Em  ';
+    if contains(data(datas).name,'p17')
+        fig_set(1).fig_size = [11 3.5];
+    else
+        fig_set(1).fig_size = [8.5 3.2];
+    end
+%     fig_set(1).crop = 0;
+    
+    h = style_figure(gcf,fig_set);
+
 end
 
 
-autoArrangeFigures
+% autoArrangeFigures
 %% Plot the cluster averages
 
 close all
@@ -118,11 +129,11 @@ for datas = 1:length(data)
         
     end
     axis tight
-    % plot the intermediate lines
-    for stim = 1:stim_num-1
-        plot([time_perstim(end,stim),time_perstim(end,stim)],...
-            get(gca,'YLim'),'k','LineWidth',2)
-    end
+%     % plot the intermediate lines
+%     for stim = 1:stim_num-1
+%         plot([time_perstim(end,stim),time_perstim(end,stim)],...
+%             get(gca,'YLim'),'k','LineWidth',2)
+%     end
 %     pbaspect([1,2,1])
     axis tight
     set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',string(clu_num:-1:1))
@@ -135,20 +146,35 @@ for datas = 1:length(data)
     
 
     title(data(datas).figure_name,'Interpreter','None')
-    set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
+%     set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
     % assemble the figure path 
     set(gca,'FontSize',10,'LineWidth',2)
-    file_path = strjoin({'clusterTraces',data(datas).name,'.png'},'_');
-    print(fullfile(fig_path,file_path),'-dpng','-r600')
+%     file_path = strjoin({'clusterTraces',data(datas).name,'.png'},'_');
+%     print(fullfile(fig_path,file_path),'-dpng','-r600')
+        % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'clusterTraces',data(datas).name,'.eps'},'_');
+    if contains(data(datas).name,'syn')
+        fig_set(1).fig_size = [5.3 9.8];
+    else
+        fig_set(1).fig_size = [5.3 13.8];
+    end
+
+    fig_set(1).box = 'off';
+    fig_set(1).painters = 1;
+    h = style_figure(gcf,fig_set);
 
 end
 
 
-autoArrangeFigures
+% autoArrangeFigures
 %% Plot a selected trace
 close all
-% define the target trace
-target_trace = 1050;
+% define the target traces
+n = 660;
+target_vector = [n n+1 n+2];
 
 % initialize a variable to lift the traces
 trace_lift = 5;
@@ -163,38 +189,53 @@ else
 end
 
 figure
+
+% initialize a trace counter
+trace_counter = 0;
+
 % for all the datasets
 for datas = 1:length(data)
-    % get the trace
-    trace = data(datas).conc_trace(target_trace,:);
-    trace_perstim = reshape(trace,[],data(datas).stim_num);
-    % get the time vector
-    time_perstim = reshape((0:length(trace)-1)./framerate,[],data(datas).stim_num);
-    % for all the stimuli
-    for stim = 1:data(datas).stim_num
-        plot(time_perstim(:,stim),trace_perstim(:,stim)+(datas-1)*trace_lift,...
-            'color',color_scheme(stim,:),'LineWidth',2)
-        hold on
+    % for all the target traces
+    for target_trace = target_vector
+        % get the trace
+        trace = data(datas).conc_trace(target_trace,:);
+        trace_perstim = reshape(trace,[],data(datas).stim_num);
+        % get the time vector
+        time_perstim = reshape((0:length(trace)-1)./framerate,[],data(datas).stim_num);
+        % for all the stimuli
+        for stim = 1:data(datas).stim_num
+            plot(time_perstim(:,stim),trace_perstim(:,stim)+(trace_counter)*trace_lift,...
+                'color',color_scheme(stim,:),'LineWidth',1)
+            hold on
+        end
+        % update the trace counter
+        trace_counter = trace_counter + 1;
     end
 end
-
-% plot the intermediate lines
-for stim = 1:data(1).stim_num-1
-    plot([time_perstim(end,stim),time_perstim(end,stim)],...
-        get(gca,'YLim'),'k','LineWidth',2)
-end
+% % plot the intermediate lines
+% for stim = 1:data(1).stim_num-1
+%     plot([time_perstim(end,stim),time_perstim(end,stim)],...
+%         get(gca,'YLim'),'k','LineWidth',1)
+% end
+set(gca,'XColor','w','YColor','w')
 set(gca,'XLim',[0,time_perstim(end,end)])
 set(gca,'YTick',linspace(0,(length(data)-1)*trace_lift,length(data)),...
     'YTickLabels',{data.figure_name},'TickLabelInterpreter','None')
-box off
-set(gca,'TickLength',[0 0],'LineWidth',2)
+% box off
+% set(gca,'TickLength',[0 0],'LineWidth',2)
 xlabel('Time (s)')
-pbaspect([2,1,1])
+% pbaspect([2,1,1])
 axis tight
-set(gca,'FontSize',15)
-% assemble the figure path
-file_path = strjoin({'SingleTrace',data.name,'.png'},'_');
-print(fullfile(fig_path,file_path),'-dpng','-r600')
+% set(gca,'FontSize',15)
+
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = strjoin({'SingleTrace',data.name,'.eps'},'_');
+fig_set(1).fig_size = [5.7 4.3];
+
+h = style_figure(gcf,fig_set);
 %% Clusters proportion per area
 
 % plot a matrix indicating how many instances of a cluster are in each
@@ -244,24 +285,41 @@ if contains(data(1).name,'p17b')
         end
         imagesc(log(normr_1(cluster_perregion,2)))
         set(gca,'TickLength',[0 0])
-        set(gca,'XTick',1:region_num,'XTickLabels',region_labels,'FontSize',fontsize,...
-            'XTickLabelRotation',45)
-        set(gca,'YTick',1:clu_num,'FontSize',fontsize)
+        switch data(datas).figure_name
+            case {'RAs','Tectum'}
+                set(gca,'XTick',1:2:region_num,'XTickLabels',{'TcN','TcP','Pt','Hb','Cb'},'FontSize',fontsize,...
+                    'XTickLabelRotation',45)
+            case {'RGCs','AF10'}
+                set(gca,'XTick',1:region_num,'XTickLabels',region_labels,'FontSize',fontsize,...
+                    'XTickLabelRotation',45)
+        end
+        set(gca,'YTick',1:4:clu_num,'FontSize',fontsize)
         axis square
         title(data(datas).figure_name)
-        set(gca,'FontSize',15,'LineWidth',2)
-        set(gcf,'Color','w')
-        colormap(magma)
-        cba = colorbar;
-        set(cba,'TickLength',0,'LineWidth',2)
-        ylabel(cba,'Log Fraction of Traces')
+%         set(gca,'FontSize',15,'LineWidth',2)
+%         set(gcf,'Color','w')
+%         colormap(magma)
+%         cba = colorbar;
+%         set(cba,'TickLength',0,'LineWidth',2)
+%         ylabel(cba,'Log Fraction of Traces')
         % assemble the figure path
-        file_path = strjoin({'clusterPerArea',data(datas).name,'.png'},'_');
-        file_path = fullfile(fig_path,file_path);
+%         file_path = strjoin({'clusterPerArea',data(datas).name,'.png'},'_');
+%         file_path = fullfile(fig_path,file_path);
 %         saveas(gcf, fullfile(fig_path,file_path), 'png')
 %         print(file_path,'-dpng','-r600') 
-        export_fig(file_path,'-r600')
-
+%         export_fig(file_path,'-r600')
+        
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'clusterPerArea',data(datas).name,'.eps'},'_');
+        fig_set(1).fig_size = 5;
+        fig_set(1).colorbar = 1;
+        fig_set(1).colorbar_label = 'Log(Fraction Traces)';
+        fig_set(1).box = 'on';
+        
+        h = style_figure(gcf,fig_set);
 
     end
 %     outerbar(file_path,gca,'Fraction traces/cluster');
@@ -312,18 +370,31 @@ for datas = 1:length(data)
         sorted_traces = sort_traces(conc_region);
         
         % plot
-        imagesc(normr_1(sorted_traces,1))
+        imagesc(normr_1(sorted_traces,0))
         colormap(magma)
         set(gca,'LineWidth',2,'TickLength',[0 0],'FontSize',15)
         set(gca,'YTick',[1,length(idx_region)],...
             'XTick',0:(100/data(datas).framerate):size(sorted_traces,2),...
             'XTickLabel',0:100:size(sorted_traces,2)/data(datas).framerate)
-        xlabel('Time (s)')
-        ylabel('ROIs')
+        set(gca,'YTickLabelRotation',90)
+%         xlabel('Time (s)')
+%         ylabel('ROIs')
         title(region_labels{region})
         axis tight
-        file_path = strjoin({'regionTraces',data(datas).name,region_labels{region},'.png'},'_');
-        print(fullfile(fig_path,file_path),'-dpng','-r600')
+%         file_path = strjoin({'regionTraces',data(datas).name,region_labels{region},'.png'},'_');
+%         print(fullfile(fig_path,file_path),'-dpng','-r600')
+        
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'regionTraces',data(datas).name,region_labels{region},'.png'},'_');
+        fig_set(1).box = 'on';
+        fig_set(1).colorbar = 1;
+%         fig_set(1).colorbar_label = 'Delta F/F';
+        fig_set(1).fig_size = 3.3;
+        
+        h = style_figure(gcf,fig_set);
     end
     
     

@@ -7,7 +7,7 @@ addpath(genpath(paths(1).main_path))
 %% Load the files and define paths
 
 % reset the rng to keep results reproducible
-rng(1);
+rng(3);
 
 %get the folder where the image files are
 tar_path_all = uipickfiles('FilterSpec',...
@@ -87,20 +87,6 @@ for files = 1:num_data
 
     %get the number of traces
     trace_num = size(conc_trace,1);
-    %% OFF OPTIONAL Make the first 5 frames zero
-    %this is done for all files before 7/7 since the saving of the files at the
-    %end of each rep would trigger fast flashing of stimuli due to
-    %randomization. I added a delay period after a randomization of 10 seconds
-    %to avoid the issue
-
-    % %make a vector to kill 1 trial
-    % trial_vec = zeros(time_num,1);
-    % %kill the first 5 frames
-    % trial_vec(1:8) = 1;
-    % %rep the vector to cover the entire experiment
-    % trial_full = logical(repmat(trial_vec,stim_num2,1));
-    % %kill the frames in the actual data
-    % conc_trace(:,trial_full) = 0;
     %% Exclude the outsides of the trial (pre and post stim)
 
     %reshape the matrix for conversion
@@ -134,19 +120,6 @@ for files = 1:num_data
         main_str(1).qual_res = [];
         main_str(1).cross_res = [];
     end    
-    %% OFF Normalize by stimulus
-
-%     %reshape the matrix to make the stimuli more accessible
-%     conc_trace3 = reshape(conc_trace2,trace_num,time_num2,[]);
-%     
-%     %for all the stimuli
-%     for stim = 1:stim_num2
-%         %overwrite the values in conc_trace3
-%         conc_trace3(:,:,stim) = normr_1(conc_trace3(:,:,stim),0);
-%     end
-%     
-%     %overwrite conc_trace2
-%     conc_trace2 = reshape(conc_trace3,trace_num,[]);
     %% Cluster the traces
     tic
     %define the sPCA parameters to use
@@ -158,8 +131,7 @@ for files = 1:num_data
     pca_vec = ones(stim_num2,1).*1;
 
     %define the vector of cluster numbers to try
-    clu_vec = [5 10 20 30 50 70 100];
-%     clu_vec = 50;
+    clu_vec = [5 10 20 30 50 70];
     
     replicates = 20;
     
@@ -190,8 +162,8 @@ for files = 1:num_data
     % keep only the significant correlations
     cluster_corr(pval>0.05) = NaN;
     
-    figure
-    plot(clu_ave([11 3],:)')
+%     figure
+%     plot(clu_ave([11 3],:)')
     figure
     imagesc(cluster_corr)
     figure
@@ -455,6 +427,9 @@ for files = 1:num_data
         case 'p17b_h2b6s'
             framerate = 1./0.952;
             figure_name = 'Tectum, Nuclear labelled';
+        case 'p17bdownsample_gc6s'
+            framerate = 1/0.952;
+            figure_name = 'Downsampled RAs';
         otherwise
             if contains(ori_name,'conv')&&contains(ori_name,'p17b')
                 framerate = 1/0.952;
