@@ -108,6 +108,9 @@ cmap(1,:) = [1 1 1];
 colormap(cmap)
 xlabel('Downsampled clusters')
 ylabel('Main clusters')
+set(gcf,'Color','w')
+set(gca,'TickLength',[0 0],'FontSize',15)
+
 %% Calculate types and compare
 
 if contains(data(1).name,'p17b')

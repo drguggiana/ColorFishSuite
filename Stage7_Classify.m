@@ -15,7 +15,7 @@ data = load_clusters(cluster_path);
 rng(1)
 % define whether to run in parallel (need to also convert region for loop
 % to parfor)
-run_parallel = 1;
+run_parallel = 0;
 % define whether to classify on clusters or regions
 cluster_flag = 0;
 % define the region set to use
@@ -33,14 +33,15 @@ end
 
 % define the number of repeats to run each classification scheme
 repeat_number = 10;
-% define whether to subsample. If subsampling from each region within a
-% dataset, use 1, if subsampling across datasets (usually with
-% combination=1) then use 2
-subsample = 2;
+% define whether to subsample. 1) If subsampling from each region within a
+% datase, 2) if subsampling across datasets (usually with
+% combination=1)3) same as 1 with varying ROI numbers, 4) same as 2 with
+% varying ROI numbers
+subsample = 4;
 % combine regions
 region_combination = 1;
 %define whether to shuffle labels (for neutral classification)
-shuff_label = 0;
+shuff_label = 1;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
 % 14,15,16 is the comparison between the p8 red vs UV , including the p17b only
@@ -49,11 +50,11 @@ shuff_label = 0;
 % UV (21)
 classpcolor = 1;
 %define the binning factor (3 for 13-21)
-bin_width = 10;
+bin_width = 1;
 % define which portion of the trial to take (0 pre, 1 stim, 2 post,
 % 3 pre and post,4 first half stim, 5 second half stim, 6 first 10 frames
 % stim, 7 last 10 frames stim, 8 last 10 pre stim, middle 10 stim)
-portion = 9;
+portion = 1;
 
 % define the subsampling constant for the data
 sub_constant = 0.95;
@@ -61,7 +62,7 @@ sub_constant = 0.95;
 tic
 
 % set leave one out cross validation
-loo = 1;
+loo = 0;
 % set the fraction of traces
 trace_frac_mult = 1;
 % set the partitions
@@ -70,10 +71,19 @@ set_part = 1;
 % classification function)
 redec_num = 1;
 
+% define the number of roi groups to try
+group_vector = [5 10 20 40 80 100 0];
+
 % get the number of datasets
 num_data = length(data);
+%% Process the region number
 
-% process the regions first
+if subsample > 2
+    subsample_eff = subsample - 2;
+else
+    subsample_eff = subsample;
+end
+%% process the regions first
 % allocate memory to store the region information
 region_cell = cell(num_data,2);
 % for all data sets
@@ -98,7 +108,7 @@ for datas = 1:num_data
 end
 
 % if subsample is 2, subsample across datasets
-if subsample == 2
+if subsample_eff == 2
     % allocate memory for all datasets
     subsample_vector = zeros(num_data,1);
     % for all datasets
@@ -118,7 +128,7 @@ for datas = 1:num_data
     region_data = region_cell{datas,1};
     num_regions = region_cell{datas,2};
     % if subsample is on, determine how many traces to take per rep
-    if subsample == 1
+    if subsample_eff == 1
         number_subsample = round(min(cellfun(@size, region_data(:,1), ...
             num2cell(ones(num_regions,1))))*sub_constant);
     end
@@ -147,72 +157,105 @@ for datas = 1:num_data
         if isempty(region_data{regions,1})
             continue
         end
-        % allocate a cell to store each repetition
-        class_repeats = cell(3,repeat_number);
-        % for all of the repeats
-        for repeat = 1:repeat_number
-            fprintf(strjoin({'Current data:',num2str(datas),'reg',num2str(regions),...
-                'rep:',num2str(repeat),'\r\n'},'_'))
-            % get the traces
-            region_traces = region_data{regions,1};
-            % get the origin fish for these region traces
-            region_ori = fish_ori_all(region_coord{regions}==1,1);
-            % if subsampling, implement
-            if subsample > 0
-                % generate a random indexing vector with the desired number
-                % of traces
-                subsample_idx = randperm(size(region_traces,1),number_subsample);
-                % take the determined number of traces from the total
-                region_traces = region_traces(subsample_idx,:);
-                region_ori = region_ori(subsample_idx); 
-            end
-            % get the number of fish present and their ID
-            fish_list = unique(region_ori);
-            num_fish = length(fish_list);
-            % allocate memory to store the classifier results
-            fish_classifiers = cell(3,num_fish);
-            % for all the fish
-            for fish = 1:num_fish
-
-                % get the traces for this fish and reshape for normalization
-                temp_stimuli = reshape(region_traces(region_ori==fish_list(fish),:),[],time_num*stim_num,rep_num);
-
-                % for all the reps
-                for reps = 1:rep_num
-                    temp_stimuli(:,:,reps) = normr_1(temp_stimuli(:,:,reps),0)-0.5;
-                    temp_stimuli(:,:,reps) = temp_stimuli(:,:,reps)./std(temp_stimuli(:,:,reps),0,2);
-                    % zscore per neuron
-%                     temp_stimuli(:,:,reps) = zscore(temp_stimuli(:,:,reps),0,2);
-%                     temp_stimuli(:,:,reps) = (temp_stimuli(:,:,reps))./std(temp_stimuli(:,:,reps),0,2);
-                end
-
-                % reshape back
-                temp_stimuli = reshape(temp_stimuli,size(temp_stimuli,1),[]);
-
-
-                % run the classifier
-                [fish_classifiers(:,fish)] = clss_things_color(temp_stimuli,loo,trace_frac(regions),...
-                    set_part,redec_num,shuff_label,classpcolor,bin_width,stim_num,rep_num,portion);
-            end
-            % allocate memory for the average classifier
-            average_classifier = cell(size(fish_classifiers,1),1);
-    
         
-            % for all the fields in the cell
-            for field = 1:size(fish_classifiers,1)
-                % average across the fish classifiers
-                average_classifier{field} = squeeze(mean(cat(4,fish_classifiers{field,:}),4));
+        % modify according to subsample
+        if subsample > 2
+            group_number = length(group_vector);
+        else
+            group_number = 1;
+        end
+        % allocate a cell to store each repetition
+        class_repeats = cell(5,repeat_number,group_number);
+        % for all groups
+        for group = 1:group_number
+            
+            % for all of the repeats
+            for repeat = 1:repeat_number
+                fprintf(strjoin({'Current data:',num2str(datas),'reg',num2str(regions),...
+                    'rep:',num2str(repeat),'\r\n'},'_'))
+                % get the traces
+                region_traces = region_data{regions,1};
+                % get the origin fish for these region traces
+                region_ori = fish_ori_all(region_coord{regions}==1,1);
+                % if subsampling, implement
+                if subsample_eff > 0
+                    % generate a random indexing vector with the desired number
+                    % of traces
+                    subsample_idx = randperm(size(region_traces,1),number_subsample);
+                    % take the determined number of traces from the total
+                    region_traces = region_traces(subsample_idx,:);
+                    region_ori = region_ori(subsample_idx); 
+                end
+                % get the number of fish present and their ID
+                fish_list = unique(region_ori);
+                num_fish = length(fish_list);
+                % allocate memory to store the classifier results
+                fish_classifiers = cell(5,num_fish);
+                % for all the fish
+                for fish = 1:num_fish
+
+                    % get the traces for this fish and reshape for normalization
+                    temp_stimuli = reshape(region_traces(region_ori==fish_list(fish),:),[],time_num*stim_num,rep_num);
+                    % print the number of ROIs
+                    fprintf(strjoin({'ROIs:', num2str(size(temp_stimuli,1)),'\r\n'},' '))
+                    % select the ROIs to use
+                    if group_number == 1 || group_vector(group) == 0
+                        temp_stimuli_eff = temp_stimuli;
+                    else
+                        % exit if the requested number is higher than
+                        % available
+                        if size(temp_stimuli,1) < group_vector(group)
+                            continue
+                        end
+                        temp_stimuli_eff = temp_stimuli(randperm(size(temp_stimuli,1),group_vector(group)),:,:);
+                    end
+                    % for all the reps
+                    for reps = 1:rep_num
+                        temp_stimuli_eff(:,:,reps) = normr_1(temp_stimuli_eff(:,:,reps),0)-0.5;
+                        temp_stimuli_eff(:,:,reps) = temp_stimuli_eff(:,:,reps)./std(temp_stimuli_eff(:,:,reps),0,2);
+                        % zscore per neuron
+    %                     temp_stimuli(:,:,reps) = zscore(temp_stimuli(:,:,reps),0,2);
+    %                     temp_stimuli(:,:,reps) = (temp_stimuli(:,:,reps))./std(temp_stimuli(:,:,reps),0,2);
+                    end
+
+                    % reshape back
+                    temp_stimuli_eff = reshape(temp_stimuli_eff,size(temp_stimuli_eff,1),[]);
+
+
+                    % run the classifier
+                    [fish_classifiers(:,fish)] = clss_things_color(temp_stimuli_eff,loo,trace_frac(regions),...
+                        set_part,redec_num,shuff_label,classpcolor,bin_width,stim_num,rep_num,portion);
+                end
+                
+                % remove the empties
+                empty_class = cellfun(@isempty,fish_classifiers(1,:));
+                if any(empty_class) == 1
+                    fprintf(strjoin({'Fish skipped',num2str(sum(empty_class)),'\r\n'},' '));
+                    fish_classifiers = fish_classifiers(:,~empty_class);
+                end
+                % allocate memory for the average classifier
+                average_classifier = cell(size(fish_classifiers,1),1);
+
+
+                % for all the fields in the cell
+                for field = 1:size(fish_classifiers,1)
+                    % average across the fish classifiers
+                    average_classifier{field} = squeeze(mean(cat(4,fish_classifiers{field,:}),4));
+                end
+                class_repeats(:,repeat,group) = average_classifier;
             end
-            class_repeats(:,repeat) = average_classifier;
         end
 
         % allocate memory for the average classifier
-        average_repeats = cell(size(class_repeats,1),1);
+        average_repeats = cell(size(class_repeats,1),group_number);
 
         % for all the fields in the cell
         for field = 1:size(class_repeats,1)
-            % average across the fish classifiers
-            average_repeats{field} = squeeze(cat(4,class_repeats{field,:}));
+            % for all the groups
+            for group = 1:group_number
+                % concatenate
+                average_repeats{field,group} = squeeze(cat(4,class_repeats{field,:,group}));
+            end
         end
         class_cell{regions} = average_repeats;
         

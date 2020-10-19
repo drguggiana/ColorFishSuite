@@ -10,11 +10,11 @@ learn_var = 4;
 
 %allocate memory to store the results from the analysis
 %1 conc conf matrix,2 conc diagonal frac,3 shuff ave and shuff std
-%4 mut_inf and shuff_mutinf
-class_cell = cell(3,1);
+%4 predicted vectors, 5 label vector
+class_cell = cell(5,1);
 
 %allocate memory for the results
-redec_cell = cell(redec_num,2);
+redec_cell = cell(redec_num,4);
 
 %for all the reps
 for redec = 1:redec_num
@@ -66,7 +66,7 @@ for redec = 1:redec_num
     stim_only = stim_bin;
     %also update the observation counter time per stimulus
     obs_num = bin_num;
-    t_perstim = obs_num/stim_num2;
+    t_perstim = obs_num/(stim_num2*rep_num);
     
     %if 5 color categories are desired
     switch classpcolor
@@ -112,13 +112,16 @@ for redec = 1:redec_num
             %create a counter for the labels
             label_c = 1;
             %get the width of each stimulus
-            stim_width = obs_num/stim_num2;
-            %for all the stimuli
-            for stim = 1:stim_num2
-                %create a vector with the stimulus labels
-                stim_label(label_c:label_c + stim_width-1) = stim-1;
-                %update the counter
-                label_c = label_c + stim_width;
+            stim_width = obs_num/(stim_num2*rep_num);
+            % for all the reps
+            for reps = 1:rep_num
+                %for all the stimuli
+                for stim = 1:stim_num2
+                    %create a vector with the stimulus labels
+                    stim_label(label_c:label_c + stim_width-1) = stim-1;
+                    %update the counter
+                    label_c = label_c + stim_width;
+                end
             end
         case 5
             %define a custom stim label (based on the LED intensity levels,
@@ -159,25 +162,42 @@ for redec = 1:redec_num
             stim_label(8:8:end) = 8;%mid top 2
         case 10
             %this is actually stim type labelling for the p6p8 data
-            %for both colors
-            for c_type = 1:2
-                stim_label(1+(t_perstim*(c_type*3-3)):(t_perstim*(c_type*3-2))) = 1;
-                stim_label(1+(t_perstim*(c_type*3-2)):(t_perstim*(c_type*3-1))) = 2;
-                stim_label(1+(t_perstim*(c_type*3-1)):(t_perstim*(c_type*3))) = 3;
+            % for all the reps
+            for reps = 1:rep_num
+%                 %for both colors
+%                 for c_type = 1:2
+                stim_label(1+t_perstim*6*(reps-1):...
+                    t_perstim*2+t_perstim*6*(reps-1)) = 1;
+                stim_label(1+t_perstim*2+t_perstim*6*(reps-1):...
+                    t_perstim*4+t_perstim*6*(reps-1)) = 2;
+                stim_label(1+t_perstim*4+t_perstim*6*(reps-1):...
+                    t_perstim*6+t_perstim*6*(reps-1)) = 3;
+%                 end
             end
         case 11
             %this is color type labelling for the p6p8 data
-            %for all 3 types of stimuli
-            for s_type = 1:3
-                stim_label(1+(t_perstim*((s_type*2-1)-1)):(t_perstim*(s_type*2-1))) = 1;
-                stim_label(1+(t_perstim*(s_type*2-1)):(t_perstim*(s_type*2))) = 2;
+            % for all the reps
+            for reps = 1:rep_num
+                %for all 3 types of stimuli
+                for s_type = 1:3
+                    stim_label(1+(t_perstim*((s_type*2-1)-1))+t_perstim*6*(reps-1):...
+                        (t_perstim*(s_type*2-1))+t_perstim*6*(reps-1)) = 1;
+                    stim_label(1+(t_perstim*(s_type*2-1))+t_perstim*6*(reps-1):...
+                        (t_perstim*(s_type*2))+t_perstim*6*(reps-1)) = 2;
+                end
             end
         case 12
             %this is both stim and color labelling for the p6p8 data
-            %for all 3 types of stimuli
-            for s_type = 1:3
-                stim_label(1+(t_perstim*((s_type*2-1)-1)):(t_perstim*(s_type*2-1))) = 1+(s_type*2-2);
-                stim_label(1+(t_perstim*(s_type*2-1)):(t_perstim*(s_type*2))) = 1+(s_type*2-1);
+
+            % for all the reps
+            for reps = 1:rep_num
+                %for all 3 types of stimuli
+                for s_type = 1:3
+                    stim_label(1+(t_perstim*((s_type*2-1)-1))+t_perstim*6*(reps-1):...
+                        (t_perstim*(s_type*2-1))+t_perstim*6*(reps-1)) = 1+(s_type*2-2);
+                    stim_label(1+(t_perstim*(s_type*2-1))+t_perstim*6*(reps-1):...
+                        (t_perstim*(s_type*2))+t_perstim*6*(reps-1)) = 1+(s_type*2-1);
+                end
             end
         case  6
             %label only intensity (iffy cause of the actual luminance
@@ -294,44 +314,44 @@ for redec = 1:redec_num
     train_label = zeros(round(length(stim_label)*set_part),1);
     test_label = zeros(length(stim_label)-length(train_label),1);
     
-    %shuffle only if not loo
-    if ~loo
-        %keep randomizing until the sets used contain members from all stimuli
-        while length(unique(train_label))<categ_num || length(unique(test_label))<categ_num
-            %define the training and test sets at random
-            %get the vector of randomized indices
-            % rng(0)
-            rand_ind = randperm(obs_num);
-            % rng('default')
-            
-            %get the sets
-            train_set = stim_only(:,rand_ind(1:ceil(obs_num*set_part)))';
-            train_label = stim_label(rand_ind(1:ceil(obs_num*set_part)));
-            
-            %if there is a partition
-            if set_part ~= 1
-                %use the rest of the data set for calculations
-                test_set = stim_only(:,rand_ind(1+ceil(obs_num*set_part):end))';
-                test_label = stim_label(rand_ind(1+ceil(obs_num*set_part):end));
-            else
-                %if not, use again the whole data set for testing
-                test_set = train_set;
-                test_label = train_label;
-            end
-        end
-    else
+%     %shuffle only if not loo
+%     if ~loo
+%         %keep randomizing until the sets used contain members from all stimuli
+%         while length(unique(train_label))<categ_num || length(unique(test_label))<categ_num
+%             %define the training and test sets at random
+%             %get the vector of randomized indices
+%             % rng(0)
+%             rand_ind = randperm(obs_num);
+%             % rng('default')
+%             
+%             %get the sets
+%             train_set = stim_only(:,rand_ind(1:ceil(obs_num*set_part)))';
+%             train_label = stim_label(rand_ind(1:ceil(obs_num*set_part)));
+%             
+%             %if there is a partition
+%             if set_part ~= 1
+%                 %use the rest of the data set for calculations
+%                 test_set = stim_only(:,rand_ind(1+ceil(obs_num*set_part):end))';
+%                 test_label = stim_label(rand_ind(1+ceil(obs_num*set_part):end));
+%             else
+%                 %if not, use again the whole data set for testing
+%                 test_set = train_set;
+%                 test_label = train_label;
+%             end
+%         end
+%     else
         %get the sets
         train_set = stim_only';
         train_label = stim_label;
         
         test_set = train_set;
         test_label = train_label;
-    end
-    
+%     end
+    %set parallel computing parameters
+    options = statset('UseParallel',0);
     %if leave one out
     if loo == 1
-        %set parallel computing parameters
-        options = statset('UseParallel',0);
+
         %calculate the decoder
         af_deco = fitcecoc(train_set,train_label,'LeaveOut','on','Verbose',0,...
             'Learners',learner_vec{learn_var},'Coding','onevsall','Prior','Empirical',...
@@ -342,17 +362,20 @@ for redec = 1:redec_num
         af_pred = kfoldPredict(af_deco);
     else
         %calculate the decoder
-        af_deco = fitcecoc(train_set,train_label,'LeaveOut','off','Verbose',0,...
-            'Learners',learner_vec{learn_var},'Coding','onevsall');
+        af_deco = fitcecoc(train_set,train_label,'KFold',5,'Verbose',0,...
+            'Learners',learner_vec{learn_var},'Coding','onevsall','Options',options);
         
         %use the decoder to predict the data
-        af_pred = predict(af_deco,test_set);
+        af_pred = kfoldPredict(af_deco);
     end
     
     %calculate a confusion matrix
     redec_cell{redec,1} = confusionmat(test_label,af_pred);
     %and the fraction of values in the diagonal
     redec_cell{redec,2} = sum(diag(redec_cell{redec,1}))/sum(redec_cell{redec,1}(:));
+    % also save the predicted and label vectors
+    redec_cell{redec,3} = af_pred;
+    redec_cell{redec,4} = test_label;
     
 end
 
@@ -400,6 +423,8 @@ shuff_std = std(diag_shuff);
 class_cell{1} = redec_conf;
 class_cell{2} = redec_frac;
 class_cell{3} = [shuff_mean,shuff_std];
+class_cell{4} = cat(2,redec_cell{:,3});
+class_cell{5} = cat(2,redec_cell{:,4});
     
 %     %calculate the mutual information between the observed and predicted
 %     mut_inf = mutualinfo(test_label,af_pred);

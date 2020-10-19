@@ -6,7 +6,7 @@ load('paths.mat')
 addpath(genpath(paths(1).main_path))
 
 cluster_path = paths(1).stage3_path;
-fig_path = strcat(paths(1).fig_path,'PCA\');
+fig_path = strcat(paths(1).fig_path,'DCA\');
 
 data = load_clusters(cluster_path);
 %% Calculate PCA trajectories, Niessing-style
@@ -24,7 +24,7 @@ dataset_colors = paths.afOT_colors;
 %scan for the p17b
 if contains(data(1).name,'p17b')
     %if it's p17b
-    stim_labels = {'R','G','B','UV'};
+    stim_labels = {'Red','Green','Blue','UV'};
     %define the plot colors
     plot_col = [1 0 0;0 1 0;0 0 1;1 0 1];
     plot_marker = {'o', 'o','o', 'o',};
@@ -33,7 +33,7 @@ if contains(data(1).name,'p17b')
     min_dim = 3;
 else %if it's p6p8 instead
     %define the stim labels (for p6p8 data)
-    stim_labels = {'R CK','UV CK','R GR','UV GR','R FL','UV FL'};
+    stim_labels = {'Red CK','UV CK','Red GR','UV GR','Red FL','UV FL'};
     %define the plot colors
 %     plot_col = [1 0 0;0 0 1;0.8 0 0;0 0 0.8;0.4 0 0;0 0 0.4];
     plot_col = [1 0 0;1 0 1;1 0 0;1 0 1;1 0 0;1 0 1];
@@ -372,7 +372,7 @@ for datas = 1:num_data
         % set the line width of the plots
         view(2)
         %             view([0 0])
-%         set(gca,'TickLength',[0 0],'LineWidth',1,'FontSize',fontsize)
+        set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',fontsize)
         
 %         figure
 %         % plot an animation
@@ -389,9 +389,9 @@ for datas = 1:num_data
 %         set(gcf,'Color','w')
         axis equal
         sgtitle(fig_name,'FontSize',fontsize,'Interpreter','None')
-        xlabel('PC 1')
-        ylabel('PC 2')
-        zlabel('PC 3')
+        xlabel('PC 1','FontSize',fontsize)
+        ylabel('PC 2','FontSize',fontsize)
+        zlabel('PC 3','FontSize',fontsize)
 %         % assemble the figure path 
 %         file_path = fullfile(fig_path,strjoin({'trajectoryCCA',data(datas).name,...
 %             'region',region_data{region,2},'set',num2str(stim_set),'.png'},'_'));
@@ -403,9 +403,8 @@ for datas = 1:num_data
         
         fig_set(1).fig_path = fig_path;
         fig_set(1).fig_name = strjoin({'trajectoryCCA',data(datas).name,...
-            'region',region_data{region,2},'set',num2str(stim_set),'.eps'},'_');
-        fig_set(1).fig_size = [4.5 5];
-        fig_set(1).LineWidth = 1;
+            'region',region_data{region,2},'set',num2str(stim_set),'.png'},'_');
+        fig_set(1).fig_size = 3.2;
 
         
         h = style_figure(gcf,fig_set);
@@ -557,7 +556,6 @@ plot_matrix = zeros(stim_num);
 for datas = 1:num_data
     % load and normalize the distance matrix
     distances = distance_cell{datas};
-%     distances = distance_cell{datas}./max(distance_cell{datas},[],2);
 %     distances = normr_1(distances,1);
         % for all the combos
     for combos = 1:number_combos
@@ -578,7 +576,7 @@ for datas = 1:num_data
 
         % plot the distribution median in the matrix
         distance = squeeze(normr_1(distance_cell{datas}(combos,:,:),1));
-        plot_matrix(x_coord,y_coord) =  median(reshape(distance(:,:),[],1),1);
+        plot_matrix(x_coord,y_coord) =  median(distance(:),1);
 
         
 %         hold on
@@ -661,8 +659,8 @@ fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'distancePCA',data(1).name,data(2).name,...
-    'set',num2str(stim_set),'.eps'},'_');
-fig_set(1).fig_size = 4.7;
+    'set',num2str(stim_set),'.png'},'_');
+fig_set(1).fig_size = 3;
 fig_set(1).colorbar = 1;
 fig_set(1).colorbar_label = 'PC Normalized Distance';
 fig_set(1).box = 'on';
@@ -681,8 +679,7 @@ cmap = [0.9 0 0.5;0 0 0];
 angle_cell = cell(num_data,2);
 % define the labels
 labels = {'Tectum','AF10'};
-% define the time interval
-time_interval = 1:40;
+
 
 % for all the datasets
 for datas = 1:num_data
@@ -711,8 +708,8 @@ for datas = 1:num_data
 %     for combos = 1:number_combos
     for combos = 1:number_combos
         % get the corresponding stimuli
-        stim1 = stim_matrix(time_interval,:,:,stim_combo(combos,1));
-        stim2 = stim_matrix(time_interval,:,:,stim_combo(combos,2));
+        stim1 = stim_matrix(:,:,:,stim_combo(combos,1));
+        stim2 = stim_matrix(:,:,:,stim_combo(combos,2));
         % allocate memory for the fish data
         fish_mat = zeros(fish_num,1);
         % for all the fish
@@ -739,12 +736,10 @@ for datas = 1:num_data
     angle_cell{datas,2} = label_cell;
 end
 
-
-plot_matrix = zeros(stim_num);
 % plot the results
 for datas = 1:num_data
     % load and normalize the distance matrix
-%     angles = angle_cell{datas,1};
+    angles = angle_cell{datas,1};
 %     scatter(circ_mean(squeeze(angles(:,:,1)),[],2),circ_mean(squeeze(angles(:,:,2)),[],2))
 %     hold on
     
@@ -752,38 +747,12 @@ for datas = 1:num_data
 %     hold on
 %     errorbar(1:number_combos,circ_mean(angles,[],2),circ_std(angles,[],[],2)./sqrt(size(angles,2)),'ok')
 %     histogram(rad2deg(angles(:)),(0:25:180)-25,'FaceAlpha',0.5,'Normalization','count')
-%     bar(circ_mean(circ_std(angles,[],[],1),[],2),'FaceAlpha',0.5)
-%     hold on
-
-     for combos = 1:number_combos
-%         ind = sub2ind([stim_num,stim_num],stim_combo(combos,1),stim_combo(combos,2));
-%         subplot(stim_num,stim_num,ind)
-%         
-%         histogram(normr_1(distances(combos,:,:),1),10,'Normalization','probability','FaceColor',cmap(datas,:))
-%         [N,edges] = histcounts(normr_1(distances(combos,:,:),1),20,'Normalization','cdf');
-%         plot(N,'Color',cmap(datas,:),'LineWidth',2)
-        switch datas
-            case 1
-                x_coord = stim_combo(combos,1);
-                y_coord = stim_combo(combos,2);
-            case 2
-                x_coord = stim_combo(combos,2);
-                y_coord = stim_combo(combos,1);
-        end
-
-        % plot the distribution median in the matrix
-        angles = squeeze((angle_cell{datas,1}(combos,:,:)));
-        plot_matrix(x_coord,y_coord) =  rad2deg(circ_mean(reshape(angles(:,:),[],1)));
-     end
-    
+    bar(circ_mean(circ_std(angles,[],[],1),[],2),'FaceAlpha',0.5)
+    hold on
     
 
 end
 
-imagesc(plot_matrix)
-colormap(hsv)
-colorbar
-set(gca,'CLim',[0 180])
 ranksum(angle_cell{1,1}(:),angle_cell{2,1}(:),'tail','both')
 
 % set(gca,'XTick',1:number_combos,'XTickLabels',angle_cell{datas,2},'XTickLabelRotation',45)
@@ -1107,7 +1076,6 @@ for datas = 1:num_data
     variance_cell{datas} = stim_matrix;
 %     stim_matrix = stim_matrix(1:20,:);
     plot_matrix = cumsum(stim_matrix,1)./sum(stim_matrix,1);
-%     plot_matrix = stim_matrix./max(stim_matrix,[],1);
 
     
     % average across animals
@@ -1138,7 +1106,7 @@ ylabel('Cum. Variance')
 xlabel('PCs')
 % set(gcf,'Color','w')
 box off
-% legend(flipud(legend_handles),fliplr(labels),'location','best')
+legend(flipud(legend_handles),fliplr(labels))
 
 % file_path = fullfile(fig_path,strjoin({'cummVarCCA',data(1).name,data(2).name,...
 %     'set',num2str(stim_set),'.png'},'_'));
@@ -1149,8 +1117,8 @@ fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'cummVarCCA',data(1).name,data(2).name,...
-    'set',num2str(stim_set),'.eps'},'_');
-fig_set(1).fig_size = 4.5;
+    'set',num2str(stim_set),'.png'},'_');
+fig_set(1).fig_size = 3.2;
 
 
 h = style_figure(gcf,fig_set);
@@ -1158,19 +1126,19 @@ h = style_figure(gcf,fig_set);
 
 
 figure(histo)
-h = bar(1:5,fliplr(horzcat(bar_cell{:})),1,'FaceAlpha',0.5);
+h = bar(fliplr(horzcat(bar_cell{:})),'FaceAlpha',0.5);
 h(1).FaceColor = 'flat';
 h(2).FaceColor = 'flat';
 h(1).CData = cmap(1,:);
 h(2).CData = cmap(2,:);
 
-% set(gca,'LineWidth',2,'TickLength',[0 0],'FontSize',20)
+set(gca,'LineWidth',2,'TickLength',[0 0],'FontSize',20)
 
 % ylabel('Norm. var.')
 % xlabel('PCs')
-% set(gcf,'Color','w')
-% box off
-% legend(gca,flipud(legend_handles),fliplr(labels),'location','northoutside')
+set(gcf,'Color','w')
+box off
+legend(flipud(legend_handles),fliplr(labels))
 
 % file_path = fullfile(fig_path,strjoin({'VarCCA',data(1).name,data(2).name,...
 %     'set',num2str(stim_set),'.png'},'_'));
@@ -1181,8 +1149,8 @@ fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'VarCCA',data(1).name,data(2).name,...
-    'set',num2str(stim_set),'.eps'},'_');
-fig_set(1).fig_size = [1 1.2];
+    'set',num2str(stim_set),'.png'},'_');
+fig_set(1).fig_size = 1.4;
 
 
 h = style_figure(gcf,fig_set);

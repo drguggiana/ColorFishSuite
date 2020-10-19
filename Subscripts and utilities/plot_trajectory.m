@@ -9,16 +9,16 @@ if options.line == 1
     if options.threeD == 1
         %also plot the lines
         plot3(pca_mat(:,1),pca_mat(:,2),pca_mat(:,3),...
-            'Color',plot_col,'LineWidth',2)
+            'Color',plot_col,'LineWidth',1)
         hold on
     else
         subplot(1,2,1)
         plot(pca_mat(:,2),pca_mat(:,1),...
-            'Color',plot_col,'LineWidth',2)
+            'Color',plot_col,'LineWidth',1)
         hold on
         subplot(1,2,2)
         plot(pca_mat(:,3),pca_mat(:,1),...
-            'Color',plot_col,'LineWidth',2)
+            'Color',plot_col,'LineWidth',1)
         hold on
     end
 end

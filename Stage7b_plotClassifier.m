@@ -56,6 +56,9 @@ if data_struct(1).subsample == 1
 %     dataset_colors = [0 153 143;224 255 102]./255;
     dataset_colors = [0 0 0;0 0 0];
     dataset_labels = {'RGCs','RAs'};
+elseif data_struct(1).subsample == 4
+    dataset_colors = [1 0 0;0 0 0];
+    dataset_labels = {'AF10','Tectum'};
 else
 %     dataset_colors = [255 164 5;255 168 187]./255;
     dataset_colors = [0 0 0;0 0 0];
@@ -819,4 +822,213 @@ if subsample == 1 && num_data == 12
     end
 %     autoArrangeFigures
     
+end
+%% Plot classification over time
+
+if num_data == 4
+
+    close all
+    fontsize = 18;
+    
+    % allocate memory to store the values for stats
+    mean_cell = cell(2,1);
+    % set a counter for the x coordinate
+    x_counter = 1;
+%     h = figure;
+    % for all the data sets
+    for datas = [3 1]
+        % get the class cell
+        class_cell_real = data_struct(datas).class;
+        class_cell_shuff = data_struct(datas+1).class;
+        
+        % get the number of regions
+        region_number = size(class_cell_real,1);
+        % for all the regions
+        for region = 1:region_number
+            
+            figure
+        
+    %         plot(x_counter,class_cell_real{1}{2},'o','MarkerEdgeColor',dataset_colors((datas+1)/2,:));
+    %         hold on
+            % calculate the exact accuracy
+
+            % reshape to put exp reps and class reps together
+            real_pred = squeeze(mean(reshape(class_cell_real{region}{4}==class_cell_real{region}{5},...
+                40,[],3,data_struct(datas).repeat_number),3));
+            real_mean = mean(real_pred,3);
+            real_sem = std(real_pred,0,3)./sqrt(size(real_pred,3));
+
+            shuff_pred = squeeze(mean(reshape(class_cell_shuff{region}{4}==class_cell_shuff{region}{5},...
+                40,[],3,data_struct(datas).repeat_number),3));
+            shuff_mean = mean(shuff_pred,3);
+            shuff_sem = std(shuff_pred,0,3)./sqrt(size(shuff_pred,3));
+
+            % get the number of stimuli
+            stim_num = size(real_mean,2);
+            % for all the stimuli
+            for stim = 1:stim_num
+                if datas == 3
+                    color = tint_colormap(color_scheme(stim,:),0.5);
+                else
+                    color = color_scheme(stim,:);
+                end
+                subplot(round(sqrt(stim_num)),ceil(sqrt(stim_num)),stim)
+                shadedErrorBar(1:size(real_mean,1),real_mean(:,stim),real_sem(:,stim),{'color',color})
+                hold on
+                shadedErrorBar(1:size(shuff_mean,1),shuff_mean(:,stim),shuff_sem(:,stim))
+                
+                set(gca,'YLim',[0 1])
+            end
+            set(gcf,'Name',data_struct(datas).region{region,2})
+            % store the accuracies for stats
+    %         mean_cell{(datas+1)/2} = class_cell_real{1}{2};
+
+    %         plot(x_counter,mean_acc,'o','MarkerFaceColor',dataset_colors((datas+1)/2,:),...
+    %             'MarkerEdgeColor',dataset_colors((datas+1)/2,:))
+    %         std_acc = std(class_cell_real{1}{2});
+    %         hold on
+    %         errorbar(x_counter,mean_acc,std_acc,'o','MarkerFaceColor',[0 0 0],...
+    %             'MarkerEdgeColor',[0 0 0],'Color',[0 0 0])
+    %         plot(x_counter,class_cell_shuff{1}{2},'o','MarkerEdgeColor',[0.5 0.5 0.5]);
+    %         mean_shuf = mean(class_cell_shuff{1}{2});
+    %         plot(x_counter,mean_shuf,'o','MarkerFaceColor',[0.5 0.5 0.5],...
+    %             'MarkerEdgeColor',[0.5 0.5 0.5])
+    %         std_shuf = std(class_cell_shuff{1}{2});
+    %         errorbar(x_counter,mean_shuf,std_shuf,'o',...
+    %             'MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor',[0.5 0.5 0.5],...
+    %             'Color',[0.5 0.5 0.5])
+
+            % update the counter
+            x_counter = x_counter + 1;
+            
+        end
+
+    end
+    set(gca,'TickLength',[0 0])
+%     set(gca,'XTick',1:num_data/2,'XTickLabels',dataset_labels,'FontSize',fontsize,...
+%         'XTickLabelRotation',45,'XLim',[0 (num_data/2)+1],'TickLabelInterpreter','none')
+    ylabel('Classifier Accuracy','FontSize',fontsize)
+%     set(gca,'YLim',[0 1],'LineWidth',2)
+    % plot the shuffle line
+%     plot(get(gca,'XLim'),[1/stim_num 1/stim_num],'r--','LineWidth',1)
+%     pbaspect([1 2 1])
+%     a = get(gca);
+%     h.Position(4) = 2*h.Position(3);
+%     set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
+
+    box off
+%     axis tight
+%     set(gcf,'Color','w')
+    % assemble the figure path
+    % get the experiment name
+    name = strsplit(data_struct(1).name,'_');
+%     file_path = fullfile(fig_path,strjoin({'classCompare',name{1},suffix},'_'));
+%     export_fig(file_path,'-r600')
+    
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'classCompare',name{1},suffix},'_');
+    fig_set(1).fig_size = [1.34 2.36];
+    
+%     h = style_figure(gcf,fig_set);
+    
+    
+    % run a sign rank test on the results
+%     p = signrank(mean_cell{1},mean_cell{2});
+    autoArrangeFigures
+end
+%% Plot varying numbers of neurons
+
+% if there is only internal subsampling (i.e. there's regions), skip
+if subsample == 4 && num_data == 4
+    close all
+    fontsize = 18;
+    
+    % allocate memory to store the values for stats
+    mean_cell = cell(2,1);
+    % set a counter for the x coordinate
+    x_counter = 1;
+    h = figure;
+    % for all the data sets
+    for datas = [3 1]
+        
+        % get the class cell
+        class_cell_real = data_struct(datas).class;
+        class_cell_shuff = data_struct(datas+1).class;
+        
+        % get the cell vector 
+        % TODO get from structure
+        cell_vector = [5 10 20 40 80 100 150];
+        % get the number of cell groups used
+        cell_groups = length(cell_vector);
+        
+        % for all the cell groups
+        for cells = 1:cell_groups
+        
+            plot(cell_vector(cells),class_cell_real{1}{2,cells},'o','MarkerEdgeColor',dataset_colors((datas+1)/2,:));
+            hold on
+            % calculate the exact accuracy
+            mean_acc = mean(class_cell_real{1}{2,cells});
+            % store the accuracies for stats
+            mean_cell{(datas+1)/2} = class_cell_real{1}{2,cells};
+
+            plot(cell_vector(cells),mean_acc,'o','MarkerFaceColor',dataset_colors((datas+1)/2,:),...
+                'MarkerEdgeColor',dataset_colors((datas+1)/2,:))
+    %         std_acc = std(class_cell_real{1}{2});
+    %         hold on
+    %         errorbar(x_counter,mean_acc,std_acc,'o','MarkerFaceColor',[0 0 0],...
+    %             'MarkerEdgeColor',[0 0 0],'Color',[0 0 0])
+            plot(cell_vector(cells),class_cell_shuff{1}{2,cells},'o','MarkerEdgeColor',[0.5 0.5 0.5]);
+            mean_shuf = mean(class_cell_shuff{1}{2,cells});
+            plot(cell_vector(cells),mean_shuf,'o','MarkerFaceColor',[0.5 0.5 0.5],...
+                'MarkerEdgeColor',[0.5 0.5 0.5])
+    %         std_shuf = std(class_cell_shuff{1}{2});
+    %         errorbar(x_counter,mean_shuf,std_shuf,'o',...
+    %             'MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor',[0.5 0.5 0.5],...
+    %             'Color',[0.5 0.5 0.5])
+
+            % update the counter
+            x_counter = x_counter + 1;
+        end
+
+    end
+%     set(gca,'TickLength',[0 0])
+%     set(gca,'TickLength',[0 0])
+%     set(gca,'XTick',1:num_data/2,'XTickLabels',dataset_labels,'FontSize',fontsize,...
+%         'XTickLabelRotation',45,'XLim',[0 (num_data/2)+1],'TickLabelInterpreter','none')
+%     ylabel('Classifier Accuracy','FontSize',fontsize)
+% %     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
+%     set(gca,'YLim',[0 1],'LineWidth',2)
+%     % plot the shuffle line
+%     plot(get(gca,'XLim'),[1/stim_num 1/stim_num],'r--','LineWidth',1)
+%     
+% %     pbaspect([1 2 1])
+% %     a = get(gca);
+% %     h.Position(4) = 2*h.Position(3);
+% %     set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
+% 
+%     box off
+% %     axis tight
+% %     set(gcf,'Color','w')
+%     % assemble the figure path
+%     % get the experiment name
+%     name = strsplit(data_struct(1).name,'_');
+% %     file_path = fullfile(fig_path,strjoin({'classCompare',name{1},suffix},'_'));
+% %     export_fig(file_path,'-r600')
+%     
+%     % create the settings
+%     fig_set = struct([]);
+%     
+%     fig_set(1).fig_path = fig_path;
+%     fig_set(1).fig_name = strjoin({'classCompare',name{1},suffix},'_');
+%     fig_set(1).fig_size = [1.34 2.36];
+%     
+% %     h = style_figure(gcf,fig_set);
+%     
+%     
+%     % run a sign rank test on the results
+%     p = signrank(mean_cell{1},mean_cell{2});
+
 end

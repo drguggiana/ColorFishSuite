@@ -255,6 +255,10 @@ cmap(1,:) = [1 1 1];
 colormap(cmap)
 xlabel('Zhou et al. clusters')
 ylabel('Convolved clusters')
+set(gca,'TickLength',[0 0],'FontSize',15)
+axis equal
+axis tight
+set(gcf,'Color','w')
 %% Get the gains
 
 data_copy = data;
@@ -382,12 +386,16 @@ end
 figure
 subplot('Position',[0 0.2 0.2 0.8])
 image(permute(pattern_full_conv,[1 2 3]))
-
+set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
 
 subplot('Position',[0.2 0.2 0.8 0.8])
 imagesc(((comparison_matrix)))
 cmap = magma(256);
 cmap(1,:) = [1 1 1];
 colormap(gca,cmap)
+set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
 subplot('Position',[0.2 0 0.8 0.2])
 image(permute(pattern_full,[2 1 3]))
+set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
+
+set(gcf,'Color','w')
