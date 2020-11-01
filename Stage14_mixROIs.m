@@ -10,6 +10,9 @@ addpath(genpath(paths(1).main_path))
 cluster_path = paths(1).stage3_path;
 fig_path = strcat(paths(1).fig_path,'mixROI\');
 
+% define the stimulus time
+stim_time = 21:60;
+
 data = load_clusters(cluster_path);
 % define the color scheme depending on the stimulus type
 if contains(data(1).name,'p17')
@@ -35,9 +38,14 @@ num_data = size(data,2);
 %% Allocate to clusters with GM model and compare
 
 downsampled_traces = data(2).conc_trace;
+
+% get only the stimulus period
+downsampled_traces = reshape(downsampled_traces,[],data(2).time_num,data(2).stim_num);
+downsampled_traces = reshape(downsampled_traces(:,stim_time,:),[],length(stim_time)*data(2).stim_num);
+
 roi_number = size(downsampled_traces,1);
 %define the sPCA parameters to use
-bounds_top = 1:data(1).time_num:size(downsampled_traces,2);
+bounds_top = 1:length(stim_time):size(downsampled_traces,2);
 bounds_bottom = [bounds_top(2:end)-1,size(downsampled_traces,2)];
 bounds = [bounds_top;bounds_bottom];
 K = ones(1,data(1).stim_num).*4;
@@ -56,7 +64,12 @@ replicates = 20;
 convolved_clusters = cluster(data(1).GMModel,f_data);
 %% Infer the valid clusters by comparing original and cleaned up idx
 
-[~,~,~,~,~,f_data] = sPCA_GMM_cluster_Color(data(1).conc_trace,bounds...
+% get only the stim time
+conc_trace = data(1).conc_trace;
+conc_trace = reshape(conc_trace,[],data(1).time_num,data(1).stim_num);
+conc_trace = reshape(conc_trace(:,stim_time,:),[],length(stim_time)*data(1).stim_num);
+
+[~,~,~,~,~,f_data] = sPCA_GMM_cluster_Color(conc_trace,bounds...
     ,K,t_bins,pca_vec,[],clu_vec,replicates,[],2);
 
 % get the original idx
@@ -97,6 +110,10 @@ for roi = 1:roi_number
     x = convolved_clusters(roi);
     % get the Zhou cluster number
     y = data(2).idx_clu(roi);
+    % if either is a zero, skip
+    if x == 0 || y == 0
+        continue
+    end
     % add the position of the cluster as a counter
     cluster_matrix(x,y) = cluster_matrix(x,y) + 1;
 end
@@ -111,13 +128,28 @@ ylabel('Main clusters')
 set(gcf,'Color','w')
 set(gca,'TickLength',[0 0],'FontSize',15)
 
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = strjoin({'mixROI_clusters',data(1).name,data(2).name,'.eps'},'_');
+fig_set(1).fig_size = [5 4.7];
+fig_set(2).fig_size = [2 4.7];
+fig_set(3).fig_size = [5 2];
+% fig_set(1).colorbar = 1;
+% fig_set(1).colorbar_label = '# of ROIs';
+fig_set(1).box = 'on';
+fig_set(1).cmap = cmap;
+
+h = style_figure(gcf,fig_set);
+
 %% Calculate types and compare
 
 if contains(data(1).name,'p17b')
     
     close all
     % allocate memory to store the matrices
-    type_cell = cell(num_data+1,3);
+    type_cell = cell(num_data,5);
 
     % for all of the datasets
     for datas = 1:num_data
@@ -147,7 +179,7 @@ if contains(data(1).name,'p17b')
         end
         
         % sort by abundance
-        [pattern_counts,sort_idx] = sort(pattern_counts,'descend');
+        [pattern_counts_sort,sort_idx] = sort(pattern_counts,'descend');
         
         pattern = pattern(sort_idx,:);
 
@@ -164,14 +196,17 @@ if contains(data(1).name,'p17b')
  
         end
         
-        % store the matrix
+        % store the matrix with the sorted values
         type_cell{datas,1} = pattern;
-        type_cell{datas,2} = pattern_counts./sum(pattern_counts);
+        type_cell{datas,2} = pattern_counts_sort./sum(pattern_counts_sort);
+%         type_cell{datas,2} = pattern_counts_sort;
         type_cell{datas,3} = pattern_full;
+        type_cell{datas,4} = sort_idx;
+        type_cell{datas,5} = ic;
         
         % eliminate the patterns with only 1 instance
-        elim_vector = pattern_counts<2;
-        pattern_counts = pattern_counts(~elim_vector);
+        elim_vector = pattern_counts_sort<2;
+        pattern_counts_sort = pattern_counts_sort(~elim_vector);
         pattern_full = pattern_full(~elim_vector,:,:);
         
         figure
@@ -184,7 +219,7 @@ if contains(data(1).name,'p17b')
         set(gca,'YScale','linear','XTick',[],'Visible','off')
 
         subplot(2,1,1)
-        bar((pattern_counts))
+        bar((pattern_counts_sort))
 %         BarPlotBreak(pattern_counts,pattern_counts(2)*1.8,pattern_counts(1)*0.9,'Line',0.6,2)
 %         breakplot(1:length(pattern_counts),pattern_counts,400,1900,'Line')
         set(gca,'YScale','linear','XTick',[],'Visible','off')
@@ -193,20 +228,156 @@ if contains(data(1).name,'p17b')
 
         axis tight
    
-        % create the settings
-        fig_set = struct([]);
-        
-        fig_set(1).fig_path = fig_path;
-        fig_set(1).fig_name = strjoin({'responseTypes',data(datas).name,'.eps'},'_');
-        fig_set(1).fig_size = 3.6;
-        fig_set(2).fig_size = 3.6;
-        fig_set(1).painters = 1;
-        fig_set(3).fig_size = 3.6;
-        fig_set(4).fig_size = 3.6;
-        fig_set(5).fig_size = 3.6;
-        fig_set(6).fig_size = 3.6;
+%         % create the settings
+%         fig_set = struct([]);
+%         
+%         fig_set(1).fig_path = fig_path;
+%         fig_set(1).fig_name = strjoin({'mixROI_types',data(1).name,'.eps'},'_');
+%         fig_set(1).fig_size = [5 4.7];
+%         fig_set(2).fig_size = [2 4.7];
+%         fig_set(3).fig_size = [5 2];
+%         % fig_set(1).colorbar = 1;
+%         % fig_set(1).colorbar_label = '# of ROIs';
+%         fig_set(1).box = 'on';
+%         fig_set(1).cmap = cmap;
         
 %         h = style_figure(gcf,fig_set);
         
+        
     end
+    %% Plot a single bar plot for type comparison
+    close all
+    % get the patterns present in the seconda data set that are not in the
+    % first
+%     [new_patterns,inew] = setdiff(type_cell{2,1},type_cell{1,1},'rows');
+    
+    % get the matching indexes for the patterns of 1 wrt 2
+    [~,ia,ib] = intersect(type_cell{1,1},type_cell{2,1},'rows','stable');
+    
+    % define the vectors for plotting
+    
+    % get the color code
+    [~,type_ia,type_ib] = union(type_cell{1,1},type_cell{2,1},'rows','stable');
+    color_code = cat(1,type_cell{1,3}(type_ia,:,:),type_cell{2,3}(type_ib,:,:));
+    
+    % get the number of total types
+    total_number = size(color_code,1);
+    
+    % allocate memory for the counts
+    total_counts = zeros(total_number,2);
+    
+    % put the counts from the original group
+    total_counts(1:length(type_cell{1,2}),1) = type_cell{1,2};
+    % initialize a counter for the second dataset exclusive types
+    counter = 1;
+    % for all the types
+    for types = 1:total_number
+        % check if the type is there
+        if sum(ia==types) ~= 0
+            % fill in the corresponding count for the second dataset
+            total_counts(types,2) = type_cell{2,2}(ib(ia==types));
+        elseif types > length(type_cell{1,4}) 
+            % find the count of the first exclusive type
+            total_counts(types,2) = type_cell{2,2}(type_ib(counter));
+            % update the counter
+            counter = counter + 1;
+            
+        end
+    end
+    
+    % plot the results
+    figure
+    set(gcf,'Color','w')
+    subplot(3,1,2)
+    image(permute(color_code,[2 1 3]))
+    
+    set(gca,'XLim',[-0.15 size(total_counts,1)+0.5])
+    set(gca,'YScale','linear','XTick',[],'Visible','off')
+%     axis tight
+    
+    subplot(3,1,1)
+    bar(total_counts(:,1))
+    BarPlotBreak(total_counts(:,1),total_counts(2,1)*1.8,total_counts(1,1)*0.9,'Line',0.6,2)
+    set(gca,'YScale','linear','XTick',[],'Visible','off')
+    axis tight
+
+    %         break_axis = breakyaxis([400 1900],0.05, 0.1);
+    
+    % get the coordinates of the max and second to max
+    [~,max_idx] = sort(total_counts(:,2),'descend');
+    subplot(3,1,3)
+    bar(total_counts(:,2))
+    BarPlotBreak(total_counts(:,2),total_counts(max_idx(2),2)*1.8,total_counts(max_idx(1),2)*0.9,'Line',0.6,2)
+    %         BarPlotBreak(pattern_counts,pattern_counts(2)*1.8,pattern_counts(1)*0.9,'Line',0.6,2)
+    set(gca,'YScale','linear','XTick',[],'Visible','off','YDir','reverse')
+    
+    axis tight
+    % create the settings
+    fig_set = struct([]);
+    
+    fig_set(1).fig_path = fig_path;
+    fig_set(1).fig_name = strjoin({'mixROI_types',data(1).name,data(2).name,'.eps'},'_');
+    fig_set(1).fig_size = 3.6;
+    fig_set(2).fig_size = 3.6;
+    fig_set(1).painters = 1;
+    fig_set(3).fig_size = 3.6;
+    fig_set(4).fig_size = 3.6;
+    fig_set(5).fig_size = 3.6;
+    fig_set(6).fig_size = 3.6;
+    % fig_set(1).colorbar = 1;
+    % fig_set(1).colorbar_label = '# of ROIs';
+%     fig_set(1).box = 'on';
+%     fig_set(3).cmap = cmap;
+    
+    h = style_figure(gcf,fig_set);
+    %% Compare types
+%     close all
+%     
+%     % assemble the comparison matrix
+%     
+%     % allocate memory for the matrix
+%     comparison_matrix = zeros(size(type_cell{1,2},1),size(type_cell{2,2},1));
+%     % for both 
+%     % for all the traces
+%     for roi = 1:roi_number
+%         % get the row and column
+% %         row = find(sort_idx_conv==ic_conv(roi));
+% %         col = find(sort_idx==ic(roi));
+%         row = find(type_cell{1,4}==type_cell{1,5}(roi));
+%         col = find(type_cell{2,4}==type_cell{2,5}(roi));
+%         
+%         comparison_matrix(row,col) = comparison_matrix(row,col) + 1;
+%     end
+%     figure
+%     subplot('Position',[0 0.2 0.2 0.8])
+%     image(type_cell{1,3})
+%     set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
+%     
+%     subplot('Position',[0.2 0.2 0.8 0.8])
+%     imagesc(((comparison_matrix)))
+%     cmap = magma(256);
+%     cmap(1,:) = [1 1 1];
+%     colormap(gca,cmap)
+%     set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
+%     subplot('Position',[0.2 0 0.8 0.2])
+%     image(permute(type_cell{2,3},[2 1 3]))
+%     set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
+%     
+%     set(gcf,'Color','w')
+%     
+%     
+%     % create the settings
+%     fig_set = struct([]);
+%     
+%     fig_set(1).fig_path = fig_path;
+%     fig_set(1).fig_name = strjoin({'mixROI_types',data(1).name,data(2).name,'.eps'},'_');
+%     fig_set(1).fig_size = [5 4.7];
+%     fig_set(2).fig_size = [2 4.7];
+%     fig_set(3).fig_size = [5 2];
+%     % fig_set(1).colorbar = 1;
+%     % fig_set(1).colorbar_label = '# of ROIs';
+%     fig_set(1).box = 'on';
+%     fig_set(3).cmap = cmap;
+%     
+%     h = style_figure(gcf,fig_set);
 end

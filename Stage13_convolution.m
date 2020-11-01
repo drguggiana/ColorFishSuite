@@ -9,6 +9,9 @@ addpath(genpath(paths(1).main_path))
 cluster_path = paths(1).stage3_path;
 fig_path = strcat(paths(1).fig_path,'Convolution\');
 
+% define the stimulus time
+stim_time = 21:60;
+
 data = load_clusters(cluster_path);
 % define the color scheme depending on the stimulus type
 if contains(data(1).name,'p17')
@@ -173,8 +176,15 @@ colormap(magma)
 colorbar
 %% Get the traces in clustering-ready form for allocation with the GMM
 
+% save the full traces
+downsample_full = downsampled_traces;
+% get only the stim period
+downsampled_traces = data(1).conc_trace;
+downsampled_traces = reshape(downsampled_traces,[],data(1).time_num,data(1).stim_num);
+downsampled_traces = reshape(downsampled_traces(:,stim_time,:),[],length(stim_time)*data(1).stim_num);
+
 %define the sPCA parameters to use
-bounds_top = 1:data(1).time_num:size(downsampled_traces,2);
+bounds_top = 1:length(stim_time):size(downsampled_traces,2);
 bounds_bottom = [bounds_top(2:end)-1,size(downsampled_traces,2)];
 bounds = [bounds_top;bounds_bottom];
 K = ones(1,data(1).stim_num).*4;
@@ -193,7 +203,12 @@ replicates = 20;
 convolved_clusters = cluster(data(1).GMModel,f_data);
 %% Infer the valid clusters by comparing original and cleaned up idx
 
-[~,~,~,~,~,f_data] = sPCA_GMM_cluster_Color(data.conc_trace,bounds...
+% get only the stimulus period
+conc_trace = data.conc_trace;
+conc_trace = reshape(conc_trace,[],data(1).time_num,data(1).stim_num);
+conc_trace = reshape(conc_trace(:,stim_time,:),[],length(stim_time)*data(1).stim_num);
+
+[~,~,~,~,~,f_data] = sPCA_GMM_cluster_Color(conc_trace,bounds...
     ,K,t_bins,pca_vec,[],clu_vec,replicates,[],2);
 
 % get the original idx
@@ -253,18 +268,33 @@ imagesc(cluster_matrix)
 cmap = magma(256);
 cmap(1,:) = [1 1 1];
 colormap(cmap)
-xlabel('Zhou et al. clusters')
-ylabel('Convolved clusters')
+% xlabel('Zhou et al. clusters')
+% ylabel('Convolved clusters')
 set(gca,'TickLength',[0 0],'FontSize',15)
 axis equal
 axis tight
 set(gcf,'Color','w')
+
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = strjoin({'Convolution_clusters',data(1).name,'.eps'},'_');
+fig_set(1).fig_size = [5 4.7];
+fig_set(2).fig_size = [2 4.7];
+fig_set(3).fig_size = [5 2];
+% fig_set(1).colorbar = 1;
+% fig_set(1).colorbar_label = '# of ROIs';
+fig_set(1).box = 'on';
+fig_set(1).cmap = cmap;
+
+h = style_figure(gcf,fig_set);
 %% Get the gains
 
 data_copy = data;
-data_copy(1).conc_trace = downsampled_traces;
+data_copy(1).conc_trace = downsample_full;
 % get the gains
-[delta_norm, qual_res, cross_res] = gain_analysis(data_copy(1),21:60);
+[delta_norm, qual_res, cross_res] = gain_analysis(data_copy(1),stim_time);
 %% Get the types
 
 % get the 10th percentile
@@ -399,3 +429,20 @@ image(permute(pattern_full,[2 1 3]))
 set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
 
 set(gcf,'Color','w')
+
+
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = strjoin({'Convolution_types',data(1).name,'.eps'},'_');
+fig_set(1).fig_size = [5 4.7];
+fig_set(2).fig_size = [2 4.7];
+fig_set(3).fig_size = [5 2];
+% fig_set(1).colorbar = 1;
+% fig_set(1).colorbar_label = '# of ROIs';
+fig_set(1).box = 'on';
+fig_set(3).cmap = cmap;
+
+h = style_figure(gcf,fig_set);
+

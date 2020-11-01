@@ -480,7 +480,8 @@ for datas = 1:num_data
         fig_set(1).fig_path = fullfile(fig_path,'Single_fish');
         fig_set(1).fig_name = strjoin({'singleFishPCA',data(datas).name,...
             'region',region_data{region,2},'set',num2str(stim_set),'Fish',num2str(fish),'.png'},'_');
-        fig_set(1).fig_size = 2.2;
+        fig_set(1).fig_size = [4.5 5];
+        fig_set(1).LineWidth = 1;
         
         
         h = style_figure(gcf,fig_set);
@@ -536,6 +537,8 @@ for datas = 1:num_data
         fish_mat = zeros(fish_num,size(stim_matrix,1));
         % for all the fish
         for fish = 1:fish_num
+%             fish_mat(fish,:) = acos(dot(stim1(:,:,fish),stim2(:,:,fish),2)/norm(stim1(:,:,fish))/norm(stim2(:,:,fish)))./pi();
+%              fish_mat(fish,:) = 1 - dot(stim1(:,:,fish),stim2(:,:,fish),2)/norm(stim1(:,:,fish))/norm(stim2(:,:,fish));
             fish_mat(fish,:) = (vecnorm(stim1(:,:,fish)-stim2(:,:,fish),2,2));
 %             fish_mat(fish,:) = cumsum(abs(stim1(:,2,fish)-stim2(:,2,fish)));
         end
@@ -578,8 +581,8 @@ for datas = 1:num_data
 
         % plot the distribution median in the matrix
         distance = squeeze(normr_1(distance_cell{datas}(combos,:,:),1));
-        plot_matrix(x_coord,y_coord) =  median(reshape(distance(:,:),[],1),1);
-
+%         distance = squeeze(distance_cell{datas}(combos,:,:));
+        plot_matrix(x_coord,y_coord) = median(reshape(distance(:,:),[],1),1);
         
 %         hold on
 %         xlabel(stim_labels{stim_combo(combos,1)})
@@ -603,6 +606,7 @@ end
 
 % plot the matrix
 imagesc(plot_matrix)
+
 axis square
 set(gca,'TickLength',[0 0],'XTick',1:stim_num,'YTick',1:stim_num)
 set(gca,'XTickLabels',stim_labels,'YTickLabels',stim_labels,'XTickLabelRotation',45)

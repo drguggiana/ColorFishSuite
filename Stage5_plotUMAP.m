@@ -110,10 +110,10 @@ close all
 histo = figure;
 
 % define whether to use gains or average levels
-metric = 'gains';
+metric = 'average';
 % allocate memory to store the max values for stats
 max_cell = cell(num_data,1);
-for datas = 1:num_data
+for datas = num_data:-1:1
     
     % load the embedding
     reduced_data = UMAP_cell{datas};
@@ -196,7 +196,7 @@ for datas = 1:num_data
 %         histogram(max_values,'Normalization','probability','LineWidth',1,'FaceColor',hist_colors(3-datas,:))
 %         hold on
 
-        if datas == num_data
+        if datas == 1
             figure(histo)
             
             % allocate memory for the bin counts
@@ -207,7 +207,7 @@ for datas = 1:num_data
             end
 %             histogram(max_values,'Normalization','probability','LineWidth',1,'FaceColor',hist_colors(3-datas,:))
             bars = bar(vertcat(bin_counts{:})');
-            tint_colors = tint_colormap(hist_colors,0.4);
+            tint_colors = tint_colormap(hist_colors,0);
             set(bars(1),'FaceColor',tint_colors(2,:))
             set(bars(2),'FaceColor',tint_colors(1,:))
             
@@ -216,7 +216,7 @@ for datas = 1:num_data
             set(gca,'FontSize',7,'LineWidth',1,'TickLength',[0 0])
 %             ylabel('Proportion ROIs')
 %             title('Response Gains')  
-            legend({'Tectum','AF10'})
+%             legend({'AF10','Tectum'})
 %             set(gcf,'Color','w')
 %             file_path = fullfile(fig_path,strjoin({'histoUMAP',metric,data(1).name,data(2).name,...
 %                 'Combined','set',num2str(region_set),'.png'},'_'));
@@ -228,7 +228,7 @@ for datas = 1:num_data
             fig_set(1).fig_path = fig_path;
             fig_set(1).fig_name = strjoin({'histoUMAP',metric,data(1).name,data(2).name,...
                 'Combined','set',num2str(region_set),'.eps'},'_');
-            fig_set(1).fig_size = [3.8 3];
+            fig_set(1).fig_size = [4.2 3.5];
             fig_set(1).painters = 1;
 %             fig_set(1).linewidth = 1;
             

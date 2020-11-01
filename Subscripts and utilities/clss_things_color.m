@@ -11,10 +11,10 @@ learn_var = 4;
 %allocate memory to store the results from the analysis
 %1 conc conf matrix,2 conc diagonal frac,3 shuff ave and shuff std
 %4 predicted vectors, 5 label vector
-class_cell = cell(5,1);
+class_cell = cell(6,1);
 
 %allocate memory for the results
-redec_cell = cell(redec_num,4);
+redec_cell = cell(redec_num,5);
 
 %for all the reps
 for redec = 1:redec_num
@@ -376,7 +376,33 @@ for redec = 1:redec_num
     % also save the predicted and label vectors
     redec_cell{redec,3} = af_pred;
     redec_cell{redec,4} = test_label;
+    % save the weights (importance index according to Stefanini et al.
+    % 2020)
+    % get the number of cells
+    cell_number = size(train_set,2);
+    % get the number of folds
+    fold_number = size(af_deco.Trained,1);
+    % allocate memory for the weights across folds
+    fold_weights = zeros(fold_number,cell_number);
+    % for all the folds
+    for folds = 1:fold_number
+        % get the current fold
+        current_fold = af_deco.Trained{folds};
+        % allocate memory for the individual learner weights
+        learner_number = size(current_fold.BinaryLearners,1);
+        learner_weights = zeros(learner_number,cell_number);
+        % for all the learners
+        for learners = 1:learner_number
+            % store the current learner weights
+            learner_weights(learners,:) = current_fold.BinaryLearners{learners}.Beta;
+        end
+        % average the learner weights
+        fold_weights(folds,:) = mean(abs(learner_weights),1);
+        
+    end   
     
+    % average across folds and save
+    redec_cell{redec,5} = mean(fold_weights,1)';
 end
 
 %concatenate the conf matrices
@@ -425,6 +451,7 @@ class_cell{2} = redec_frac;
 class_cell{3} = [shuff_mean,shuff_std];
 class_cell{4} = cat(2,redec_cell{:,3});
 class_cell{5} = cat(2,redec_cell{:,4});
+class_cell{6} = cat(2,redec_cell{:,5});
     
 %     %calculate the mutual information between the observed and predicted
 %     mut_inf = mutualinfo(test_label,af_pred);
