@@ -10,7 +10,7 @@ addpath(genpath(paths(1).main_path))
 rng(1)
 
 % define whether to run parallel
-parallel = 1;
+parallel = 0;
 
 %maximum allowed area for a seed
 thres_area = 150;
@@ -166,7 +166,7 @@ for exp_ind = 1:num_exp
         gcp = parpool;
     end
     %for all the z sections
-    parfor z = 1:z_num
+    for z = 1:z_num
         %% Calculate dfof, compress replicates, accumulate and align
     %     profile on
         [singlez_mat,shift_cell{z},ave_frame{z},snr_mat,allreps_mat] = ...

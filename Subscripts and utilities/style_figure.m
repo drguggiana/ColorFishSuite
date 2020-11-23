@@ -5,20 +5,38 @@ function handle_out = style_figure(fig_handle,fig_set)
 
 % define the default values
 default_settings = struct([]);
+% default colormap
 default_settings(1).cmap = magma;
+% default font size. the idea is not to have too many font sizes in a
+% paper, so I went with 3. you define them down there and this just deines
+% which one to use with the figure as default. Check journal requirements,
+% though usually it's 7pt
 default_settings(1).font_size = 'small';
+% default plot X label
 default_settings(1).XLabel = '';
+% defaults plot y label
 default_settings(1).YLabel = '';
+% default title, though better not use cause export_fig can't handle it
 default_settings(1).Title = '';
+% default colorbar label
 default_settings(1).colorbar_label = '';
+% default for the squared plot box (up and right edges)
 default_settings(1).box = 'off';
+% whether to include a colorbar, default is off
 default_settings(1).colorbar = 0;
+% default size (width, height) in cm
 default_settings(1).fig_size = [10 10];
+% whether to crop, most instances it is better to do so
 default_settings(1).crop = 1;
+% default font, Arial is a good go to that's also sans serif
 default_settings(1).FontName = 'Arial';
+% disregard, mostly an old feature
 default_settings(1).font_factor = 1;
+% default linewidth for the axes, don't go smaller
 default_settings(1).LineWidth = 1;
+% whether to use painter rendering, activate if the plot resolution is bad
 default_settings(1).painters = 0;
+% whether to skip an axis, for multiaxes plots/subplots
 default_settings(1).skip = 0;
 
 % get the axis handle

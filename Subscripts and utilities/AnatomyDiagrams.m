@@ -11,7 +11,7 @@ fig_path = strcat(paths(1).fig_path,'Setup\');
 registration_path = paths(1).registration_path;
 
 % define which map to target
-target_map = 'syn';
+target_map = 'Tectum';
 %% Load the reference brain
 
 % define the ref brain depending on the file
@@ -89,8 +89,10 @@ switch target_map
         coordinate_conversion = [274,0,0];
         front_limit = 300;
         side_limit = 310;
-        cmap = distinguishable_colors(7,{'k','w','g','r','b','m','y'});
-        cmap = cmap(end,:);
+        bar_ratio = 3;
+        bar_length = 4.3;
+        cmap = distinguishable_colors(2,{'k','y','w','g','r','b','m'});
+        cmap = cmap(2,:);
         im_range = 0.3;
     case 'Tectum'
         field_list = {'Tectum Stratum','Tecum Neuropil'};
@@ -98,8 +100,10 @@ switch target_map
         coordinate_conversion = [272,74,49];
         front_limit = 200;
         side_limit = 310;
-        cmap = distinguishable_colors(length(field_names),{'k','y','w','g','r','b','m'});
-        cmap = cmap(2,:);
+        bar_ratio = 3;
+        bar_length = 4.3;
+        cmap = distinguishable_colors(7,{'k','w','g','r','b','m','y'});
+        cmap = cmap(end,:);
 %         cmap = magma(3);
 %         cmap = cmap([2 2],:);
         im_range = 0.3;

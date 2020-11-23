@@ -76,4 +76,7 @@ for exp_ind = 1:num_exp
     end  
     % copy the TDMS file
     status2 = copyfile(strcat(tar_path,'.TDMS'),strcat(output_folder,'.TDMS'));
+    %% Also downsample the anatomy
+    
+    
 end

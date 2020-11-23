@@ -68,9 +68,40 @@ close all
 %             continue
 %         end
         % define the fitter (AF10 in this case)
-        tar2 = data(2).region_clusters(7).clu_ave;
+        % get the vector with region info
+        region_vector2 = data(2).anatomy_info(:,1);
+        region_vector2 = region_vector2==10;
+        idx_clu2 = data(2).idx_clu;
+        idx_clu2(~region_vector2) = 0;
+        % get the traces
+        traces2 = data(2).conc_trace;
+        traces2 = reshape(traces2,[],data(2).time_num,data(2).stim_num);
+        traces2 = reshape(traces2(:,21:60,:),size(traces2,1),[]);
+        % allocate memory for the cluster averages
+        tar2 = zeros(data(2).clu_num,size(traces2,2));
+        % for all the clusters
+        for clu = 1:data(2).clu_num
+            tar2(clu,:) = mean(traces2(idx_clu2==clu,:),1);
+        end
+        
+%         tar2 = data(2).region_clusters(7).clu_ave;
         % define the fitted (Tectum)
-        tar1 = cat(1,data(1).region_clusters([1,3]).clu_ave);
+%         tar1 = cat(1,data(1).region_clusters([1,3]).clu_ave);
+        % get the vector with region info
+        region_vector1 = data(1).anatomy_info(:,1);
+        region_vector1 = region_vector1==1|region_vector1==3;
+        idx_clu1 = data(1).idx_clu;
+        idx_clu1(~region_vector1) = 0;
+        % get the traces
+        traces1 = data(1).conc_trace;
+        traces1 = reshape(traces1,[],data(1).time_num,data(1).stim_num);
+        traces1 = reshape(traces1(:,21:60,:),size(traces1,1),[]);
+        % allocate memory for the cluster averages
+        tar1 = zeros(data(1).clu_num,size(traces1,2));
+        % for all the clusters
+        for clu = 1:data(1).clu_num
+            tar1(clu,:) = mean(traces1(idx_clu1==clu,:),1);
+        end
         
         %for all the averages in 1, calculate models from the raw traces in 2
         %allocate memory to store the model results
@@ -153,7 +184,7 @@ stim_num = data(1).stim_num;
 % % get the number of clusters
 % clu_num = data(1).clu_num;
 % define the trace offset
-trace_offset = 1;
+trace_offset = 3;
 % calculate the top of the plot
 plot_top = trace_offset*(tectum_clunum-1);
 % framerate added manually, need to fix this
@@ -162,9 +193,9 @@ framerate = data(1).framerate;
 for clu = 1:tectum_clunum
     % get the average trace
     ave_trace = normr_1(nanmean(conc_trace(idx_clu==clu,:),1),1);
-%     std_trace = nanstd(conc_trace(idx_clu==clu,:),0,1);
+    std_trace = nanstd(conc_trace(idx_clu==clu,:),0,1);
     ave_perstim = reshape(ave_trace,[],stim_num);
-%     std_perstim = reshape(std_trace,[],stim_num);
+    std_perstim = reshape(std_trace,[],stim_num);
     time_vector = (0:size(ave_trace,2)-1)./framerate;
     time_perstim = reshape(time_vector,[],stim_num);
     
@@ -177,14 +208,15 @@ for clu = 1:tectum_clunum
     % split by stimulus
     for stim = 1:stim_num
         % plot it
-%         shadedErrorBar(time_perstim(:,stim),...
-%             ave_perstim(:,stim)+(plot_top-(a_count-1)*trace_offset),std_perstim(:,stim),...
-%             {'color',color_scheme(stim,:),'LineWidth',1})
-        plot(time_perstim(:,stim),...
-            ave_perstim(:,stim)+(plot_top-(a_count-1)*trace_offset),'Color',color_scheme(stim,:),'LineWidth',1)
+        shadedErrorBar(time_perstim(:,stim),...
+            ave_perstim(:,stim)+(plot_top-(a_count-1)*trace_offset),std_perstim(:,stim),...
+            {'color',color_scheme(stim,:),'LineWidth',1})
+%         plot(time_perstim(:,stim),...
+%             ave_perstim(:,stim)+(plot_top-(a_count-1)*trace_offset),'Color',color_scheme(stim,:),'LineWidth',1)
         hold on
         plot(time_perstim(:,stim),fit_perstim(:,stim)+(plot_top-(a_count-1)*trace_offset),...
-            '--','Color',tint_colormap(color_scheme(stim,:),0.5),'LineWidth',1)
+            '-','Color',[0 0 0],'LineWidth',1)
+%             '--','Color',tint_colormap(color_scheme(stim,:),0.5),'LineWidth',1)
         
     end
     

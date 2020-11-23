@@ -160,7 +160,7 @@ for redec = 1:redec_num
             stim_label(4:8:end) = 4;%mid_bottom 2
             stim_label(6:8:end) = 6;%mid top 1
             stim_label(8:8:end) = 8;%mid top 2
-        case 10
+        case {10,22}
             %this is actually stim type labelling for the p6p8 data
             % for all the reps
             for reps = 1:rep_num
@@ -174,7 +174,7 @@ for redec = 1:redec_num
                     t_perstim*6+t_perstim*6*(reps-1)) = 3;
 %                 end
             end
-        case 11
+        case {11,23}
             %this is color type labelling for the p6p8 data
             % for all the reps
             for reps = 1:rep_num
@@ -186,7 +186,7 @@ for redec = 1:redec_num
                         (t_perstim*(s_type*2))+t_perstim*6*(reps-1)) = 2;
                 end
             end
-        case 12
+        case {12,24}
             %this is both stim and color labelling for the p6p8 data
 
             % for all the reps
@@ -293,6 +293,18 @@ for redec = 1:redec_num
             stim_label = repmat(cat(2,ones(1,cycle_length/2),2.*ones(1,cycle_length/2)),1,rep_num*2);
             weight_vec = ones(size(stim_label,2),1);
     end
+    
+    % if it's the stimuli without flash, exclude the flash
+    if any([22,23,24]==classpcolor)
+        % reshape
+        stim_only = reshape(stim_only,[],t_perstim,stim_num2,rep_num);
+        stim_label = reshape(stim_label,1,t_perstim,stim_num2,rep_num);
+        % redefine the number of stimuli
+        stim_num2 = 4;
+        % remove the flash stimuli
+        stim_only = reshape(stim_only(:,:,1:stim_num2,:),[],t_perstim*stim_num2*rep_num);
+        stim_label = reshape(stim_label(1,:,1:stim_num2,:),1,t_perstim*stim_num2*rep_num);
+    end
     %if not using 1 class per color
     if classpcolor > 1 && classpcolor < 10 && classpcolor ~= 6
         %get the highest number on the first category
@@ -307,46 +319,20 @@ for redec = 1:redec_num
     if shuff_label == 1
         stim_label = stim_label(randperm(length(stim_label)));
     end
-    %get the number of categories
-    categ_num = length(unique(stim_label));
+%     %get the number of categories
+%     categ_num = length(unique(stim_label));
     
     %initialize the train and test label variables
-    train_label = zeros(round(length(stim_label)*set_part),1);
-    test_label = zeros(length(stim_label)-length(train_label),1);
+%     train_label = zeros(round(length(stim_label)*set_part),1);
+%     test_label = zeros(length(stim_label)-length(train_label),1);
+
+    %get the sets
+    train_set = stim_only';
+    train_label = stim_label;
+
+%     test_set = train_set;
+    test_label = train_label;
     
-%     %shuffle only if not loo
-%     if ~loo
-%         %keep randomizing until the sets used contain members from all stimuli
-%         while length(unique(train_label))<categ_num || length(unique(test_label))<categ_num
-%             %define the training and test sets at random
-%             %get the vector of randomized indices
-%             % rng(0)
-%             rand_ind = randperm(obs_num);
-%             % rng('default')
-%             
-%             %get the sets
-%             train_set = stim_only(:,rand_ind(1:ceil(obs_num*set_part)))';
-%             train_label = stim_label(rand_ind(1:ceil(obs_num*set_part)));
-%             
-%             %if there is a partition
-%             if set_part ~= 1
-%                 %use the rest of the data set for calculations
-%                 test_set = stim_only(:,rand_ind(1+ceil(obs_num*set_part):end))';
-%                 test_label = stim_label(rand_ind(1+ceil(obs_num*set_part):end));
-%             else
-%                 %if not, use again the whole data set for testing
-%                 test_set = train_set;
-%                 test_label = train_label;
-%             end
-%         end
-%     else
-        %get the sets
-        train_set = stim_only';
-        train_label = stim_label;
-        
-        test_set = train_set;
-        test_label = train_label;
-%     end
     %set parallel computing parameters
     options = statset('UseParallel',0);
     %if leave one out
@@ -363,7 +349,8 @@ for redec = 1:redec_num
     else
         %calculate the decoder
         af_deco = fitcecoc(train_set,train_label,'KFold',5,'Verbose',0,...
-            'Learners',learner_vec{learn_var},'Coding','onevsall','Options',options);
+            'Learners',learner_vec{learn_var},'Coding','onevsall','Prior','Empirical',...
+            'Options',options);
         
         %use the decoder to predict the data
         af_pred = kfoldPredict(af_deco);
@@ -411,24 +398,6 @@ redec_conf = cat(3,redec_cell{:,1});
 redec_frac = horzcat(redec_cell{:,2});
 %calculate the average conf mat
 conf_mat = mean(redec_conf,3);
-%     %plot and report the averages (normalizing to sum per column)
-%     figure
-%     imagesc(normr_1(conf_mat,4))
-% %     title('Confusion Matrix Mean','FontSize',20)
-%     xlabel('Predicted Stimulus','FontSize',35)
-%     ylabel('Observed Stimulus','FontSize',35)
-% %     set(gca,'XTick',1:2:categ_num,'FontSize',20)
-%     set(gca,'XTick',[],'YTick',[])
-%     axis('image')
-
-%     figure
-%     imagesc(std(redec_conf,0,3))
-%     title('Confusion Matrix STD','FontSize',20)
-%     xlabel('Predicted Stimulus','FontSize',20)
-%     ylabel('Observed Stimulus','FontSize',20)
-%     set(gca,'XTick',1:2:categ_num,'FontSize',20)
-
-%     ave_frac = mean(redec_frac)
 
 %calculate average diag fraction of shuffled data
 %define the number of reps
@@ -452,25 +421,3 @@ class_cell{3} = [shuff_mean,shuff_std];
 class_cell{4} = cat(2,redec_cell{:,3});
 class_cell{5} = cat(2,redec_cell{:,4});
 class_cell{6} = cat(2,redec_cell{:,5});
-    
-%     %calculate the mutual information between the observed and predicted
-%     mut_inf = mutualinfo(test_label,af_pred);
-%     %also, shuffle the prediction and calculate the mutual information. Repeat
-%     %100 times
-%     %define the number of reps
-%     mut_rep = 100;
-%     %allocate memory for the calculation
-%     mut_vec = zeros(mut_rep,1);
-%     %for all the times
-%     for reps = 1:mut_rep
-%         mut_vec(reps) = mutualinfo(test_label,af_pred(randperm(length(af_pred))));
-%     end
-%     
-%     shuff_mutinf = mean(mut_vec);
-%     %store the mutual info data
-%         class_cell{datas,4} = [mut_inf,shuff_mutinf];
-
-
-
-% %report the mean average fraction
-% ave_diag = mean(vertcat(class_cell{:,2}),2);

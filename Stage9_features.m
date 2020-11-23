@@ -421,7 +421,7 @@ if contains(data(1).name,'p17b')
         figure
         
 %         violin(plot_matrix);
-        plotSpread(plot_matrix,'distributionColors',cone_color_scheme);
+        plotSpread(plot_matrix,'distributionColors',cone_color_scheme.*2);
 %         boxplot(plot_matrix)
         set(gca,'XTick',[],'TickLength',[0 0])
         axis tight
@@ -828,10 +828,11 @@ type_cell{3,3} = pattern_full;
 figure
 subplot(2,1,2)
 image(permute(pattern_full,[2 1 3]))
-set(gca,'TickLength',[0 0])
+set(gca,'TickLength',[0 0],'YTick',1:4,'YTickLabels',{'R','G','B','UV'})
 %         imagesc(pattern')
 subplot(2,1,1)
-bar(pattern_counts)
+bar(pattern_counts,'FaceColor',[0.8 0.8 0.8])
+% BarPlotBreak(pattern_counts,pattern_counts(2)*1.8,pattern_counts(1)*0.9,'Line',0.6,2)
 set(gca,'YScale','linear')
 set(gca,'TickLength',[0 0])
 %         set(gca,'XDir','reverse')
@@ -842,7 +843,7 @@ axis tight
 fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
-fig_set(1).fig_name = 'responseTypesZhou.png';
+fig_set(1).fig_name = 'responseTypesZhou.eps';
 fig_set(1).fig_size = 4.4;
 fig_set(2).fig_size = 4.4
 
@@ -898,3 +899,23 @@ if contains(data(1).name,'p17b')
     end
     autoArrangeFigures
 end
+%% Plot ROIs per fish
+
+close all
+
+% allocate memory for the data
+fish_rois = cell(num_data,2);
+% for both datasets
+for datas = 1:num_data
+    % get the fish ori info
+    fish_ori = data(datas).fish_ori(:,1);
+    % get the number of fish
+    fish_num = length(unique(fish_ori));
+    % get the counts
+    fish_rois{datas,2} = histcounts(fish_ori,fish_num);
+    % store the name
+    fish_rois{datas,1} = data(datas).figure_name;
+    
+end
+
+tb = table(fish_rois(:,2));

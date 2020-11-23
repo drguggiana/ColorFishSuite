@@ -34,14 +34,14 @@ end
 % define the number of repeats to run each classification scheme
 repeat_number = 10;
 % define whether to subsample. 1) If subsampling from each region within a
-% datase, 2) if subsampling across datasets (usually with
+% dataset, 2) if subsampling across datasets (usually with
 % combination=1)3) same as 1 with varying ROI numbers, 4) same as 2 with
 % varying ROI numbers
 subsample = 2;
 % combine regions
 region_combination = 1;
 %define whether to shuffle labels (for neutral classification)
-shuff_label = 0;
+shuff_label = 1;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
 % 14,15,16 is the comparison between the p8 red vs UV , including the p17b only
@@ -73,6 +73,7 @@ redec_num = 1;
 
 % define the number of roi groups to try
 group_vector = [5 10 20 40 80 100 0];
+% group_vector = [20 40 80 100 0];
 
 % get the number of datasets
 num_data = length(data);
@@ -228,25 +229,39 @@ for datas = 1:num_data
                     % print the number of ROIs
                     fprintf(strjoin({'ROIs:', num2str(size(temp_stimuli,1)),'\r\n'},' '))
                     % select the ROIs to use
-                    if group_number == 1 || group_vector(group) == 0
+                    if group_number == 1 || group_vector(group) == 0 ||size(temp_stimuli,1) < group_vector(group)
                         
                         temp_stimuli_eff = temp_stimuli;
+                        
                     else
-                        % exit if the requested number is higher than
-                        % available
-                        if size(temp_stimuli,1) < group_vector(group)
-                            continue
-                        end
+%                         % exit if the requested number is higher than
+%                         % available
+%                         if size(temp_stimuli,1) < max(group_vector)
+%                             continue
+%                         end
                         
                         % get the indexes based on weight from the classifier
                         % that uses all of them
-                        current_weights = weights{datas}{fish,repeat};
+                        current_weights = weights{datas,1}{fish,repeat};
                         % sort and get the top n neurons
                         [~,sort_idx] = sort(current_weights);
-                        neuron_idx = sort_idx(1:group_vector(group));
                         
-%                         % random pick of neurons
-%                         neuron_idx = randperm(size(temp_stimuli,1),group_vector(group));
+%                         % get the corresponding percentage of neurons
+%                         neuron_perc = length(sort_idx)/100;
+%                         if group == 1
+%                             neuron_idx = sort_idx(1:round(group_vector(group)*neuron_perc));
+%                         else
+%                             neuron_idx = sort_idx(round(group_vector(group-1)*neuron_perc):...
+%                                 round(group_vector(group)*neuron_perc));
+%                         end
+                        
+%                         if group == 1
+                            neuron_idx = sort_idx(1:group_vector(group));
+%                         elseif group_vector(group) == 0
+%                             neuron_idx = sort_idx(group_vector(group-1):end);
+%                         else
+%                             neuron_idx = sort_idx(group_vector(group-1):group_vector(group));
+%                         end
                         
                         temp_stimuli_eff = temp_stimuli(neuron_idx,:,:);
                     end
@@ -281,7 +296,13 @@ for datas = 1:num_data
                 % for all the fields in the cell
                 for field = 1:size(fish_classifiers,1)
                     if field == 6
-                        average_classifier{field} = fish_classifiers(field,:);
+                        % check if all the fish are represented, otherwise
+                        % include a NaN in the cell
+                        if size(fish_classifiers,2) < num_animals
+                            average_classifier{field} = cat(2,fish_classifiers(field,:),{nan});
+                        else
+                            average_classifier{field} = fish_classifiers(field,:);
+                        end
                     else
                         % average across the fish classifiers
                         average_classifier{field} = squeeze(mean(cat(4,fish_classifiers{field,:}),4));

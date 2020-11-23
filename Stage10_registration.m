@@ -77,9 +77,17 @@ for files = 1:num_files
     %get rid of the extension and add the "list" extension to define the
     %target path
     f_name = strcat(f_name,'.list');
+    % construct the start of the file name to match
+    f_name = strsplit(f_name,'_');
+    f_name = strcat(strjoin(f_name(1:4),'_'),'_');
+    % get the files in the target directory
+    target_files = dir(tmat_path);
+    target_files = target_files(3:end);
+    % get the matching folder
+    match_folder = target_files(contains({target_files.name},f_name)).name;
 
     %load the actual matrix
-    temp_cell = importdata(fullfile(tmat_path,f_name,'registration'));
+    temp_cell = importdata(fullfile(tmat_path,match_folder,'registration'));
     %and parse it
     %allocate memory for the parsed data
     parse_mat = zeros(5,3);
@@ -690,6 +698,8 @@ end
 % autoArrangeFigures
 %% Calculate single fish maps for the AP and DV projections
 
+if contains(data.name,'p17b')
+
 % get the single reps
 all_single_reps = data.single_reps;
 % allocate memory for the matrices
@@ -732,10 +742,14 @@ for fish = 1:num_fish
 end
 
 clear all_reps
+end
 %% Calculate the projections
 
+if contains(data.name,'p17b')
 % allocate memory to save the AP and DV projections
 apdv_cell = cell(stim_num,3,2);
+% allocate memory for the individual fish for stats
+fish_cell = cell(stim_num,3);
 
 % for all stimuli
 for stim = 1:stim_num
@@ -784,11 +798,16 @@ for stim = 1:stim_num
         % get the average and std across fish
         apdv_cell{stim,dims,1} = mean(fish_profiles,2);
         apdv_cell{stim,dims,2} = std(fish_profiles,0,2)./sqrt(num_fish);
+        % store the individual fish for stats
+        fish_cell{stim,dims} = fish_profiles;
 %         apdv_cell{stim,dims} = squeeze(sum(sum(temp_stack,3),2));
     end
     
 end
+end
 %% Plot the gradients
+if contains(data.name,'p17b')
+
 close all
 
 % define the projection labels
@@ -815,7 +834,7 @@ for dims = 1:3
     ave_matrix = cat(2,apdv_cell{:,dims,1});
     sem_matrix = cat(2,apdv_cell{:,dims,2});
     % Trim the matrices laterally to avoid zeros
-    product = prod(ave_matrix,2);
+%     product = prod(ave_matrix,2);
 %     % find the edges and trim (use to set the range, but lock after to do
 %     the same across datasets)
 %     start = find(product,1,'first');
@@ -860,6 +879,63 @@ for dims = 1:3
     h = style_figure(gcf,fig_set);
 end
 % error('stop here')
+%% Compare the profiles statistically
+    close all
+    for dims = 1:3
+        figure
+        % allocate memory for the comparisons
+        comparison_matrix = zeros(stim_num,stim_num);
+        switch dims
+            case 1
+%                 x_label = {'A','P'};
+                start = 171;
+                stop = 531;
+            case 2
+%                 x_label = {'L','M'};
+                start = 112;
+                stop = 310;
+            case 3
+%                 x_label = {'D','V'};
+                start = 67;
+                stop = 124;
+        end
+        % assemble the matrix for plotting
+        cat_matrix = cat(3,fish_cell{:,dims});
+        % Trim the matrices laterally to avoid zeros
+    %     product = prod(ave_matrix,2);
+    %     % find the edges and trim (use to set the range, but lock after to do
+    %     the same across datasets)
+    %     start = find(product,1,'first');
+    %     stop = find(product,1,'last');
+
+        cat_matrix = cat_matrix(start:stop,:,:);
+
+        % normalize the matrices
+        matrix_max = max(cat_matrix(:));
+        cat_matrix = cat_matrix./matrix_max;
+        
+        % get the list of combinations
+        list_comb = nchoosek(1:stim_num,2);
+        % get the number of combinations
+        number_comb = size(list_comb,1);
+        
+        % for all the combinations
+        for combo = 1:number_comb
+            
+            % get the corresponding profiles
+            prof_1 = reshape(cat_matrix(:,:,list_comb(combo,1)),[],1);
+            prof_2 = reshape(cat_matrix(:,:,list_comb(combo,2)),[],1);
+            
+            % run the comparison
+            comparison_matrix(list_comb(combo,1),list_comb(combo,2)) = signrank(prof_1,prof_2);
+        end
+        
+        % plot the matrix
+        imagesc(comparison_matrix<0.05)
+        title(projection_labels{dims})
+    end
+    autoArrangeFigures
+end
 %% Calculate the overlap between stimuli and compare to reps
 
 % get the single reps
@@ -1086,5 +1162,6 @@ fig_set(1).colorbar = 1;
 fig_set(1).colorbar_label = 'Similarity Index (a.u.)';
 fig_set(1).box = 'on';
 fig_set(1).painters = 1;
+fig_set(1).LineWidth = 0.05;
 
 h = style_figure(gcf,fig_set);

@@ -119,12 +119,12 @@ for roi = 1:roi_number
 end
 
 % plot the matrix
-imagesc(cluster_matrix)
+imagesc(sortrows(cluster_matrix,'descend'))
 cmap = magma(256);
 cmap(1,:) = [1 1 1];
 colormap(cmap)
-xlabel('Downsampled clusters')
-ylabel('Main clusters')
+% xlabel('Downsampled clusters')
+% ylabel('Main clusters')
 set(gcf,'Color','w')
 set(gca,'TickLength',[0 0],'FontSize',15)
 
@@ -133,11 +133,13 @@ fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'mixROI_clusters',data(1).name,data(2).name,'.eps'},'_');
-fig_set(1).fig_size = [5 4.7];
-fig_set(2).fig_size = [2 4.7];
-fig_set(3).fig_size = [5 2];
-% fig_set(1).colorbar = 1;
-% fig_set(1).colorbar_label = '# of ROIs';
+fig_set(1).fig_size = 4;
+fig_set(1).LineWidth = 1;
+% fig_set(1).fig_size = [5 4.7];
+% fig_set(2).fig_size = [2 4.7];
+% fig_set(3).fig_size = [5 2];
+fig_set(1).colorbar = 1;
+fig_set(1).colorbar_label = '# of ROIs';
 fig_set(1).box = 'on';
 fig_set(1).cmap = cmap;
 
@@ -300,6 +302,11 @@ if contains(data(1).name,'p17b')
     BarPlotBreak(total_counts(:,1),total_counts(2,1)*1.8,total_counts(1,1)*0.9,'Line',0.6,2)
     set(gca,'YScale','linear','XTick',[],'Visible','off')
     axis tight
+    % compute the total difference
+    disp(sum(abs(total_counts(:,1)-total_counts(:,2))))
+%     middle_point = get(gca,'XLim');
+%     middle_point = (middle_point(2)+middle_point(1))/2;
+%     text(middle_point,0.5,num2str(sum(abs(total_counts(:,1)-total_counts(:,2)))),'FontSize',40)
 
     %         break_axis = breakyaxis([400 1900],0.05, 0.1);
     
@@ -312,18 +319,29 @@ if contains(data(1).name,'p17b')
     set(gca,'YScale','linear','XTick',[],'Visible','off','YDir','reverse')
     
     axis tight
+
+    
     % create the settings
     fig_set = struct([]);
     
+    fig_size = 5;
     fig_set(1).fig_path = fig_path;
     fig_set(1).fig_name = strjoin({'mixROI_types',data(1).name,data(2).name,'.eps'},'_');
-    fig_set(1).fig_size = 3.6;
-    fig_set(2).fig_size = 3.6;
+    fig_set(1).fig_size = fig_size;
+    fig_set(2).fig_size = fig_size;
     fig_set(1).painters = 1;
-    fig_set(3).fig_size = 3.6;
-    fig_set(4).fig_size = 3.6;
-    fig_set(5).fig_size = 3.6;
-    fig_set(6).fig_size = 3.6;
+    fig_set(3).fig_size = fig_size;
+    fig_set(4).fig_size = fig_size;
+    fig_set(5).fig_size = fig_size;
+    fig_set(6).fig_size = fig_size;
+    
+%     fig_set(1).LineWidth = 0.5;
+%     fig_set(2).LineWidth = 0.5;
+%     fig_set(3).LineWidth = 0.5;
+%     fig_set(4).LineWidth = 0.5;
+%     fig_set(5).LineWidth = 0.5;
+%     fig_set(6).LineWidth = 0.5;
+
     % fig_set(1).colorbar = 1;
     % fig_set(1).colorbar_label = '# of ROIs';
 %     fig_set(1).box = 'on';

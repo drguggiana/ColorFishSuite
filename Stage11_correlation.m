@@ -13,8 +13,10 @@ data = load_clusters(cluster_path);
 % define the color scheme depending on the stimulus type
 if contains(data(1).name,'p17')
     color_scheme = [1 0 0;0 1 0;0 0 1;1 0 1];
+    dataset_colors = paths.afOT_colors;
 else
     color_scheme = distinguishable_colors(6);
+    dataset_colors = paths.afOT_colors;
 end
 
 % define the dataset colors (assuming only AF10 vs Tectum)
@@ -136,11 +138,11 @@ for datas = 1:num_data
     h = bettercorr(rho,cmap);
     
     
-    set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',20,...
+    set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',7,...
         'XTickLabelRotation',45)
-    set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',20)
+    set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',7)
     set(gca,'CLim',[0,1])
-    set(gca,'TickLength',[0 0],'LineWidth',2)
+    set(gca,'TickLength',[0 0],'LineWidth',0.05)
 %     title(fig_name{datas},'Interpreter','None')
     axis square
 %     cbar = colorbar;
@@ -161,11 +163,12 @@ for datas = 1:num_data
     if contains(data(datas).name,'p17b')
         fig_set(1).fig_size = 4;
     else
-        fig_set(1).fig_size = 4;
+        fig_set(1).fig_size = 5;
     end
     fig_set(1).colorbar = 1;
     fig_set(1).colorbar_label = 'Decorrelation';
-    fig_set(1).box = 'on';
+    fig_set(1).LineWidth = 0.05;
+%     fig_set(1).box = 'on';
     fig_set(1).painters = 1;
     h = style_figure(gcf,fig_set);
     
@@ -179,9 +182,9 @@ end
 figure
 imagesc(correlations(:,:,1)-correlations(:,:,2))
 % h = bettercorr(correlations(:,:,1)-correlations(:,:,2),cmap);
-set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',20,...
+set(gca,'XTick',1:stim_num,'XTickLabels',stim_labels,'FontSize',5,...
     'XTickLabelRotation',45)
-set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',20)
+set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',5)
 % set(gca,'CLim',[-1,1])
 set(gca,'TickLength',[0 0],'LineWidth',2)
 % title('Delta Decorrelation','Interpreter','None', 'FontSize',20)
@@ -199,21 +202,23 @@ axis square
 fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
-fig_set(1).fig_name = strjoin({'corrOverall','delta',data(1).name,data(2).name,'.png'},'_');
+fig_set(1).fig_name = strjoin({'corrOverall','delta',data(1).name,data(2).name,'.eps'},'_');
 if contains(data(datas).name,'p17b')
-    fig_set(1).fig_size = 2.4;
+    fig_set(1).fig_size = 3.5;
 else
     fig_set(1).fig_size = 4;
 end
 fig_set(1).colorbar = 1;
 fig_set(1).colorbar_label = 'Delta Decorrelation';
 fig_set(1).box = 'on';
+fig_set(1).painters = 1;
+fig_set(1).LineWidth = 0.05;
 h = style_figure(gcf,fig_set);
 
 
 
 
-autoArrangeFigures
+% autoArrangeFigures
 %% Calculate correlation over time
 
 close all
@@ -561,7 +566,7 @@ for datas = 1:num_data
         title(stim_labels{stim},'color',color_scheme(stim,:))
 %         sgtitle(strjoin({'Time Correlation',data(datas).name},'_'),'Interpreter','None', 'FontSize',8)
         set(gca,'XTick',[],'YTick',[])
-        set(gca,'TickLength',[0 0],'LineWidth',2)
+        set(gca,'TickLength',[0 0],'LineWidth',0.05)
     %     set(gca,'XTick',1:stim_num2,'XTickLabels',stim_labels,'FontSize',20,...
     %         'XTickLabelRotation',90)
     %     set(gca,'YTick',1:stim_num2,'YTickLabels',stim_labels,'FontSize',20)
@@ -577,9 +582,12 @@ for datas = 1:num_data
         fig_set = struct([]);
         
         fig_set(1).fig_path = fig_path;
-        fig_set(1).fig_name = strjoin({'corrTime',data(datas).name,stim_labels{stim},'.png'},'_');
-        fig_set(1).fig_size = 1.8;
+        fig_set(1).fig_name = strjoin({'corrTime',data(datas).name,stim_labels{stim},'.eps'},'_');
+        fig_set(1).fig_size = 2.3;
         fig_set(1).colorbar = 1;
+        fig_set(1).box = 'on';
+        fig_set(1).painters = 1;
+        fig_set(1).LineWidth = 0.05;
 %         fig_set(1).colorbar_label = 'Correlation';
         
         h = style_figure(gcf,fig_set);
@@ -643,13 +651,13 @@ set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',15)
 % set(gca,'YTick',2:0.5:stim_num,'YTickLabels',fliplr(stim_labels))
 set(gca,'YTick',[])
 xlabel('Time (s)')
-ylabel('Relative Correlation')
+ylabel('Relative Corr.')
 box off
 axis tight
 plot([0 0],get(gca,'YLim'),'k--','LineWidth',1)
-% insert the legend
-legend([tectum_handles.mainLine,af10_handles.mainLine],fig_name,...
-    'Location','northoutside','Orientation','horizontal')
+% % insert the legend
+% legend([tectum_handles.mainLine,af10_handles.mainLine],fig_name,...
+%     'Location','northoutside','Orientation','horizontal')
 
 % set(gcf,'Color','w')
 % % assemble the figure path
@@ -663,8 +671,9 @@ fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'corrTime','delta',...
-    data(1).name,data(2).name,'.png'},'_');
-fig_set(1).fig_size = 2.7;
+    data(1).name,data(2).name,'.eps'},'_');
+fig_set(1).fig_size = 3.6;
+fig_set(1).painters = 1;
 
 h = style_figure(gcf,fig_set);
 
@@ -727,7 +736,7 @@ if contains(data(1).name,'p17b')
         set(gca,'FontSize',20)
         
         cbar = colorbar;
-        set(cbar,'TickLength',0,'LineWidth',2)
+        set(cbar,'TickLength',0,'LineWidth',0.05)
         ylabel(cbar,'Correlation')
         % assemble the figure path
 %         file_path = strjoin({'gainCorr',data(datas).name,'.png'},'_');
@@ -737,9 +746,10 @@ if contains(data(1).name,'p17b')
         fig_set = struct([]);
 
         fig_set(1).fig_path = fig_path;
-        fig_set(1).fig_name = strjoin({'gainCorr',data(datas).name,'.png'},'_');
+        fig_set(1).fig_name = strjoin({'gainCorr',data(datas).name,'.eps'},'_');
         fig_set(1).fig_size = 3;
         fig_set(1).box = 'on';
+        fig_set(1).LineWidth = 0.05;
 
         h = style_figure(gcf,fig_set);
 
@@ -756,7 +766,7 @@ if contains(data(1).name,'p17b')
     gain_labels = cat(1,repmat({'RGCs'},size(data(2).delta_norm,1),1),...
         repmat({'RAs'},size(data(1).delta_norm,1),1));
     [h,ax,bigax] = gplotmatrix(gain_matrix,[],gain_labels,dataset_colors,...
-        'o',2,true,'stairs',{'Red','Green','Blue','UV'});
+        '.',2,0,'stairs');
     % change the font size in the plots
     for plots = 1:20
         set(ax(plots),'FontSize',13,'LineWidth',2,'TickLength',[0 0])
@@ -770,9 +780,10 @@ if contains(data(1).name,'p17b')
     fig_set = struct([]);
 
     fig_set(1).fig_path = fig_path;
-    fig_set(1).fig_name = strjoin({'gainCorrMatrix',data(datas).name,'.png'},'_');
+    fig_set(1).fig_name = strjoin({'gainCorrMatrix',data(datas).name,'.eps'},'_');
     fig_set(1).fig_size = 5.67;
     fig_set(1).box = 'on';
+    fig_set(1).painters = 1;
     for i = 2:21
         fig_set(i).box = 'on';
     end
@@ -788,10 +799,10 @@ if contains(data(1).name,'p17b')
     set(gca,'YTick',1:stim_num,'YTickLabels',stim_labels,'FontSize',20)
     % set(gca,'CLim',[-1,1])
     set(gca,'TickLength',[0 0])
-    title('Delta Correlation','Interpreter','None', 'FontSize',15)
+    title('Delta Corr.','Interpreter','None', 'FontSize',15)
     axis square
     cbar = colorbar;
-    set(cbar,'TickLength',0)
+    set(cbar,'TickLength',0,'LineWidth',0.05)
     ylabel(cbar,'Correlation')
     colormap(magma)
     
@@ -804,9 +815,10 @@ if contains(data(1).name,'p17b')
     fig_set = struct([]);
     
     fig_set(1).fig_path = fig_path;
-    fig_set(1).fig_name = strjoin({'deltaGainCorr',data(1).name,data(2).name,'.png'},'_');
+    fig_set(1).fig_name = strjoin({'deltaGainCorr',data(1).name,data(2).name,'.eps'},'_');
     fig_set(1).fig_size = 3;
     fig_set(1).box = 'on';
+    fig_set(1).LineWidth = 0.05;
     
     h = style_figure(gcf,fig_set);
     
@@ -938,15 +950,17 @@ if contains(data(1).name,'p8')
             hold('on')
 %             plotCustMarkMod(time_axis,dat1,shape_right_x{datas},shape_right_y{datas},...
 %                 marker_size,colors_reduv(2,:),colors_reduv(2,:))
-            errorbar(time_axis,dat1,sem1,strcat('k-',markers{datas}))
+            errorbar(time_axis,dat1,sem1,strcat('-o'),'MarkerSize',3,...
+                'CapSize',2,'MarkerEdgeColor',dataset_colors(datas,:),...
+                'Color',dataset_colors(datas,:))
             %assemble the legend
             legend_cell{combs} = strcat(stim_labels{comb_vec(combs,1)},'_',stim_labels{comb_vec(combs,2)});
-            set(gca,'FontSize',15)
-            set(gca,'XLim',[0 size(time_axis,2)],'YLim',[-0.2 0.7])
+            set(gca,'FontSize',7)
+            set(gca,'XLim',[0 size(time_axis,2)],'YLim',[-0.2 0.7],'YTick',[0 0.3 0.6])
             
             switch combs
                 case 3
-                    xlabel('Time (s)','FontSize',15)
+                    xlabel('Time (s)','FontSize',7)
 %                     ylabel('Flash')
                 case 2
                     set(gca,'XTick',[])
@@ -962,10 +976,11 @@ if contains(data(1).name,'p8')
 %             set(gca,'YLim',[-0.1 0.7])
 
 %             pbaspect([1,2,1])
+            set(gca,'TickLength',[0 0])
+            plot([10 10],get(gca,'YLim'),'k-')
+            box off
         end
-        set(gca,'TickLength',[0 0])
-        plot([10 10],get(gca,'YLim'),'k-')
-        box off
+
 
     end
 %     set(gca,'FontSize',15)
@@ -986,10 +1001,10 @@ if contains(data(1).name,'p8')
     fig_set = struct([]);
     
     fig_set(1).fig_path = fig_path;
-    fig_set(1).fig_name = strjoin({'corrRedUVTime',data(datas).name,'.png'},'_');
-    fig_set(1).fig_size = 5;
-    fig_set(2).fig_size = 5;
-    fig_set(3).fig_size = 5;
+    fig_set(1).fig_name = strjoin({'corrRedUVTime',data(datas).name,'.eps'},'_');
+    fig_set(1).fig_size = 6;
+    fig_set(2).fig_size = 6;
+    fig_set(3).fig_size = 6;
     
     h = style_figure(gcf,fig_set);
 
@@ -1206,7 +1221,7 @@ end
 figure
 imagesc(result_matrix)
 axis square
-set(gca,'TickLength',[0 0],'LineWidth',2)
+set(gca,'TickLength',[0 0],'LineWidth',0.05)
 set(gca,'XTick',1:stim_num,'YTick',1:stim_num,'XTickLabels',...
     stim_labels,'YTickLabels',stim_labels,'XTickLabelRotation',45) 
 set(gca,'FontSize',15)
@@ -1230,12 +1245,13 @@ fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'deltaMedian',data(1).name,data(2).name,num2str(combo),'.eps'},'_');
-fig_set(1).fig_size = 3.8;
+fig_set(1).fig_size = 4.2;
 fig_set(1).cmap = cmap;
 fig_set(1).box = 'on';
 fig_set(1).colorbar = 1;
 fig_set(1).painters = 1;
 fig_set(1).colorbar_label = 'Decorrelation';
+fig_set(1).LineWidth = 0.005;
 h = style_figure(gcf,fig_set);
 
 
@@ -1441,7 +1457,7 @@ for datas = 1:num_data
     end
     % plot the matrix
     imagesc(fish_correlation)
-    set(gca,'TickLength',[0 0],'LineWidth',2)
+    set(gca,'TickLength',[0 0],'LineWidth',2,'XTick',1:num_fish,'YTick',1:num_fish)
     set(gca,'CLim',[0 1])
     xlabel('Fish')
     ylabel('Fish')
@@ -1460,11 +1476,12 @@ for datas = 1:num_data
     fig_set = struct([]);
     
     fig_set(1).fig_path = fig_path;
-    fig_set(1).fig_name = strjoin({'fishCorrelation',data(datas).name,'.png'},'_');
+    fig_set(1).fig_name = strjoin({'fishCorrelation',data(datas).name,'.eps'},'_');
     fig_set(1).box = 'on';
     fig_set(1).colorbar = 1;
     fig_set(1).colorbar_label = 'Correlation';
-    fig_set(1).fig_size = 2.1;
+    fig_set(1).fig_size = 4;
+    fig_set(1).LineWidth = 0.05;
     
     h = style_figure(gcf,fig_set);
     
@@ -1475,7 +1492,7 @@ for datas = 1:num_data
 %     imagesc(normr_1(fish_cluster_traces,2))
     imagesc(log(fish_cluster_traces./max(fish_cluster_traces,[],1)))
 
-    set(gca,'TickLength',[0 0],'LineWidth',2)
+    set(gca,'TickLength',[0 0],'LineWidth',2,'XTick',1:num_fish,'YTick',1:3:size(fish_cluster_traces,1))
     xlabel('Fish')
     ylabel('Cluster')
     
@@ -1493,11 +1510,12 @@ for datas = 1:num_data
     fig_set = struct([]);
     
     fig_set(1).fig_path = fig_path;
-    fig_set(1).fig_name = strjoin({'fishClusters',data(datas).name,'.png'},'_');
+    fig_set(1).fig_name = strjoin({'fishClusters',data(datas).name,'.eps'},'_');
     fig_set(1).box = 'on';
     fig_set(1).colorbar = 1;
     fig_set(1).colorbar_label = 'log(Fish frac.)';
-    fig_set(1).fig_size = 2.1;
+    fig_set(1).fig_size = 4;
+    fig_set(1).LineWidth = 0.05;
     
     h = style_figure(gcf,fig_set);
     

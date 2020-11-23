@@ -24,7 +24,7 @@ if options.line == 1
 end
 
 % get the point size vector
-psize = (1:size(pca_mat,1));
+psize = (1:size(pca_mat,1))./3;
 %for all the points
 % for points = 1:size(pca_mat,1)
     if options.threeD == 1

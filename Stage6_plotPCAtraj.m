@@ -351,6 +351,8 @@ for datas = 1:num_data
 
             % calculate the average trajectory in the common space
             all_animals = reshape(mean(cat(3,pca_struct.new_space),3),length(time_vector),stim_num,[]);
+            % normalize the units for the space
+            all_animals = normr_1(all_animals,1);
 %             % store for later plotting
 %             all_animals_mat(:,:,stim) = all_animals(:,1:3);
             
@@ -387,8 +389,9 @@ for datas = 1:num_data
         
 
 %         set(gcf,'Color','w')
-        axis equal
-        sgtitle(fig_name,'FontSize',fontsize,'Interpreter','None')
+%         axis equal
+%         sgtitle(fig_name,'FontSize',fontsize,'Interpreter','None')
+        set(gca,'YLim',[0 0.6],'XLim',[-0.1 1])
         xlabel('PC 1')
         ylabel('PC 2')
         zlabel('PC 3')
@@ -404,7 +407,7 @@ for datas = 1:num_data
         fig_set(1).fig_path = fig_path;
         fig_set(1).fig_name = strjoin({'trajectoryCCA',data(datas).name,...
             'region',region_data{region,2},'set',num2str(stim_set),'.eps'},'_');
-        fig_set(1).fig_size = [4.5 5];
+        fig_set(1).fig_size = [4 3];
         fig_set(1).LineWidth = 1;
 
         
@@ -666,17 +669,18 @@ fig_set = struct([]);
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'distancePCA',data(1).name,data(2).name,...
     'set',num2str(stim_set),'.eps'},'_');
-fig_set(1).fig_size = 4.7;
+fig_set(1).fig_size = 4.2;
 fig_set(1).colorbar = 1;
 fig_set(1).colorbar_label = 'PC Normalized Distance';
 fig_set(1).box = 'on';
 fig_set(1).cmap = cmap;
+fig_set(1).LineWidth = 0.05;
 
 h = style_figure(gcf,fig_set);
 
 
 % legend({data.figure_name})
-%% Calculate the angles delta angles between colors
+%% Calculate the delta angles between colors
 
 close all
 

@@ -376,9 +376,9 @@ for datas = 1:num_data
             cmap(end,:) = [0.8 0.8 0.8];
         end
         % s = scatter(reduced_data(:,1),reduced_data(:,2),[],cmap(color_raw-color_edges(1)+1,:));
-        s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',10);
-        [leg,obj_list] = legendflex(region_list{datas},'ncol',1,...
-            'box','off','anchor',[4 8],'padding',[0 0 0],'buffer',[0 0]);
+        s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',1,0);
+%         [leg,obj_list] = legendflex(region_list{datas},'ncol',1,...
+%             'box','off','anchor',[4 8],'padding',[0 0 0],'buffer',[0 0]);
         
         % run through the markers to make them bigger
         temp_obj = findobj(obj_list,'type','Line');
@@ -400,8 +400,8 @@ for datas = 1:num_data
         
         fig_set(1).fig_path = fig_path;
         fig_set(1).fig_name = strjoin({'UMAP',data(datas).name,...
-            'Region','set',num2str(region_set),'.png'},'_');
-        fig_set(1).fig_size = 3.6;
+            'Region','set',num2str(region_set),'.eps'},'_');
+        fig_set(1).fig_size = 5;
         fig_set(2).skip = 1;
         
         h = style_figure(gcf,fig_set);
@@ -426,18 +426,18 @@ for datas = 1:num_data
     % set a colormap for them
     cluster_cmap = distinguishable_colors(clu_num,[0 0 0;1 1 1]);
     % plot the scatter
-    s = gscatter(reduced_data(:,1),reduced_data(:,2),idx_clu,cluster_cmap,'.',10);
-    [leg,obj_list] = legendflex(cellstr(string(1:clu_num)),'ncol',2,...
-        'box','off','anchor',[4 8],'padding',[0 0 0],'buffer',[0 0]);
+    s = gscatter(reduced_data(:,1),reduced_data(:,2),idx_clu,cluster_cmap,'.',1,0);
+%     [leg,obj_list] = legendflex(cellstr(string(1:clu_num)),'ncol',2,...
+%         'box','off','anchor',[4 8],'padding',[0 0 0],'buffer',[0 0]);
 
-    % run through the markers to make them bigger
-    temp_obj = findobj(obj_list,'type','Line');
-    temp_text = findobj(obj_list,'type','Text');
-    % for all the markers
-    for marks = 2:2:length(temp_obj)
-        set(temp_obj(marks),'MarkerSize',20)
-        set(temp_text(marks/2),'FontSize',12)
-    end
+%     % run through the markers to make them bigger
+%     temp_obj = findobj(obj_list,'type','Line');
+%     temp_text = findobj(obj_list,'type','Text');
+%     % for all the markers
+%     for marks = 2:2:length(temp_obj)
+%         set(temp_obj(marks),'MarkerSize',1)
+%         set(temp_text(marks/2),'FontSize',5)
+%     end
     set(gca,'TickLength',[0 0],'visible','off','LineWidth',2)
     % adapt the figure size to encompass the legend
     set(gca,'Position',get(gca,'Position')-[0 0 0.15 0.15])
@@ -448,8 +448,9 @@ for datas = 1:num_data
     
     fig_set(1).fig_path = fig_path;
     fig_set(1).fig_name = strjoin({'UMAP',data(datas).name,...
-        'Cluster','set',num2str(region_set),'.png'},'_');
-    fig_set(1).fig_size = 3.6;
+        'Cluster','set',num2str(region_set),'.eps'},'_');
+    fig_set(1).fig_size = [5];
+    fig_set(1).painters = 1;
 %     % invert the figure list to put the legend last
 %     fig_list = get(gcf,'Children');
 %     set(gcf,'Children',flipud(fig_list));
@@ -520,7 +521,7 @@ if contains(data(datas).name,'p8')
             color_cell{datas,(stim+1)/2} = color_raw;
             % plot the scatter
             s = gscatter(reduced_data(:,1),reduced_data(:,2),color_raw,cmap,'.',...
-                20,'off');
+                1,'off');
 
             colormap(cmap)
             set(gcf,'Color','w')
@@ -535,7 +536,7 @@ if contains(data(datas).name,'p8')
             
             fig_set(1).fig_path = fig_path;
             fig_set(1).fig_name = strjoin({'UMAP',data(datas).name,...
-                'Stim',num2str(stim),'set',num2str(region_set),'.png'},'_');
+                'Stim',num2str(stim),'set',num2str(region_set),'.eps'},'_');
             fig_set(1).fig_size = 2.46;
             
             h = style_figure(gcf,fig_set);
@@ -686,7 +687,7 @@ if contains(data(datas).name,'p8')
 %         roi_counts = log(roi_counts);
 %         roi_counts(roi_counts==0) = 1;
 %     end
-    %% Produce a venn diagram
+        %% Produce a venn diagram
             close all
 %     for datas = 1:num_data
         figure
@@ -728,6 +729,10 @@ if contains(data(datas).name,'p8')
                 'FontSize',7,'HorizontalAlignment','center')
         end
         
+        % add the NR and Multi text
+        text(min(S.ZoneCentroid(:,1))-3.5,max(S.ZoneCentroid(:,2)),strcat('NR:',num2str(roi_percentages(1)),'%'),...
+             'FontSize',7,'HorizontalAlignment','center')
+        
         set(gca,'Visible','off')
         axis equal
         fig_set = struct([]);
@@ -740,7 +745,102 @@ if contains(data(datas).name,'p8')
         
         h = style_figure(gcf,fig_set);
     end
+    %% "Spectral" types
+    close all
+    % allocate memory for storing counts for stats
+    type_cell = cell(num_data,5);
+    % define the color map for the types
+    type_colors = [1 1 1;1 0 0;1 0 1;0.5 0 0.5];
+    for datas = 1:num_data
+        
+        color_all = horzcat(color_cell{datas,:});
+        
+        % remove the non-responsive
+        color_responsive = color_all(~(sum(color_all,2)==3),:);
+%         color_responsive = color_all;
+        % quantify the occurrence of each pattern
+        [pattern,ia,ic] = unique(color_responsive,'rows');
+        
+        % get the number of patterns
+        pattern_num = length(ia);
+        
+        % allocate vector for the number
+        pattern_counts = zeros(pattern_num,1);
+        % count the occurrences
+        % for all the patterns
+        for pat = 1:pattern_num
+            pattern_counts(pat) = sum(ic==pat);
+        end
+        
+        % sort by abundance
+        [pattern_counts_sort,sort_idx] = sort(pattern_counts,'descend');
+        
+        pattern = pattern(sort_idx,:);
 
+        % allocate memory for the colors
+        pattern_full = zeros(size(pattern,1),3,3);
+        % transform the indexes into colors
+        for modality = 1:3
+            for stim = 1:4
+                pattern_full(pattern(:,modality)==stim,modality,1) = type_colors(stim,1);
+                pattern_full(pattern(:,modality)==stim,modality,2) = type_colors(stim,2);
+                pattern_full(pattern(:,modality)==stim,modality,3) = type_colors(stim,3);
+            end
+        end
+%         
+        % store the matrix with the sorted values
+        type_cell{datas,1} = pattern;
+        type_cell{datas,2} = pattern_counts_sort./sum(pattern_counts_sort);
+%         type_cell{datas,2} = pattern_counts_sort;
+        type_cell{datas,3} = pattern_full;
+        type_cell{datas,4} = sort_idx;
+        type_cell{datas,5} = ic;
+        
+        % eliminate the patterns with only 1 instance
+        elim_vector = pattern_counts_sort<2;
+        pattern_counts_sort = pattern_counts_sort(~elim_vector);
+        pattern_full = pattern_full(~elim_vector,:,:);
+        
+        figure
+        set(gcf,'Color','w')
+        subplot(2,1,2)
+        image(permute(pattern_full,[2 1 3]))
+%         hold on
+%         line([1 1],[0 0],'Color','w')
+%         set(gca,'XLim',[-0.2 size(pattern_full,1)])
+        set(gca,'YScale','linear','XTick',[],'Visible','off')
+
+        subplot(2,1,1)
+        bar((pattern_counts_sort),'FaceColor',[0.8 0.8 0.8])
+%         BarPlotBreak(pattern_counts,pattern_counts(2)*1.8,pattern_counts(1)*0.9,'Line',0.6,2)
+%         breakplot(1:length(pattern_counts),pattern_counts,400,1900,'Line')
+        set(gca,'YScale','linear','XTick',[],'Visible','off')
+%         break_axis = breakyaxis([400 1900],0.05, 0.1);
+        
+
+        axis tight
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'spectral_types',data(datas).name,'.eps'},'_');
+        fig_set(1).fig_size = [7 2.4];
+        fig_set(2).fig_size = [7 2.4];
+%         fig_set(3).fig_size = [5 2];
+        % fig_set(1).colorbar = 1;
+        % fig_set(1).colorbar_label = '# of ROIs';
+        fig_set(1).box = 'on';
+        fig_set(1).cmap = cmap;
+        
+        h = style_figure(gcf,fig_set);
+       
+    end
+    %% Compare the histograms statistically
+    
+    % get the histograms
+    h1 = histcounts(type_cell{1,5},64,'Normalization','Probability');
+    h2 = histcounts(type_cell{2,5},64,'Normalization','Probability');
+    pdist2_piotr(h1,h2)
     
 end
 %% Calculate distance distributions in PCA space

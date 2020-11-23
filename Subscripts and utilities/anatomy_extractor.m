@@ -105,7 +105,6 @@ for files = 1:size(list_dir,1)
         file_counter = file_counter + 1;
     end
 end    
-    
 %% Load the AF files
 
 %the structure of the files is that per each fish there are several files
@@ -116,61 +115,22 @@ end
 
 %define the path where the files can be found
 af_path = 'E:\Behavioral data\Matlab\AF_proc\ColorFishSuite\Analysis\anatomy_files';
-
-%allocate memory to store the matrices
-% af_cell = cell(num_data,1);
-
-%the fish names
-% fish_name = cell(num_data,1);
-%and to store the list cells
-% af_sublist = cell(num_data,1);
-
-% %for all the fish
-% for fish = 1:num_data
     
 %load the file name of the fish to find out which folders to select
 [~,f_name,~] = fileparts(tar_path);
-% f_name =f_name;
-% f_name = strcat(f_name(1:end-7),'_ROI.mat');
-%     %split the name to get the folder names (fish and pre/post)
-%     f_parts = strsplit(f_name,'_');
-%     %assemble the path to load files from
-%     f_path = strcat(af_path,'\',f_parts{1},'\',f_parts{2});
+% change the path for loading the AF info if it's the downsampled data
+if contains(f_name,'downsample')
+    f_name = replace(f_name,'downsample','');
+    % set the flag for downsampling the ROI locations too
+    downsample_flag = 1;
+else
+    downsample_flag = 0;
+end
 
-%     f_path = af_path;
 %get the files in the path
 af_files = dir(af_path);
 af_files = {af_files(3:end).name};
-%     %get the number of files
-%     file_num = size(af_files,2);
-%     %allocate memory for the file contents
-%     af_subcell = cell(file_num,1);
-%     %for all the files
-%     for files = 1:file_num
-%         %load the file
-%         af_subcell{files} = load(fullfile(f_path,af_files{files}),'a_store');
-%         af_subcell{files} = af_subcell{files}.a_store;
-%     end
 
-%     %also search for the list cell corresponding to this fish
-%     fish_name{fish} = strcat(f_parts{1},'_',f_parts{2});
-%     %extract just the names from the list
-%     %get the number of items in the list
-%     i_number = size(af_list,1);
-%     %allocate memory for just the names
-%     i_names = cell(i_number,1);
-%     %for all the fish
-%     for list_i = 1:i_number
-%         i_names{list_i} = af_list{list_i}{1};
-%     end
-%     list_c = strcmp(fish_name{fish},i_names);
-%
-%     %store the af info in the cell
-%     af_sublist{fish} = af_list{list_c}{2};
-
-
-%     %concatenate and add to the main cell
-%     af_cell{fish} = af_subcell;
 % get the name of the ROI file
 roi_file = contains(af_files,strcat(f_name,'_ROI.mat'));
 
@@ -263,6 +223,20 @@ if sum(roi_file) > 0
             af_vol(:,:,z) = af_vol(:,:,z) + afc.*af_cell{z,afc}{2};
         end
     end
+    
+    % if it's the downsampled dataset, downsample the map
+    if downsample_flag
+        % assume sampling factor is 3 (dangerous, but this shouldn't be
+        % changed anyway)
+        
+        % allocate memory for the new_stack
+        downsampled_vol = cell(z_num,1);
+        % for all the z
+        for z = 1:z_num
+            downsampled_vol{z} = imresize(af_vol(:,:,z),1/3,'nearest');
+        end
+    end
+    
     %         %store the volume
     %         af_vfiles{files} = af_vol;
     %get the number of seeds in this file

@@ -36,7 +36,8 @@ for datas = 1:length(data)
         'XTickLabel',0:100:size(data(datas).conc_trace,2)/0.952)
 %     xlabel('Time (s)')
 %     ylabel('ROI')
-    set(gca,'TickLength',[0 0],'LineWidth',2,'FontSize',12)
+    set(gca,'TickLength',[0 0],'LineWidth',0.5,'FontSize',12)
+    axis tight
     
     % create the settings
     fig_set = struct([]);
@@ -44,15 +45,29 @@ for datas = 1:length(data)
     fig_set(1).fig_path = fig_path;
     fig_set(1).fig_name = strjoin({'traces',data(datas).name,'.eps'},'_');
     fig_set(1).box = 'on';
-    fig_set(1).colorbar = 1;
-    fig_set(1).colorbar_label = 'Normalized Delta F/F';
+    fig_set(1).LineWidth = 0.05;
 %     fig_set(1).xlabel = 'Wavelength (nm)';
 %     fig_set(1).ylabel = 'Abs/Em  ';
-    if contains(data(datas).name,'p17')
-        fig_set(1).fig_size = [11 3.5];
-    else
-        fig_set(1).fig_size = [8.5 3.2];
+
+    switch data(datas).name
+        case {'p17b_syngc6s','p17b_gc6s'}
+            fig_set(1).fig_size = [11 3.5];
+            fig_set(1).colorbar_label = 'Normalized Delta F/F';
+            fig_set(1).colorbar = 1;
+        case {'p8_gc6s','p8_SynG6s'}
+            fig_set(1).fig_size = [8.5 3.2];
+            fig_set(1).colorbar_label = 'Normalized Delta F/F';
+            fig_set(1).colorbar = 1;
+        otherwise
+            fig_set(1).fig_size = [5 3];
+%             fig_set(1).colorbar_label = 'Norm. Delta F/F';
     end
+
+%     if contains(data(datas).name,'p17')
+%         fig_set(1).fig_size = [11 3.5];
+%     else
+%         fig_set(1).fig_size = [8.5 3.2];
+%     end
 %     fig_set(1).crop = 0;
     
     h = style_figure(gcf,fig_set);
@@ -123,12 +138,30 @@ for datas = 1:length(data)
                 {'color',color_scheme(stim,:),'LineWidth',1})
             hold on
         end
-        
+        text(280,(plot_top-(a_count-1)*trace_offset)+3,num2str(sum(idx_clu==clu)),...
+            'FontSize',7,'FontName','Arial','Color',[0.5 0.5 0.5])
         % update the counter
         a_count = a_count + 1;
         
     end
-    axis tight
+    
+    
+    % assemble the labels based on the dataset
+    ylabels = cell(clu_num,1);
+    
+    % for all the clusters
+    for clu = 1:clu_num
+        % select the prefix depending on dataset
+        switch data(datas).name
+            case 'p17b_syngc6s'
+                prefix = 'RGC';
+            case 'p17b_gc6s'
+                prefix = 'RA';
+            otherwise
+                prefix = '';
+        end
+        ylabels{clu} = strcat(prefix,num2str(clu_num-clu+1));
+    end
 %     % plot the intermediate lines
 %     for stim = 1:stim_num-1
 %         plot([time_perstim(end,stim),time_perstim(end,stim)],...
@@ -136,7 +169,7 @@ for datas = 1:length(data)
 %     end
 %     pbaspect([1,2,1])
     axis tight
-    set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',string(clu_num:-1:1))
+    set(gca,'YTick',0:trace_offset:(a_count-2)*trace_offset,'YTickLabels',ylabels)
     set(gca,'TickLength',[0 0])
     xlabel('Time (s)')
 %     sgtitle(strjoin({'Average_Trace_perArea',data(datas).name},'_'),'Interpreter','None')
@@ -145,7 +178,7 @@ for datas = 1:length(data)
     
     
 
-    title(data(datas).figure_name,'Interpreter','None')
+%     title(data(datas).figure_name,'Interpreter','None')
 %     set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 5 10])
     % assemble the figure path 
     set(gca,'FontSize',10,'LineWidth',2)
@@ -287,15 +320,19 @@ if contains(data(1).name,'p17b')
         set(gca,'TickLength',[0 0])
         switch data(datas).figure_name
             case {'RAs','Tectum'}
-                set(gca,'XTick',1:2:region_num,'XTickLabels',{'TcN','TcP','Pt','Hb','Cb'},'FontSize',fontsize,...
-                    'XTickLabelRotation',45)
+%                 set(gca,'XTick',1:2:region_num,'XTickLabels',{'TcN','TcP','Pt','Hb','Cb'},'FontSize',fontsize,...
+%                     'XTickLabelRotation',45)
+%                 set(gca,'XTick',1:region_num,'XTickLabels',region_labels,'FontSize',fontsize,...
+%                     'XTickLabelRotation',45)
+                set(gca,'XTick',[])
             case {'RGCs','AF10'}
-                set(gca,'XTick',1:region_num,'XTickLabels',region_labels,'FontSize',fontsize,...
-                    'XTickLabelRotation',45)
+                set(gca,'XTick',[])
+%                 set(gca,'XTick',1:region_num,'XTickLabels',region_labels,'FontSize',fontsize,...
+%                     'XTickLabelRotation',45)
         end
-        set(gca,'YTick',1:4:clu_num,'FontSize',fontsize)
+        set(gca,'YTick',1:2:clu_num,'FontSize',fontsize)
         axis square
-        title(data(datas).figure_name)
+%         title(data(datas).figure_name)
 %         set(gca,'FontSize',15,'LineWidth',2)
 %         set(gcf,'Color','w')
 %         colormap(magma)
@@ -318,6 +355,7 @@ if contains(data(1).name,'p17b')
         fig_set(1).colorbar = 1;
         fig_set(1).colorbar_label = 'Log(Fraction Traces)';
         fig_set(1).box = 'on';
+        fig_set(1).LineWidth = 0.05;
         
         h = style_figure(gcf,fig_set);
 
@@ -373,13 +411,13 @@ for datas = 1:length(data)
         imagesc(normr_1(sorted_traces,0))
         colormap(magma)
         set(gca,'LineWidth',2,'TickLength',[0 0],'FontSize',15)
-        set(gca,'YTick',[1,length(idx_region)],...
-            'XTick',0:(100/data(datas).framerate):size(sorted_traces,2),...
-            'XTickLabel',0:100:size(sorted_traces,2)/data(datas).framerate)
+        set(gca,'YTick',[1,length(idx_region)],'XTick',[])
+%             'XTick',0:(100/data(datas).framerate):size(sorted_traces,2),...
+%             'XTickLabel',0:100:size(sorted_traces,2)/data(datas).framerate)
         set(gca,'YTickLabelRotation',90)
 %         xlabel('Time (s)')
 %         ylabel('ROIs')
-        title(region_labels{region})
+%         title(region_labels{region},'FontSize',7)
         axis tight
 %         file_path = strjoin({'regionTraces',data(datas).name,region_labels{region},'.png'},'_');
 %         print(fullfile(fig_path,file_path),'-dpng','-r600')
@@ -388,11 +426,12 @@ for datas = 1:length(data)
         fig_set = struct([]);
         
         fig_set(1).fig_path = fig_path;
-        fig_set(1).fig_name = strjoin({'regionTraces',data(datas).name,region_labels{region},'.png'},'_');
+        fig_set(1).fig_name = strjoin({'regionTraces',data(datas).name,region_labels{region},'.eps'},'_');
         fig_set(1).box = 'on';
         fig_set(1).colorbar = 1;
+        fig_set(1).LineWidth = 0.05;
 %         fig_set(1).colorbar_label = 'Delta F/F';
-        fig_set(1).fig_size = 3.3;
+        fig_set(1).fig_size = [4 3];
         
         h = style_figure(gcf,fig_set);
     end

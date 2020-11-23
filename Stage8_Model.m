@@ -146,6 +146,7 @@ for datas = 1:size(data,2)
     fig_set(1).colorbar = 1;
     fig_set(1).colorbar_label = 'Goodness of Fit';
     fig_set(1).box = 'on';
+    fig_set(1).LineWidth = 0.05;
     
     h = style_figure(gcf,fig_set);
     

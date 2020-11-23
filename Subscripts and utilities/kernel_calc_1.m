@@ -1,4 +1,4 @@
-function [kernel_out, fit_val]= kernel_calc_1(conc_trace,stim_num2,time_num,plot_flag,type_var)
+function [kernel_out, fit_val]= kernel_calc_1(conc_trace,stim_num2,time_num,plot_flag,type_var,fr,pulse_ext)
 
 % get the number of clusters
 trace_num = size(conc_trace,1);
@@ -7,16 +7,16 @@ trace_form = zeros(trace_num,time_num,stim_num2);
 
 %define the color labels
 color_label = [1 0 0;0 1 0;0 0 1;1 0 1];
-%define the frame_rate in Hz
-fr = 0.5; 
+% %define the frame_rate in Hz
+% fr = 0.5; 
 
 %for all the clusters
 for traces = 1:trace_num
     trace_form(traces,:,:) = reshape(conc_trace(traces,:),time_num,stim_num2);
 end
 
-%define the extent of the initial pulse
-pulse_ext = 20;
+% %define the extent of the initial pulse
+% pulse_ext = 20;
 
 %grab the beginning of every trial
 trial_start = trace_form(:,1:pulse_ext,:);

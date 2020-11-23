@@ -264,7 +264,7 @@ for roi = 1:roi_number
 end
 
 % plot the matrix
-imagesc(cluster_matrix)
+imagesc(sortrows(cluster_matrix,'descend'))
 cmap = magma(256);
 cmap(1,:) = [1 1 1];
 colormap(cmap)
@@ -280,11 +280,12 @@ fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'Convolution_clusters',data(1).name,'.eps'},'_');
-fig_set(1).fig_size = [5 4.7];
-fig_set(2).fig_size = [2 4.7];
-fig_set(3).fig_size = [5 2];
-% fig_set(1).colorbar = 1;
-% fig_set(1).colorbar_label = '# of ROIs';
+fig_set(1).fig_size = 4;
+% fig_set(1).fig_size = [5 4.7];
+% fig_set(2).fig_size = [2 4.7];
+% fig_set(3).fig_size = [5 2];
+fig_set(1).colorbar = 1;
+fig_set(1).colorbar_label = '# of ROIs';
 fig_set(1).box = 'on';
 fig_set(1).cmap = cmap;
 
@@ -439,10 +440,26 @@ fig_set(1).fig_name = strjoin({'Convolution_types',data(1).name,'.eps'},'_');
 fig_set(1).fig_size = [5 4.7];
 fig_set(2).fig_size = [2 4.7];
 fig_set(3).fig_size = [5 2];
-% fig_set(1).colorbar = 1;
-% fig_set(1).colorbar_label = '# of ROIs';
+% fig_set(3).colorbar = 1;
+% fig_set(3).colorbar_label = '# of ROIs';
 fig_set(1).box = 'on';
 fig_set(3).cmap = cmap;
 
 h = style_figure(gcf,fig_set);
 
+% generate an independent colorbar
+
+figure
+imagesc((1:256)')
+set(gca,'XTick',[],'YTick',[])
+
+colormap(cmap)
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = strjoin({'Convolution_types_cbar',data(1).name,'.eps'},'_');
+fig_set(1).fig_size = [1 10];
+fig_set(1).box = 'on';
+
+h = style_figure(gcf,fig_set);

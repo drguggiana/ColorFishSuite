@@ -688,7 +688,7 @@ hold('on')
 for led = 1:led_num
     %plot the integrated power density of the LED at that wavelength
     plot(proj_power(:,led).*1e6,'LineStyle','none','MarkerFaceColor',led_col(led,:),...
-        'MarkerEdgeColor',[0 0 0],'Marker','o')
+        'MarkerEdgeColor',led_col(led,:),'Marker','o','MarkerSize',2)
     hold('on')
 %     plot(power_vals(:,led).*1e6)
 end

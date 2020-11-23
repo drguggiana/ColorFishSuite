@@ -4,12 +4,27 @@ clearvars
 close all force
 load('paths.mat')
 addpath(genpath(paths(1).main_path))
+fig_path = strcat(paths(1).fig_path,'mixROI\');
+group_colors = paths.afOT_colors;
 %% Load the files and define paths
 
 % define whether to calculate kernels or use them
 calculate_kernels = 0;
 % define whether to use data or save an artificial kernel
-data_kernel = 0;
+data_kernel = 1;
+%define whether to reconv or not
+reconv_var = 1;
+
+
+% set the data framerate (from the data files)
+fr = 1.0504;
+% define the length of time (in s) to use for calculations
+pulse_time = 10;
+% calculate it in frames
+pulse_ext = round(pulse_time*fr);
+
+%define the time vector
+time_vec = 1/fr:1/fr:pulse_time+1/fr;
 
 %get the folder where the image files are
 tar_path_all = uipickfiles('FilterSpec',...
@@ -62,7 +77,7 @@ if calculate_kernels == 1
     if data_kernel == 1
         %run the function. it will output the average "kernel" of the fastest
         %decaying stimulus
-        [kernel_str(1).kernel,fit_val]= kernel_calc_1(conc_trace,stim_num2,time_num,0,'mean');
+        [kernel_str(1).kernel,fit_val]= kernel_calc_1(conc_trace,stim_num2,time_num,0,'mean',fr,pulse_ext);
         % get the name for saving
         [~,ori_name] = fileparts(name_cell{1});
         kernel_str(1).ori_name = ori_name(1:end-6);
@@ -73,7 +88,7 @@ if calculate_kernels == 1
 
     else
         % define the length
-        kernel_str(1).kernel_length = 20;
+        kernel_str(1).kernel_length = pulse_ext;
         % define the time constant
         kernel_str(1).kernel_tau = 1.2;
         % define the scale
@@ -89,7 +104,7 @@ if calculate_kernels == 1
     % conv_kernel = kernel_out;
 
     figure
-    plot(kernel_str(1).kernel)
+    plot(time_vec,kernel_str(1).kernel)
     
     %and save the kernel
     %define the save path
@@ -128,8 +143,7 @@ if calculate_kernels == 0
     close all
     % define the fontsize
     fontsize = 10;
-    %define the time vector
-    time_vec = 0.5:0.5:10;%for imaging at 2 Hz with a 20 frame kernel
+
     figure
     % for all the kernels
     for kernels = 1:num_kernels
@@ -152,9 +166,10 @@ if calculate_kernels == 0
     
     % define the kernels to use for deconvolution and convolution
     deconv_kernel = kernel_str(contains({kernel_str.ori_name},'p17b_syngc6s')).kernel;
-    conv_kernel = kernel_str(contains({kernel_str.ori_name},'Artificial')).kernel;
-    %define whether to reconv or not
-    reconv_var = 2;
+%     conv_kernel = kernel_str(contains({kernel_str.ori_name},'Artificial')).kernel;
+    conv_kernel = kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel;
+    reconv_kernel = conv_kernel;
+
     %get the number of total time frames (per trace)
     trace_time = size(conc_trace,2);
     %deconvolve the data with the axonal kernel
@@ -171,28 +186,48 @@ if calculate_kernels == 0
     switch reconv_var
         case 1
         %allocate memory for the reconvolved traces
-        reconv_trace = zeros(size(deconv_trace));
+        conv_trace = zeros(size(deconv_trace));
         %now convolve each trace with the nuclear kernel
         %for all the traces
         for traces = 1:trace_num
             temp = conv(deconv_trace(traces,:),reconv_kernel);
-            reconv_trace(traces,:) = temp(1:trace_time);
+            conv_trace(traces,:) = temp(1:trace_time);
         end
 
         %plot both data sets
         figure
-        imagesc(conc_trace)
+        imagesc(normr_1(conc_trace,0))
         figure
-        imagesc(deconv_trace)
+        imagesc(normr_1(deconv_trace,0))
         figure
-        imagesc(reconv_trace)
+        imagesc(normr_1(conv_trace,0))
 
         figure
         tar_trace = 1;
         plot(conc_trace(tar_trace,:),'r')
         hold('on')
         plot(deconv_trace(tar_trace,:),'b')
-        plot(reconv_trace(tar_trace,:),'m')
+        plot(conv_trace(tar_trace,:),'m')
+        
+        figure
+        temp_kernel = kernel_calc_1(conv_trace,stim_num2,time_num,0,'mean',fr,pulse_ext);
+        plot(time_vec, temp_kernel,'Color','c');
+        hold on
+        plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_syngc6s')).kernel,'Color',group_colors(2,:))
+        plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel,'Color',group_colors(1,:))
+%         legend({'Convolved','Original','Target'})
+        
+        % format the figure for printing
+        % create the settings
+        fig_set = struct([]);
+        
+        fig_set(1).fig_path = fig_path;
+        fig_set(1).fig_name = strjoin({'kernels.eps'},'_');
+        fig_set(1).fig_size = 3.6;
+        
+        fig_set(1).box = 'off';
+%         fig_set(1).painters = 1;
+        h = style_figure(gcf,fig_set);
 
         %save the reconvolved trace for clustering
     %     conc_trace = reconv_trace;
@@ -211,8 +246,6 @@ if calculate_kernels == 0
                 conv_trace(traces,:) = temp(1:trace_time);
             end
             
-            [conv_kernel]= kernel_calc_1(conv_trace,stim_num2,time_num,0,'mean');
-
 
             figure
             imagesc(conv_trace)
@@ -222,11 +255,10 @@ if calculate_kernels == 0
             plot(conc_trace(tar_trace,:),'r')
             hold('on')
             plot(conv_trace(tar_trace,:),'b')
-            %replace the old conc_trace matrix
-            conc_trace = conv_trace;
-            
+
             figure
-            plot(time_vec,conv_kernel);
+            temp_kernel = kernel_calc_1(conv_trace,stim_num2,time_num,0,'mean',fr,pulse_ext);
+            plot(time_vec,temp_kernel);
             hold on
             plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_syngc6s')).kernel)
             plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel)
@@ -235,18 +267,30 @@ if calculate_kernels == 0
     end
     %% save the modified dataset
     
+    %replace the old conc_trace matrix for saving
+    conc_trace = conv_trace;
+    
+    
     %define the path for saving the concatenated files
     thres_path = paths(1).stage2_path;
     %define the saving path
     %     [thres_name,thres_fpath] = uiputfile(thres_path);
     
 %     thres_name = strcat(fname{3},'_',fname{2});
-    % get the tau of the artificial kernel
-    tau = kernel_str(contains({kernel_str.ori_name},'Artificial')).kernel_tau;
+
     [~,thres_name] = fileparts(name_cell{1});
     thres_name = thres_name(1:end-6);
-    %save the corrected variables into a new file, already grouped
-    save_name = strcat(thres_name,'_conv_tau_',num2str(tau),'_thres.mat');
+    switch reconv_var
+        case 2 % convolved with artificial kernel
+            % get the tau of the artificial kernel
+            tau = kernel_str(contains({kernel_str.ori_name},'Artificial')).kernel_tau;
+
+            %save the corrected variables into a new file, already grouped
+            save_name = strcat(thres_name,'_conv_tau_',num2str(tau),'_thres.mat');
+        case 1 % deconv with syng kernel and reconv with gc6 kernel
+            tau = kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel_tau;
+            save_name = strcat(thres_name,'_reconv_conv_tau_',num2str(tau),'_thres.mat');
+    end
     save(fullfile(thres_path,save_name),'conc_trace','fish_ori','cat_stack_all',...
         'cat_seed_all','cat_z_all','time_num','stim_num2','col_out','snr_mat','cat_anatomy_all','cat_reps')
 end

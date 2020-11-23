@@ -61,7 +61,8 @@ elseif data_struct(1).subsample == 4
     dataset_labels = {'AF10','Tectum'};
 else
 %     dataset_colors = [255 164 5;255 168 187]./255;
-    dataset_colors = [0 0 0;0 0 0];
+%     dataset_colors = [0 0 0;0 0 0];
+    dataset_colors = paths.afOT_colors;
     dataset_labels = {'AF10','Tectum'};
 
 end
@@ -137,7 +138,7 @@ for datas = 1:num_data
         acc = num2str(round(mean(class_cell{p_count}{2}),2));
         
         axis square
-        title(dataset_labels{counter},'Interpreter','None','FontSize',fontsize)
+%         title(dataset_labels{counter},'Interpreter','None','FontSize',fontsize)
         cba = colorbar;
         set(cba,'TickLength',0,'LineWidth',2)
         ylabel(cba,'Nr Bins')
@@ -287,7 +288,7 @@ if subsample == 2 && num_data == 4
     set(gca,'TickLength',[0 0])
     set(gca,'XTick',1:num_data/2,'XTickLabels',dataset_labels,'FontSize',fontsize,...
         'XTickLabelRotation',45,'XLim',[0 (num_data/2)+1],'TickLabelInterpreter','none')
-    ylabel('Classifier Accuracy','FontSize',fontsize)
+    ylabel('Classifier Acc.','FontSize',fontsize)
 %     title(strjoin({'Protocol comparison',num2str(classpcolor)},'_'),'Interpreter','None')
     set(gca,'YLim',[0 1],'LineWidth',2)
     % plot the shuffle line
@@ -311,7 +312,7 @@ if subsample == 2 && num_data == 4
     fig_set = struct([]);
     
     fig_set(1).fig_path = fig_path;
-    fig_set(1).fig_name = strjoin({'classCompare',name,suffix},'_');
+    fig_set(1).fig_name = strjoin({'classCompare',data_struct(1).name,data_struct(3).name,suffix},'_');
     fig_set(1).fig_size = [1.34 2.36];
     
     h = style_figure(gcf,fig_set);
@@ -338,12 +339,12 @@ if subsample == 1 && num_data == 4
         reg_number = size(class_cell_shuff,1);
         % for all the regions
         for regs = 1:reg_number
-            plot(regs,class_cell_real{regs}{2},'o','MarkerEdgeColor',[0 0 0]);
+            plot(regs,class_cell_real{regs}{2},'o','MarkerEdgeColor',[0 0 0],'MarkerSize',3);
             hold on
             % calculate the exact accuracy
             mean_acc = mean(class_cell_real{regs}{2});
             plot(regs,mean_acc,'o','MarkerFaceColor',[0 0 0],...
-                'MarkerEdgeColor',[0 0 0])
+                'MarkerEdgeColor',[0 0 0],'MarkerSize',3)
         end
 
 %         std_acc = std(class_cell_real{1}{2});
@@ -352,10 +353,10 @@ if subsample == 1 && num_data == 4
 %             'MarkerEdgeColor',[0 0 0],'Color',[0 0 0])
         % for all the regions
         for regs = 1:reg_number
-            plot(regs,class_cell_shuff{regs}{2},'o','MarkerEdgeColor',[0.5 0.5 0.5]);
+            plot(regs,class_cell_shuff{regs}{2},'o','MarkerEdgeColor',[0.5 0.5 0.5],'MarkerSize',3);
             mean_shuf = mean(class_cell_shuff{regs}{2});
             plot(regs,mean_shuf,'o','MarkerFaceColor',[0.5 0.5 0.5],...
-                'MarkerEdgeColor',[0.5 0.5 0.5])
+                'MarkerEdgeColor',[0.5 0.5 0.5],'MarkerSize',3)
         end
         % rescale of the max value is too low
         results_perregion = horzcat(class_cell_real{:});
@@ -373,7 +374,7 @@ if subsample == 1 && num_data == 4
 %         x_counter = x_counter + 1;
         set(gca,'TickLength',[0 0],'LineWidth',2)
         set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 8 8])
-        set(gca,'XTick',1:reg_number,'XTickLabels',data_struct(datas).region(:,2),'FontSize',fontsize,...
+        set(gca,'XTick',[],'XTickLabels',data_struct(datas).region(:,2),'FontSize',fontsize,...
             'XTickLabelRotation',45,'TickLabelInterpreter','none')
         ylabel('Accuracy','FontSize',fontsize)
         set(gca,'YLim',y_lim,'XLim',[0 reg_number + 1])
@@ -398,7 +399,7 @@ if subsample == 1 && num_data == 4
 
         fig_set(1).fig_path = fig_path;
         fig_set(1).fig_name = strjoin({'classRegCompare',data_struct(datas).name,suffix},'_');
-        fig_set(1).fig_size = 3;
+        fig_set(1).fig_size = [3 2.5];
 
         h = style_figure(gcf,fig_set);
     end
@@ -575,7 +576,7 @@ if subsample == 1 && num_data == 4
     %             max(performance_colored(performance_colored(:,:,:,1)>0))])
     set(gca,'FontSize',fontsize)
     cba = colorbar;
-    set(cba,'TickLength',0,'LineWidth',2)
+    set(cba,'TickLength',0,'LineWidth',0.05)
     ylabel(cba,'Accuracy')
     
     subplot(2,1,2)
@@ -615,6 +616,8 @@ if subsample == 1 && num_data == 4
     fig_set(1).colorbar_label = 'Accuracy';
     fig_set(2).colorbar = 1;
     fig_set(2).colorbar_label = 'Accuracy';
+    fig_set(1).LineWidth = 0.05;
+    fig_set(2).LineWidth = 0.05;
     fig_set(1).box = 'on';
     fig_set(2).box = 'on';
 
@@ -825,25 +828,42 @@ if subsample == 1 && num_data == 12
 end
 %% Plot classification over time
 
-if num_data == 4
+if num_data >= 4
 
     close all
     fontsize = 15;
     
-    f1 = figure;
-    f2 = figure;
-    f3 = figure;
-    f4 = figure;
 
-    fig_vector = [f1,f2,f3,f4];
     
     % allocate memory to store the values for stats
-    mean_cell = cell(2,2);
+    mean_cell = cell(2,4);
     % set a counter for the x coordinate
     x_counter = 1;
+    
+    % define the data vector order depending on the protocol
+    if contains(data_struct(1).name,'p17b')
+        datas_vector = [3 1];
+        f1 = figure;
+        f2 = figure;
+        f3 = figure;
+        f4 = figure;
+        
+        fig_vector = [f1,f2,f3,f4];
+    elseif contains(data_struct(1).name,'p8')
+        datas_vector = [1:2:12];
+        f1 = figure;
+        f2 = figure;
+        f3 = figure;
+        f4 = figure;
+        f5 = figure;
+        f6 = figure;
+        
+        fig_vector = [f1,f2,f3,f4,f5,f6];
+    end
+        
 %     h = figure;
     % for all the data sets
-    for datas = [3 1]
+    for datas = datas_vector
         % get the class cell
         class_cell_real = data_struct(datas).class;
         class_cell_shuff = data_struct(datas+1).class;
@@ -860,13 +880,13 @@ if num_data == 4
             % calculate the exact accuracy
 
             % reshape to put exp reps and class reps together
-%             real_pred = squeeze(mean(reshape(class_cell_real{region}{4}==class_cell_real{region}{5},...
-%                 40,[],3,data_struct(datas).repeat_number),3));
-%             real_mean = mean(real_pred,3);
+            real_pred = squeeze(mean(reshape(class_cell_real{region}{4}==class_cell_real{region}{5},...
+                40,[],3,data_struct(datas).repeat_number),3));
+            real_mean = mean(real_pred,3);
 
-            real_pred = mean(reshape(class_cell_real{region}{4}==class_cell_real{region}{5},...
-                40,[],3,data_struct(datas).repeat_number),4);
-            [real_mean,edges] = histcounts(real_pred(:),30,'Normalization','cdf');
+%             real_pred = mean(reshape(class_cell_real{region}{4}==class_cell_real{region}{5},...
+%                 40,[],3,data_struct(datas).repeat_number),4);
+%             [real_mean,edges] = histcounts(real_pred(:),30,'Normalization','cdf');
             real_sem = std(real_pred,0,3)./sqrt(size(real_pred,3));
 
             shuff_pred = squeeze(mean(reshape(class_cell_shuff{region}{4}==class_cell_shuff{region}{5},...
@@ -878,23 +898,30 @@ if num_data == 4
 
             mean_cell{x_counter,1} = real_mean;
             mean_cell{x_counter,2} = shuff_mean;
+            
+            % also store the "pref" indexes
+            mean_cell{x_counter,3} = (squeeze(sum(real_pred==1,1)-sum(real_pred~=1,1)))./...
+                (squeeze(sum(real_pred==1,1)+sum(real_pred~=1,1)));
+%             mean_cell{x_counter,4} = squeeze(sum(shuff_pred==1,1)./sum(shuff_pred~=1,1));
 
             % get the number of stimuli
             stim_num = size(real_mean,2);
             % for all the stimuli
-            for stim = 1:4
-                if datas == 3
-                    color = tint_colormap(color_scheme(stim,:),0.5);
-                    trace = '--';
+            for stim = 1:stim_num
+                if sum(ismember([3,5,7,9.11],datas))==1
+%                     color = tint_colormap(color_scheme(stim,:),0.5);
+                    color = dataset_colors(2,:);
+                    trace = '-';
                 else
-                    color = color_scheme(stim,:);
+%                     color = color_scheme(stim,:);
+                    color = dataset_colors(1,:);
                     trace = '-';
                 end
                 figure(fig_vector(stim));
-%                 shadedErrorBar(1:size(real_mean,1),real_mean(:,stim),real_sem(:,stim),{'color',color})
-%                 hold on
-%                 shadedErrorBar(1:size(shuff_mean,1),shuff_mean(:,stim),shuff_sem(:,stim))
-                plot(edges(1:end-1)+diff(edges(1:2))/2,real_mean,trace,'Color',color)
+                shadedErrorBar(1:size(real_mean,1),real_mean(:,stim),real_sem(:,stim),{'color',color,'linestyle',trace})
+                hold on
+                shadedErrorBar(1:size(shuff_mean,1),shuff_mean(:,stim),shuff_sem(:,stim))
+%                 plot(edges(1:end-1)+diff(edges(1:2))/2,real_mean,trace,'Color',color)
                 hold on
                 set(gca,'YLim',[0 1.1])
 
@@ -912,7 +939,7 @@ if num_data == 4
 
                     fig_set(1).fig_path = fig_path;
                     fig_set(1).fig_name = strjoin({'classOverTime',name,'stim',num2str(stim),suffix},'_');
-                    fig_set(1).fig_size = [1.34 2.36];
+                    fig_set(1).fig_size = [4 3];
                     fig_set(1).painters = 1;
 
                     h = style_figure(gcf,fig_set);
@@ -929,6 +956,49 @@ if num_data == 4
     end
 
 end
+%% Plot the success ratio
+
+close all
+% define the stimulus order
+stim_order = [1 5 2 6 3 7 4 8];
+% define the colors
+% stim_colors = [color_scheme;tint_colormap(color_scheme,0.5)];
+stim_colors = [repmat(dataset_colors(2,:),4,1);repmat(dataset_colors(1,:),4,1)];
+
+% get the real ratio
+real_ratio = cat(1,mean_cell{:,3});
+
+% plot
+h = plotSpread(real_ratio(stim_order,:)','distributionColors',stim_colors(stim_order,:),'showMM',4);
+
+% for all the colors
+for colors = 1:length(stim_order)
+    if mod(colors,2) == 0
+        marker = 'o';
+    else
+        marker = 'o';
+    end
+    set(h{1}(colors),'markersize',5,'marker',marker)
+end
+
+set(h{3},'XTick',[])
+set(h{2}(1),'Color','k','LineWidth',1)
+set(h{2}(2),'Color','k','LineWidth',1)
+
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = strjoin({'classSummaryTime',name,suffix},'_');
+fig_set(1).fig_size = 4;
+
+h = style_figure(gcf,fig_set);
+%% Test the success ratios
+
+% for all the pairs
+for pair = 1:2:8
+    ranksum(real_ratio(stim_order(pair),:),real_ratio(stim_order(pair+1),:))
+end
 %% Plot varying numbers of neurons
 
 % if there is only internal subsampling (i.e. there's regions), skip
@@ -942,6 +1012,8 @@ if subsample == 4 && num_data == 4
     % get the cell vector
     % TODO get from structure
     cell_vector = [5 10 20 40 80 100 150];
+    
+%     cell_vector = [20 40 60 80 100];
     % get the number of cell groups used
     cell_groups = length(cell_vector);
     
@@ -988,6 +1060,10 @@ if subsample == 4 && num_data == 4
         end
 
     end
+    % build the label vector
+    cell_labels = string(cell_vector);
+    cell_labels(end) = 'All';
+    set(gca,'YLim',[0 1],'XTick',cell_vector(1:2:end),'XTickLabels',cell_labels(1:2:end),'XTickLabelRotation',45)
 %     set(gca,'TickLength',[0 0])
 %     set(gca,'TickLength',[0 0])
 %     set(gca,'XTick',1:num_data/2,'XTickLabels',dataset_labels,'FontSize',fontsize,...
@@ -1017,7 +1093,7 @@ if subsample == 4 && num_data == 4
     
     fig_set(1).fig_path = fig_path;
     fig_set(1).fig_name = strjoin({'classDismissal',name,suffix},'_');
-    fig_set(1).fig_size = 4;
+    fig_set(1).fig_size = [4 3];
     
     h = style_figure(gcf,fig_set);
 %     
@@ -1029,5 +1105,5 @@ end
 
 % for all the cell groups
 for cells = 1:cell_groups
-    p = signrank(mean_cell{1,cells},mean_cell{2,cells})
+    p = ranksum(mean_cell{1,cells},mean_cell{2,cells})
 end
