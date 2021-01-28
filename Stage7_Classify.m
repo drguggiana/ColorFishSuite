@@ -41,7 +41,7 @@ subsample = 2;
 % combine regions
 region_combination = 1;
 %define whether to shuffle labels (for neutral classification)
-shuff_label = 1;
+shuff_label = 0;
 %define the number of classes per color (1,3,5,or 8) (or 10,11 and 12 for the
 %p6p8 data)
 % 14,15,16 is the comparison between the p8 red vs UV , including the p17b only

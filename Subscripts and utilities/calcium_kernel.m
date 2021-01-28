@@ -11,9 +11,9 @@ group_colors = paths.afOT_colors;
 % define whether to calculate kernels or use them
 calculate_kernels = 0;
 % define whether to use data or save an artificial kernel
-data_kernel = 1;
+data_kernel = 0;
 %define whether to reconv or not
-reconv_var = 1;
+reconv_var = 2;
 
 
 % set the data framerate (from the data files)
@@ -66,6 +66,10 @@ end
 % time_num = main_file.time_num;
 
 load(name_cell{1});
+
+main_path = paths.stage3_path;
+data = load_clusters(main_path);
+
 %% Calculate a calcium kernel based on the onset of each stimulus
 
 if calculate_kernels == 1
@@ -90,7 +94,7 @@ if calculate_kernels == 1
         % define the length
         kernel_str(1).kernel_length = pulse_ext;
         % define the time constant
-        kernel_str(1).kernel_tau = 1.2;
+        kernel_str(1).kernel_tau = 0.3;
         % define the scale
         kernel_str(1).kernel_scale = 1;
         %provide code to calculate a custom kernel
@@ -166,8 +170,8 @@ if calculate_kernels == 0
     
     % define the kernels to use for deconvolution and convolution
     deconv_kernel = kernel_str(contains({kernel_str.ori_name},'p17b_syngc6s')).kernel;
-%     conv_kernel = kernel_str(contains({kernel_str.ori_name},'Artificial')).kernel;
-    conv_kernel = kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel;
+    conv_kernel = kernel_str(contains({kernel_str.ori_name},'Artificial')).kernel;
+%     conv_kernel = kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel;
     reconv_kernel = conv_kernel;
 
     %get the number of total time frames (per trace)
@@ -185,52 +189,52 @@ if calculate_kernels == 0
     %if reconv is desired
     switch reconv_var
         case 1
-        %allocate memory for the reconvolved traces
-        conv_trace = zeros(size(deconv_trace));
-        %now convolve each trace with the nuclear kernel
-        %for all the traces
-        for traces = 1:trace_num
-            temp = conv(deconv_trace(traces,:),reconv_kernel);
-            conv_trace(traces,:) = temp(1:trace_time);
-        end
+            %allocate memory for the reconvolved traces
+            conv_trace = zeros(size(deconv_trace));
+            %now convolve each trace with the nuclear kernel
+            %for all the traces
+            for traces = 1:trace_num
+                temp = conv(deconv_trace(traces,:),reconv_kernel);
+                conv_trace(traces,:) = temp(1:trace_time);
+            end
 
-        %plot both data sets
-        figure
-        imagesc(normr_1(conc_trace,0))
-        figure
-        imagesc(normr_1(deconv_trace,0))
-        figure
-        imagesc(normr_1(conv_trace,0))
+            %plot both data sets
+            figure
+            imagesc(normr_1(conc_trace,0))
+            figure
+            imagesc(normr_1(deconv_trace,0))
+            figure
+            imagesc(normr_1(conv_trace,0))
 
-        figure
-        tar_trace = 1;
-        plot(conc_trace(tar_trace,:),'r')
-        hold('on')
-        plot(deconv_trace(tar_trace,:),'b')
-        plot(conv_trace(tar_trace,:),'m')
-        
-        figure
-        temp_kernel = kernel_calc_1(conv_trace,stim_num2,time_num,0,'mean',fr,pulse_ext);
-        plot(time_vec, temp_kernel,'Color','c');
-        hold on
-        plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_syngc6s')).kernel,'Color',group_colors(2,:))
-        plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel,'Color',group_colors(1,:))
-%         legend({'Convolved','Original','Target'})
-        
-        % format the figure for printing
-        % create the settings
-        fig_set = struct([]);
-        
-        fig_set(1).fig_path = fig_path;
-        fig_set(1).fig_name = strjoin({'kernels.eps'},'_');
-        fig_set(1).fig_size = 3.6;
-        
-        fig_set(1).box = 'off';
-%         fig_set(1).painters = 1;
-        h = style_figure(gcf,fig_set);
+            figure
+            tar_trace = 1;
+            plot(conc_trace(tar_trace,:),'r')
+            hold('on')
+            plot(deconv_trace(tar_trace,:),'b')
+            plot(conv_trace(tar_trace,:),'m')
 
-        %save the reconvolved trace for clustering
-    %     conc_trace = reconv_trace;
+            figure
+            temp_kernel = kernel_calc_1(conv_trace,stim_num2,time_num,0,'mean',fr,pulse_ext);
+            plot(time_vec, temp_kernel,'Color','c');
+            hold on
+            plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_syngc6s')).kernel,'Color',group_colors(2,:))
+            plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel,'Color',group_colors(1,:))
+    %         legend({'Convolved','Original','Target'})
+
+            % format the figure for printing
+            % create the settings
+            fig_set = struct([]);
+
+            fig_set(1).fig_path = fig_path;
+            fig_set(1).fig_name = strjoin({'kernels.eps'},'_');
+            fig_set(1).fig_size = 3.6;
+
+            fig_set(1).box = 'off';
+    %         fig_set(1).painters = 1;
+            h = style_figure(gcf,fig_set);
+
+            %save the reconvolved trace for clustering
+        %     conc_trace = reconv_trace;
 
         case 0
         %if no reconv, just load the deconv trace for clustering
@@ -251,18 +255,40 @@ if calculate_kernels == 0
             imagesc(conv_trace)
 
             figure
-            tar_trace = 1;
-            plot(conc_trace(tar_trace,:),'r')
-            hold('on')
-            plot(conv_trace(tar_trace,:),'b')
+            offset = 0;
+            offset_add = 1.2;
+            % for all the stimuli
+            for stim = 1:data.stim_num
+                % define the time segment to plot
+                time_seg = (1:80)+(stim-1)*80;
 
-            figure
-            temp_kernel = kernel_calc_1(conv_trace,stim_num2,time_num,0,'mean',fr,pulse_ext);
-            plot(time_vec,temp_kernel);
-            hold on
-            plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_syngc6s')).kernel)
-            plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel)
-            legend({'Convolved','Original','Target'})
+                plot(normr_1(mean(conc_trace(:,time_seg),1),0)+offset,'c')
+                hold('on')
+                plot(normr_1(mean(conv_trace(:,time_seg),1),0)+offset,'Color',group_colors(1,:))
+                plot(normr_1(mean(data.conc_trace(:,time_seg),1),0)+offset,'Color',group_colors(2,:));
+                
+                offset = offset + offset_add;
+            end
+            
+            set(gca,'YTick',[])
+            % create the settings
+            fig_set = struct([]);
+
+            fig_set(1).fig_path = fig_path;
+            fig_set(1).fig_name = strjoin({'delayed_trace.eps'},'_');
+            fig_set(1).fig_size = 3.6;
+
+            fig_set(1).box = 'off';
+    %         fig_set(1).painters = 1;
+            h = style_figure(gcf,fig_set);
+
+%             figure
+%             temp_kernel = kernel_calc_1(conv_trace,stim_num2,time_num,0,'mean',fr,pulse_ext);
+%             plot(time_vec,temp_kernel);
+%             hold on
+%             plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_syngc6s')).kernel)
+%             plot(time_vec,kernel_str(contains({kernel_str.ori_name},'p17b_gc6s')).kernel)
+%             legend({'Convolved','Original','Target'})
 
     end
     %% save the modified dataset

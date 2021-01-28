@@ -805,8 +805,93 @@ for stim = 1:stim_num
     
 end
 end
-%% Plot the gradients
+%% Compare the profiles statistically
+
 if contains(data.name,'p17b')
+    close all
+    % define the number of bins to use
+    nbins = 5;
+    % allocate memory for the splits
+    split_cell = cell(3,2);
+    for dims = 1:3
+        figure
+        % allocate memory for the comparisons
+        comparison_matrix = zeros(stim_num,stim_num,nbins);
+        switch dims
+            case 1
+%                 x_label = {'A','P'};
+                start = 171;
+                stop = 531;
+%                 split_int = [1:36:360];
+            case 2
+%                 x_label = {'L','M'};
+                start = 112;
+                stop = 310;
+%                 split_int = [1:19:198];
+            case 3
+%                 x_label = {'D','V'};
+                start = 67;
+                stop = 124;
+%                 split_int = [];
+        end
+        
+        % define the splits
+        delta = stop-start+1;
+        split_int = round([1:delta/nbins:delta;...
+            delta/nbins:delta/nbins:delta+1]);
+        % save for later
+        split_cell{dims,1} = split_int;
+        % for all the bins
+        for bins = 1:nbins
+            % assemble the matrix for plotting
+            cat_matrix = cat(3,fish_cell{:,dims});
+            % trim to the current bin
+            cat_matrix = cat_matrix(start:stop,:,:);
+            cat_matrix = cat_matrix(split_int(1,bins):split_int(2,bins),:,:);
+
+            % normalize the matrices
+            matrix_max = max(cat_matrix(:));
+            cat_matrix = cat_matrix./matrix_max;
+
+            % get the list of combinations
+            list_comb = nchoosek(1:stim_num,2);
+            % get the number of combinations
+            number_comb = size(list_comb,1);
+
+            % for all the combinations
+            for combo = 1:number_comb
+
+
+                    % get the corresponding profiles
+                    prof_1 = reshape(cat_matrix(:,:,list_comb(combo,1)),[],1);
+                    prof_2 = reshape(cat_matrix(:,:,list_comb(combo,2)),[],1);
+                    
+%                     % if only nans, skip
+%                     if all(isnan(prof_1)) || all(isnan(prof_2))
+%                         comparison_matrix(list_comb(combo,1),list_comb(combo,2),bins) = NaN;
+%                         continue
+%                     end
+                    % run the comparison
+                    comparison_matrix(list_comb(combo,1),list_comb(combo,2),bins) = signrank(prof_1,prof_2).*number_comb;
+                    comparison_matrix(list_comb(combo,2),list_comb(combo,1),bins) = signrank(prof_1,prof_2).*number_comb;
+            end
+        end
+        
+%         nan_vector = isnan(comparison_matrix);
+        comparison_matrix = comparison_matrix<0.05;
+        % store the matrix
+        split_cell{dims,2} = comparison_matrix;
+%         comparison_matrix(nan_vector) = 0.5;
+        % plot the matrix
+        for bins  = 1:nbins
+            subplot(round(sqrt(nbins)),ceil(sqrt(nbins)),bins)
+            imagesc(comparison_matrix(:,:,bins))
+            colormap(jet)
+        end
+%         title(projection_labels{dims})
+    end
+    autoArrangeFigures
+%% Plot the gradients
 
 close all
 
@@ -818,15 +903,15 @@ for dims = 1:3
     
     switch dims
         case 1
-            x_label = {'A','P'};
+%             x_label = {'A','P'};
             start = 171;
             stop = 531;
         case 2
-            x_label = {'L','M'};
+%             x_label = {'L','M'};
             start = 112;
             stop = 310;
         case 3
-            x_label = {'D','V'};
+%             x_label = {'D','V'};
             start = 67;
             stop = 124;
     end
@@ -849,8 +934,10 @@ for dims = 1:3
     sem_matrix = sem_matrix./matrix_max;
     
     % define the offset
-%     offset = max(ave_matrix(:)+sem_matrix(:));
-    offset = 1.5;
+%     offset = 1.5;
+    offset = 2.2;
+    % define the offset for the confidence lines
+    mini_offset = -0.2;
 
     figure
     % for all the stimuli
@@ -861,7 +948,41 @@ for dims = 1:3
         shadedErrorBar(1:length(ave_matrix),ave_matrix(:,stim)+eff_offset,sem_matrix(:,stim),...
             {'Color',colors(stim,:)},0)
         hold on
-        plot([1,length(ave_matrix)],[0 0]+eff_offset,'--','Color',colors(stim,:))
+%         plot([1,length(ave_matrix)],[0 0]+eff_offset,'--','Color',colors(stim,:))
+        
+        % plot the significance lines
+%         % get the top of the plot
+%         plot_top = max((ave_matrix(:,stim)+eff_offset)+sem_matrix(:,stim))+mini_offset;
+        % get the splits
+        split_int = split_cell{dims,1};
+        % reset the offset
+        mini_count = mini_offset;
+        % for the remaining stim
+        for stim2 = 1:stim_num
+            % if it's the current stim, skip
+            if stim == stim2
+                continue
+            end
+            % for all the bins
+            for bins = 1:nbins
+                p_vector = split_cell{dims,2}(stim,stim2,bins);
+                
+                % define the color
+                if p_vector
+                    color = colors(stim2,:);
+                else
+                    continue
+                end
+                % get the line coordinates
+                x = split_int(1,bins):split_int(2,bins);
+                y = eff_offset.*ones(size(x))+mini_count;
+                
+                plot(x,y,'Color',color)
+                
+            end
+            % update the offset
+            mini_count = mini_count + mini_offset;
+        end
     
     end
     
@@ -870,7 +991,7 @@ for dims = 1:3
     
     fig_set(1).fig_path = fig_path;
     fig_set(1).fig_name = strjoin({'topo',projection_labels{dims},data.name,'.eps'},'_');
-    fig_set(1).fig_size = 2.91;
+    fig_set(1).fig_size = [2.91 3.5];
     fig_set(1).painters = 0;
 %     fig_set(1).Title = projection_labels{dims};
     fig_set(1).painters = 1;
@@ -879,63 +1000,8 @@ for dims = 1:3
     h = style_figure(gcf,fig_set);
 end
 % error('stop here')
-%% Compare the profiles statistically
-    close all
-    for dims = 1:3
-        figure
-        % allocate memory for the comparisons
-        comparison_matrix = zeros(stim_num,stim_num);
-        switch dims
-            case 1
-%                 x_label = {'A','P'};
-                start = 171;
-                stop = 531;
-            case 2
-%                 x_label = {'L','M'};
-                start = 112;
-                stop = 310;
-            case 3
-%                 x_label = {'D','V'};
-                start = 67;
-                stop = 124;
-        end
-        % assemble the matrix for plotting
-        cat_matrix = cat(3,fish_cell{:,dims});
-        % Trim the matrices laterally to avoid zeros
-    %     product = prod(ave_matrix,2);
-    %     % find the edges and trim (use to set the range, but lock after to do
-    %     the same across datasets)
-    %     start = find(product,1,'first');
-    %     stop = find(product,1,'last');
-
-        cat_matrix = cat_matrix(start:stop,:,:);
-
-        % normalize the matrices
-        matrix_max = max(cat_matrix(:));
-        cat_matrix = cat_matrix./matrix_max;
-        
-        % get the list of combinations
-        list_comb = nchoosek(1:stim_num,2);
-        % get the number of combinations
-        number_comb = size(list_comb,1);
-        
-        % for all the combinations
-        for combo = 1:number_comb
-            
-            % get the corresponding profiles
-            prof_1 = reshape(cat_matrix(:,:,list_comb(combo,1)),[],1);
-            prof_2 = reshape(cat_matrix(:,:,list_comb(combo,2)),[],1);
-            
-            % run the comparison
-            comparison_matrix(list_comb(combo,1),list_comb(combo,2)) = signrank(prof_1,prof_2);
-        end
-        
-        % plot the matrix
-        imagesc(comparison_matrix<0.05)
-        title(projection_labels{dims})
-    end
-    autoArrangeFigures
 end
+% error('stop here')
 %% Calculate the overlap between stimuli and compare to reps
 
 % get the single reps
@@ -1059,10 +1125,11 @@ full_reps = cat(3,single_matrices{:,1});
 
 % allocate memory for the significance
 significance_matrix = zeros(stim_num);
-% get the significance value for each position
+% get the significance value for each position, accounting for multiple
+% comparisons
 for el = 1:stim_num^2
     [x,y] = ind2sub([stim_num,stim_num],el);
-    significance_matrix(x,y) = signrank(squeeze(full_reps(x,y,:)-mean(full_control(x,y,:),3)));
+    significance_matrix(x,y) = signrank(squeeze(full_reps(x,y,:)-mean(full_control(x,y,:),3))).*number_combinations;
     
 end
 

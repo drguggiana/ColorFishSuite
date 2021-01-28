@@ -131,7 +131,16 @@ for files = 1:num_data
     pca_vec = ones(stim_num2,1).*1;
 
     %define the vector of cluster numbers to try
-    clu_vec = [5 10 20 30 50 70];
+%     switch ori_name
+%         case 'p17b_gc6s'
+%             clu_vec = 50;
+%         case 'p17b_syngc6s'
+%             clu_vec = 30;
+%         case 'p17b_h2b6s'
+%             clu_vec = 100;
+%         otherwise
+            clu_vec = [5 10 20 30 50 70];
+%     end
     
     replicates = 20;
     
@@ -214,6 +223,20 @@ for files = 1:num_data
     snr_mat = snr_mat.snr_mat;
     
     [idx_clu,clu_num] = cluster_snr(snr_mat,clu_num,idx_clu,num_thres,stim_thres);
+    %% Renumber clusters based on number of traces
+    
+    % get the numbers of traces for each cluster
+    [idx_count,edges] = histcounts(idx_clu,(1:clu_num+1)-0.5);
+    % sort and get the LUT
+    [~,idx_sort] = sort(idx_count,'descend');
+    % allocate memory for the replacement index
+    idx_new = zeros(size(idx_clu));
+    % for all the clusters
+    for clu = 1:clu_num
+        idx_new(idx_clu==idx_sort(clu)) = clu;
+    end
+    % replace the original idx_clu
+    idx_clu = idx_new;
     %% Calculate the cluster average
     
     %allocate memory for the averages
@@ -311,103 +334,6 @@ for files = 1:num_data
     
     ave_stack = load(name_cell{files,1},'cat_stack_all');
     ave_stack = ave_stack.cat_stack_all;
-    %% OFF Merge clusters that are too correlated
-    % close all
-    % % calculate the cluster averages
-    % %allocate memory for the averages
-    % clu_ave = zeros(clu_num,size(conc_trace,2));
-    % %and for the trace number
-    % clu_number = zeros(clu_num,1);
-    % %for all the clusters
-    % for clu = 1:clu_num
-    %     %calculate the cluster average
-    %     clu_ave(clu,:) = mean(conc_trace(idx_clu==clu,:),1);
-    %     %and store the number of traces going into each average
-    %     clu_number(clu) = sum(idx_clu==clu);
-    % end
-    % 
-    % 
-    % % calculate the correlation matrix across clusters
-    % [corr_matrix, pval] = corr(clu_ave');
-    % % corr_matrix = squareform(pdist(clu_ave));
-    % 
-    % % define the correlation threshold
-    % corr_threshold = 0.90;
-    % % define the pval threshold
-    % pval_threshold = 0.05;
-    % 
-    % figure
-    % subplot(1,2,1)
-    % imagesc(corr_matrix)
-    % subplot(1,2,2)
-    % imagesc(pval<pval_threshold&corr_matrix>corr_threshold)
-    % figure
-    % imagesc(normr_1(clu_ave,1))
-    % % produce a list of the correlated clusters
-    % [row, col] = find(tril(pval<pval_threshold&corr_matrix>corr_threshold,1));
-    % 
-    % % use the list to plot these clusters together
-    % figure
-    % % initialize a counter to lift the plots
-    % lift_count = 0;
-    % % get the increase interval
-    % lift_interval = 0.95*max(clu_ave(:));
-    % % for all the pairs
-    % for pairs = 1:length(row)
-    %     % plot the pairs together
-    %     plot(1:size(clu_ave,2), clu_ave(row(pairs),:) - lift_count,'k')
-    %     hold('on')
-    %     plot(1:size(clu_ave,2), clu_ave(col(pairs),:) - lift_count,'r')
-    %     % increase the counter
-    %     lift_count = lift_count + lift_interval;
-    % end
-    % 
-    % % merge the clusters by combining their indexes
-    % % for all the pairs
-    % for pairs = 1:length(row)
-    %     
-    % end
-    % 
-    % figure
-    % histogram(tril(corr_matrix,1))
-    %% OFF OLD FOR P6 FIGURE ONLY
-
-    % if exc_var == 1
-    %     exc_stim = [1:4,6,8,11,12,13,15];
-    %     
-    %     %get the new number of stimuli
-    %     new_stim = stim_num2-length(exc_stim);
-    %     %allocate memory for the new stim matrix
-    %     exc_trace = zeros(size(conc_trace,1),time_num.*new_stim);
-    %     %and for the new color code matrix
-    %     new_col = zeros(new_stim,time_num,8);
-    %     %initialize a time trace stim counter (to index the time trace)
-    %     stim_c = 1;
-    %     
-    %     %for all the stimuli
-    %     for stim = 1:stim_num2
-    %         %if the stimulus is not in the exclusion matrix
-    %         if ~any(stim==exc_stim)
-    %             %add it to the new matrix
-    %             exc_trace(:,stim_c:stim_c+time_num-1) = conc_trace(:,1+time_num*(stim-1):time_num*stim);
-    %             %and add the color code
-    %             new_col((stim_c-1+time_num)/time_num,:,:) = col_out(stim,:,:);
-    %             %update the counter
-    %             stim_c = stim_c + time_num;
-    %         end
-    %     end
-    %     
-    %     % figure
-    %     % imagesc(conc_trace)
-    %     % figure
-    %     % imagesc(exc_trace)
-    %     
-    %     %rewrite the conc_trace and stim_num2 variables
-    %     stim_num2 = new_stim;
-    %     conc_trace = exc_trace;
-    %     %also modify the color code variable
-    %     col_out = new_col;
-    % end
     %% Add the framerate and official name based on the dataset
     % can technically extract it from the original data folders, but for
     % now this'll do

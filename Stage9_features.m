@@ -23,6 +23,33 @@ else
 end
 % get the number of data sets
 num_data = size(data,2);
+%% Plot the stimuli
+
+close all
+figure
+count = 0;
+
+% imagesc(normr_1(data(2).conc_trace,0))
+% hold on
+% for all the stimuli
+for stim = 1:data(2).stim_num
+    x = (1:size(data(2).col_out(stim,:,stim),2))+count;
+    y = normr_1(data(2).col_out(stim,:,stim),0).*1;
+    plot(x,y,'Color',color_scheme(stim,:))
+    hold on
+    count = count + length(x);
+end
+
+set(gca,'XTick',[],'YTick',[],'visible','off','YDir','normal')
+axis tight
+% create the settings
+fig_set = struct([]);
+
+fig_set(1).fig_path = fig_path;
+fig_set(1).fig_name = strjoin({'Stimulus_trace',data(1).name,'.eps'},'_');
+fig_set(1).fig_size = [4 0.4];
+
+h = style_figure(gcf,fig_set);
 %% OFF Define a subset of areas to work with
 
 
@@ -243,13 +270,22 @@ for datas = 1:num_data
     % plot the results
     for param = 1:param_num
         figure
-        [h,L,MX,MED] = violin(squeeze(calcium_matrix(:,:,param)),'mc',[],'medc','k','facealpha',1);
-        set(L,'visible','off')
+%         [h,L,MX,MED] = violin(squeeze(calcium_matrix(:,:,param)),'mc',[],'medc','k','facealpha',1);
+%         set(L,'visible','off')
+%         % for all the stimuli
+%         for stim = 1:data(datas).stim_num
+%             set(h(stim),'facecolor',color_scheme(stim,:))
+%         end
+
+        violins = violinplot(squeeze(calcium_matrix(:,:,param)),[],'Bandwidth',0.05,'ViolinAlpha',1,'ShowData',false);
         % for all the stimuli
         for stim = 1:data(datas).stim_num
-            set(h(stim),'facecolor',color_scheme(stim,:))
+            violins(stim).ViolinColor = cone_color_scheme(stim,:);
+            violins(stim).EdgeColor = cone_color_scheme(stim,:);
+            violins(stim).MedianPlot.SizeData = 10;
+            violins(stim).MedianPlot.MarkerEdgeColor = cone_color_scheme(stim,:);
         end
-        hold on
+%         hold on
         set(gca,'XTick',[],'TickLength',[0 0],'LineWidth',3)
         
         axis tight
@@ -420,19 +456,19 @@ if contains(data(1).name,'p17b')
 %         fig('units','centimeters','height',6,'width',9,'fontsize',20)
         figure
         
-%         violin(plot_matrix);
-        plotSpread(plot_matrix,'distributionColors',cone_color_scheme.*2);
-%         boxplot(plot_matrix)
+        violins = violinplot(plot_matrix,[],'Bandwidth',0.1,'ViolinAlpha',0.5,'ShowData',true);
+        % for all the stimuli
+        for stim = 1:data(datas).stim_num
+            violins(stim).ViolinColor = cone_color_scheme(stim,:);
+            violins(stim).EdgeColor = cone_color_scheme(stim,:);
+            violins(stim).MedianPlot.SizeData = 10;
+            violins(stim).MedianPlot.MarkerEdgeColor = cone_color_scheme(stim,:);
+        end
+        %         plotSpread(plot_matrix,'distributionColors',cone_color_scheme.*2);
         set(gca,'XTick',[],'TickLength',[0 0])
         axis tight
-%         title(data(datas).figure_name,'FontName','Arial')
         ylabel('Gain (a.u.)','FontName','Arial')
-%         set(gca,'FontSize',fontsize,'LineWidth',2)
-%         file_path = fullfile(fig_path,strjoin({'Gain',data(datas).name,'.png'},'_'));
-% %         print(fullfile(fig_path,file_path),'-dpng','-r600')
-%         set(gcf,'Color','w')
-%         export_fig(file_path,'-r600')
-        
+
         
         % create the settings
         fig_set = struct([]);
@@ -440,6 +476,7 @@ if contains(data(1).name,'p17b')
         fig_set(1).fig_path = fig_path;
         fig_set(1).fig_name = strjoin({'Gain',data(datas).name,'.eps'},'_');
         fig_set(1).fig_size = 4;
+        fig_set(1).painters = 1;
         
         h = style_figure(gcf,fig_set);
         
@@ -753,8 +790,17 @@ if contains(data(1).name,'p17b')
         fig_set(6).fig_size = 3.6;
         
         h = style_figure(gcf,fig_set);
+        %% Plot the on and off traces
+        figure
+        % sort by on off
+        [~,sorted_idx] = sort(data(datas).delta_norm(:,1));
+        % also sort the red traces
+        sorted_trace = data(datas).conc_trace(sorted_idx,21:60);
+        % plot
+        imagesc(normr_1(sorted_trace,0))
         
     end
+    
 end
 %% Load the Zhou et al. data
 

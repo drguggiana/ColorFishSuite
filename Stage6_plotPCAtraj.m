@@ -650,8 +650,8 @@ for combos = 1:number_combos
     
     distance1 = squeeze(normr_1(distance_cell{1}(combos,:,:),1));
     distance2 = squeeze(normr_1(distance_cell{2}(combos,:,:),1));
-
-    test_medians(combos) = ranksum(distance1(:),distance2(:));
+    % run the test, correcting for multiple comparisons
+    test_medians(combos) = ranksum(distance1(:),distance2(:)).*number_combos;
     
 end
 

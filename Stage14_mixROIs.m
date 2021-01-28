@@ -27,6 +27,10 @@ else
 end
 % get the number of data sets
 num_data = size(data,2);
+% % flip the data is RA or RGC at the bottom
+% if strcmp(data(1).name,'p17b_gc6s')
+%     data = data([2 1]);
+% end
 %% Calculate correlation matrix and sort to look for correspondence
 
 % close all
@@ -348,6 +352,34 @@ if contains(data(1).name,'p17b')
 %     fig_set(3).cmap = cmap;
     
     h = style_figure(gcf,fig_set);
+    %% Plot the average response (only for delayed dataset)
+    
+    % select the original p17b datasets plus the delayed one
+    if length(data) == 3
+        close all
+        
+        figure
+        
+        % for all the datasets
+        for datas = 1:3
+            % find the cluster with the max number of traces
+            [~,max_traces] = max(data(datas).clu_number);
+            % get the cluster traces
+            cluster_traces = normr_1(data(datas).conc_trace(data(datas).idx_clu==max_traces,21:60),0);
+            % calculate the average response
+            average_response = mean(cluster_traces,1);
+            % get the standard deviation
+            std_response = std(cluster_traces,0,1);
+            % get the x axis
+            x = 1:size(average_response,2);
+            % plot
+%             shadedErrorBar(x,average_response,std_response)
+            plot(x,average_response)
+            hold on
+        end
+        
+    end
+    
     %% Compare types
 %     close all
 %     

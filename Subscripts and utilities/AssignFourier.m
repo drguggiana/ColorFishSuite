@@ -3,7 +3,6 @@ function [four_out,qual_out] = AssignFourier(tar_trace,startFrame,endFrame,des_f
 %         graph: The unit to which the timeseries fourier transform should be assigned
 %         startFrame: The start-frame in the timeseries of the considered fragment
 %         endFrame: The end-frame in the timeseries of the considered fragment
-%         suffix: Gets added to the end of the attribute name to which transforms will be assigned
 %         aggregate: If True AND the timeseries is a multiple of 2 period lengths
 %         transforms will be computed on an average of beginning and end half of the timeseries
 %     """

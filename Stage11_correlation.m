@@ -1177,8 +1177,8 @@ for combo = 1:combo_number
     result_matrix(combo_list(combo,1),combo_list(combo,2)) = median(data1(:));
     result_matrix(combo_list(combo,2),combo_list(combo,1)) = median(data2(:));
     
-    % test
-    test_matrix(combo) = ranksum(abs(data1(:)),abs(data2(:)));
+    % test, adjusting for multiple comparisons
+    test_matrix(combo) = ranksum(abs(data1(:)),abs(data2(:))).*combo_number;
     
 %     xlabel(stim_labels{combo_list(combo,1)})
 %     ylabel(stim_labels{combo_list(combo,2)})

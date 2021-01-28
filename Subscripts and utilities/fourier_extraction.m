@@ -1,12 +1,12 @@
 % Fourier analysis
-function [four_cat, qual_cat] = fourier_extraction(conc_trace,time_num,stim_num2)
+function [four_cat, qual_cat] = fourier_extraction(conc_trace,time_num,stim_num2,des_freq,frame_rate)
 %% Fourier assignment
 
 %define the parameters for the assignment
 startFrame = [1,23,61];
 endFrame = [20,60,80];
-des_freq = 0.15625;
-frame_rate = 1/0.800;
+% des_freq = 0.15625;
+% frame_rate = 1/0.800;
 aggregate = 1;
 
 all_trace = reshape(conc_trace,size(conc_trace,1),time_num,stim_num2);

@@ -8,7 +8,12 @@ stim_num2 = main_str(1).stim_num;
 col_out = main_str(1).col_out;
 %% Extract the Fourier power at the stimulus frequency
 
-[four_cat, qual_cat] = fourier_extraction(conc_trace,time_num,stim_num2);
+% define the imaging frame rate (the one used in the p17b experiments)
+frame_rate = 1/0.952;
+% define the desired oscillation frequency, based on the stimulus
+des_freq = 5/40;
+
+[four_cat, qual_cat] = fourier_extraction(conc_trace,time_num,stim_num2,des_freq,frame_rate);
 %% Now determine the gain from each cone to each cell
 % figure
 % errorbar(1:cone_num,mean(delta_signals,1),std(delta_signals,0,1)./sqrt(11))
@@ -33,8 +38,8 @@ load(fullfile(cone_exc_fpath,cone_exc_name))
 %extract the relevant portion of the fourier components
 curr_four = four_cat(:,5:8);
 
-%make the signals in the bottom 5th percentile 0
-curr_four(curr_four<prctile(curr_four(:),10)) = 0;
+% %make the signals in the bottom 10th percentile 0
+% curr_four(curr_four<prctile(curr_four(:),10)) = 0;
 %replace the values in the original fourier matrix
 four_cat(:,5:8) = curr_four;
 %% Perform the gain analysis

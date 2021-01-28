@@ -258,23 +258,28 @@ if subsample == 2 && num_data == 4
         class_cell_real = data_struct(datas).class;
         class_cell_shuff = data_struct(datas+1).class;
         
-        plot(x_counter,class_cell_real{1}{2},'o','MarkerEdgeColor',dataset_colors((datas+1)/2,:));
-        hold on
+%         plot(x_counter,class_cell_real{1}{2},'o','MarkerEdgeColor',dataset_colors((datas+1)/2,:));
+%         hold on
         % calculate the exact accuracy
-        mean_acc = mean(class_cell_real{1}{2});
+        mean_acc = mean(class_cell_real{1}{2})
+        sem_acc = std(class_cell_real{1}{2})./sqrt(length(class_cell_real{1}{2}))
         % store the accuracies for stats
         mean_cell{(datas+1)/2} = class_cell_real{1}{2};
         
-        plot(x_counter,mean_acc,'o','MarkerFaceColor',dataset_colors((datas+1)/2,:),...
-            'MarkerEdgeColor',dataset_colors((datas+1)/2,:))
+        errorbar(x_counter,mean_acc,sem_acc,'.','MarkerFaceColor',dataset_colors((datas+1)/2,:),...
+            'MarkerEdgeColor',dataset_colors((datas+1)/2,:),'Color',dataset_colors((datas+1)/2,:),...
+            'MarkerSize',13)
+        hold on
 %         std_acc = std(class_cell_real{1}{2});
 %         hold on
 %         errorbar(x_counter,mean_acc,std_acc,'o','MarkerFaceColor',[0 0 0],...
 %             'MarkerEdgeColor',[0 0 0],'Color',[0 0 0])
-        plot(x_counter,class_cell_shuff{1}{2},'o','MarkerEdgeColor',[0.5 0.5 0.5]);
+%         plot(x_counter,class_cell_shuff{1}{2},'o','MarkerEdgeColor',[0.5 0.5 0.5]);
         mean_shuf = mean(class_cell_shuff{1}{2});
-        plot(x_counter,mean_shuf,'o','MarkerFaceColor',[0.5 0.5 0.5],...
-            'MarkerEdgeColor',[0.5 0.5 0.5])
+        sem_shuf = std(class_cell_shuff{1}{2})./sqrt(length(class_cell_shuff{1}{2}));
+        errorbar(x_counter,mean_shuf,sem_shuf,'.','MarkerFaceColor',[0.5 0.5 0.5],...
+            'MarkerEdgeColor',[0.5 0.5 0.5],'Color',[0.5 0.5 0.5],...
+            'MarkerSize',13)
 %         std_shuf = std(class_cell_shuff{1}{2});
 %         errorbar(x_counter,mean_shuf,std_shuf,'o',...
 %             'MarkerFaceColor',[0.5 0.5 0.5],'MarkerEdgeColor',[0.5 0.5 0.5],...

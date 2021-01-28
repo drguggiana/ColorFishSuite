@@ -300,7 +300,7 @@ data_copy(1).conc_trace = downsample_full;
 
 % get the 10th percentile
 zero_threshold = prctile(abs(delta_norm),10,1);
-%         zero_threshold = prctile(abs(delta_norm),5,1);
+% zero_threshold = prctile(abs(delta_norm),5,1);
 % zero the values below a threshold
 delta_norm(abs(delta_norm)<zero_threshold&abs(delta_norm)>0) = 0;
 % turn negatives into -1 and positives into 1
@@ -399,24 +399,64 @@ for channel = 1:3
     end
     
 end
+%% Match the types based on Zhou et al
+
+% determine the total number of patterns
+total_number = max(size(pattern_full_conv,1),size(pattern_full,1));
+
+% determine th unique patterns in my data if any
+[unique_target,ia] = setdiff(pattern,pattern_ref,'stable','rows');
+
+% get the color patterns
+total_patterns = vertcat(pattern_full,pattern_full_conv(ia,:,:));
+total_list = vertcat(pattern_ref,pattern(ia,:));
+
+% get the counts
+ref_counts = vertcat(pattern_counts,zeros(size(unique_target,1),1));
+conv_counts = zeros(size(ref_counts));
+% allocate memory also for the indexes
+new_ref_idx = zeros(size(ic));
+new_conv_idx = zeros(size(ic_conv));
+% for all the types
+for types = 1:size(conv_counts,1)
+    
+    % get the vector for this type
+    target_type = sum(on_off_matrix==total_list(types,:),2)==4;
+    new_ref_idx(target_type) = types;
+    
+    target_type_conv = sum(delta_norm==total_list(types,:),2)==4;
+    new_conv_idx(target_type_conv) = types;
+    
+    % find the matching pattern ad get the counts
+    % if the pattern is not present, skip (leave 0)
+    target = sum(pattern==total_list(types,:),2)==4;
+    if sum(target)==0
+        continue
+    end
+    conv_counts(types) = pattern_counts_conv(target);
+end
 %% Compare types
 close all
 
 % assemble the comparison matrix
 
 % allocate memory for the matrix
-comparison_matrix = zeros(size(pattern_full_conv,1),size(pattern_full,1));
+% comparison_matrix = zeros(size(pattern_full_conv,1),size(pattern_full,1));
+comparison_matrix = zeros(size(total_list,1));
 
 % for all the traces
 for roi = 1:roi_number
     % get the row and column
-    row = find(sort_idx_conv==ic_conv(roi));
-    col = find(sort_idx==ic(roi));
+%     row = find(sort_idx_conv==ic_conv(roi));
+%     col = find(sort_idx==ic(roi));
+    row = new_conv_idx(roi);
+    col = new_ref_idx(roi);
     comparison_matrix(row,col) = comparison_matrix(row,col) + 1;
 end
 figure
 subplot('Position',[0 0.2 0.2 0.8])
-image(permute(pattern_full_conv,[1 2 3]))
+% image(permute(pattern_full_conv,[1 2 3]))
+image(permute(total_patterns,[1 2 3]))
 set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
 
 subplot('Position',[0.2 0.2 0.8 0.8])
@@ -426,7 +466,8 @@ cmap(1,:) = [1 1 1];
 colormap(gca,cmap)
 set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
 subplot('Position',[0.2 0 0.8 0.2])
-image(permute(pattern_full,[2 1 3]))
+% image(permute(pattern_full,[2 1 3]))
+image(permute(total_patterns,[2 1 3]))
 set(gca,'TickLength',[0 0],'XTick',[],'YTick',[])
 
 set(gcf,'Color','w')
@@ -437,8 +478,8 @@ fig_set = struct([]);
 
 fig_set(1).fig_path = fig_path;
 fig_set(1).fig_name = strjoin({'Convolution_types',data(1).name,'.eps'},'_');
-fig_set(1).fig_size = [5 4.7];
-fig_set(2).fig_size = [2 4.7];
+fig_set(1).fig_size = [5 4.8];
+fig_set(2).fig_size = [2 4.8];
 fig_set(3).fig_size = [5 2];
 % fig_set(3).colorbar = 1;
 % fig_set(3).colorbar_label = '# of ROIs';
